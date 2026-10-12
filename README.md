@@ -98,6 +98,19 @@ Responses use JSON. Expected validation errors return an explanatory 4xx respons
 
 See docs/REVERSE_ENGINEERING.md for the observed 1.x behavior, issues confirmed from source, compatibility decisions, and the manual verification matrix. The changes preserve the existing principal screen concepts and response keys while adding clearer validation, private project scoping, session recovery, and an explicit boundary around cloud operations.
 
+## Validation
+
+The GitHub Actions workflow runs the database-free backend contract tests and builds the frontend production bundle. For local checks, install the backend dependencies, then run the following from the repository root:
+
+    python -m compileall -q backend
+    cd backend
+    python -m unittest discover -s tests -v
+    cd ../frontend
+    npm ci
+    npm run build
+
+The health-check contract test simulates a PostgreSQL outage; the other included tests cover password-hash compatibility and JSON serialization. Full route-level integration tests against PostgreSQL are still a roadmap item.
+
 ## Roadmap
 
 1. Add a deployment runner interface with dry-run and queued-job states.
