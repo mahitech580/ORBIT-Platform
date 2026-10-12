@@ -1,192 +1,145 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
-export default function Deployments({ deployments, projects, loading, onDeploy, api }) {
+export default function Deployments({ deployments, projects, loading, onDeploy }) {
   const [showForm, setShowForm] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
   const [formData, setFormData] = useState({
-    project_id: projects.length > 0 ? projects[0].id : 1,
+    project_id: projects.length > 0 ? projects[0].id : '',
     version: '1.0.0',
     branch: 'main'
   });
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
+  const filteredDeployments = useMemo(() => statusFilter === 'all'
+    ? deployments
+    : deployments.filter(deployment => deployment.status === statusFilter), [deployments, statusFilter]);
+
+  const handleInputChange = event => {
+    const { name, value } = event.target;
+    setFormData(previous => ({
+      ...previous,
+      [name]: name === 'project_id' ? (value ? Number(value) : '') : value
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const success = await onDeploy(formData.project_id, formData);
+  const handleSubmit = async event => {
+    event.preventDefault();
+    if (!formData.project_id) return;
+    const success = await onDeploy(formData.project_id, {
+      version: formData.version.trim(),
+      branch: formData.branch.trim()
+    });
     if (success) {
-      setFormData({
-        project_id: projects.length > 0 ? projects[0].id : 1,
-        version: '1.0.0',
-        branch: 'main'
-      });
       setShowForm(false);
+      setFormData({ project_id: projects.length ? projects[0].id : '', version: '1.0.0', branch: 'main' });
     }
   };
 
-  const getProjectName = (projectId) => {
-    const project = projects.find(p => p.id === projectId);
-    return project ? project.name : 'Unknown Project';
+  const getProjectName = id => {
+    const project = projects.find(item => Number(item.id) === Number(id));
+    return project ? project.name : 'Unknown project';
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed':
-        return '#4CAF50';
-      case 'in-progress':
-        return '#2196F3';
-      case 'failed':
-        return '#f44336';
-      case 'pending':
-        return '#FF9800';
-      default:
-        return '#9E9E9E';
-    }
-  };
+  const getStatusColor = status => ({
+    completed: '#34d399',
+    'in-progress': '#818cf8',
+    failed: '#fb7185',
+    pending: '#fbbf24'
+  }[status] || '#94a3b8');
 
   return (
     <div className="page deployments-page">
       <div className="page-header">
-        <h1>Deployments</h1>
-        <button 
-          className="btn btn-primary"
-          onClick={() => setShowForm(!showForm)}
-          disabled={projects.length === 0}
-        >
-          {showForm ? 'Cancel' : '+ New Deployment'}
+        <div>
+          <p className="eyebrow">WORKSPACE / RELEASE HISTORY</p>
+          <h1>Deployments</h1>
+          <p className="page-subtitle">Review versioned deployment records and their recorded status.</p>
+        </div>
+        <button type="button" className="btn btn-primary" onClick={() => setShowForm(previous => !previous)} disabled={!projects.length}>
+          {showForm ? 'Cancel' : '＋ Record deployment'}
         </button>
       </div>
 
-      {projects.length === 0 && (
-        <div className="warning-banner">
-          <p>Create a project first before deploying</p>
-        </div>
-      )}
+      <div className="capability-notice">
+        <span className="notice-icon">i</span>
+        <p><strong>Tracking mode:</strong> ORBIT records deployment requests and history. This release does not run builds or provision cloud infrastructure.</p>
+      </div>
 
-      {/* Deploy Form */}
+      {!projects.length && <div className="warning-banner">Create a project before recording a deployment.</div>}
+
       {showForm && projects.length > 0 && (
-        <div className="form-card">
-          <h2>Start New Deployment</h2>
+        <section className="form-card deploy-form-card">
+          <p className="eyebrow">NEW RECORD</p>
+          <h2>Record a deployment</h2>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label>Project</label>
-              <select 
-                name="project_id" 
-                value={formData.project_id}
-                onChange={handleInputChange}
-              >
-                {projects.map(project => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
+              <label htmlFor="deployment-project">Project</label>
+              <select id="deployment-project" name="project_id" value={formData.project_id} onChange={handleInputChange} required>
+                {projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}
               </select>
             </div>
-
-            <div className="form-row">
+            <div className="form-grid">
               <div className="form-group">
-                <label>Version</label>
-                <input
-                  type="text"
-                  name="version"
-                  value={formData.version}
-                  onChange={handleInputChange}
-                  placeholder="e.g., 1.0.0"
-                  required
-                />
+                <label htmlFor="deployment-version">Version</label>
+                <input id="deployment-version" type="text" name="version" value={formData.version} onChange={handleInputChange} maxLength={80} placeholder="e.g. 2.0.0" required />
               </div>
-
               <div className="form-group">
-                <label>Branch</label>
-                <input
-                  type="text"
-                  name="branch"
-                  value={formData.branch}
-                  onChange={handleInputChange}
-                  placeholder="e.g., main"
-                  required
-                />
+                <label htmlFor="deployment-branch">Source branch</label>
+                <input id="deployment-branch" type="text" name="branch" value={formData.branch} onChange={handleInputChange} maxLength={200} placeholder="main" required />
               </div>
             </div>
-
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Deploying...' : 'Deploy Now'}
-            </button>
+            <div className="form-actions">
+              <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+              <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Saving…' : 'Create deployment record'}</button>
+            </div>
           </form>
-        </div>
+        </section>
       )}
 
-      {/* Deployments Timeline */}
-      <div className="section">
-        <h2>Deployment History</h2>
-        {deployments.length === 0 ? (
-          <p className="empty-message">No deployments yet.</p>
-        ) : (
-          <div className="deployment-timeline">
-            {deployments.map((deployment, index) => (
-              <div key={deployment.id} className="deployment-item">
-                <div className="deployment-dot" style={{ backgroundColor: getStatusColor(deployment.status) }}></div>
-                
-                <div className="deployment-content">
-                  <div className="deployment-header">
-                    <h3>{getProjectName(deployment.project_id)}</h3>
-                    <span className={`badge badge-${deployment.status}`}>
-                      {deployment.status}
-                    </span>
-                  </div>
-
-                  <div className="deployment-details">
-                    <p><strong>Version:</strong> {deployment.version}</p>
-                    <p><strong>Branch:</strong> {deployment.branch}</p>
-                    <p><strong>Date:</strong> {new Date(deployment.created_at).toLocaleString()}</p>
-                    {deployment.completed_at && (
-                      <p><strong>Completed:</strong> {new Date(deployment.completed_at).toLocaleString()}</p>
-                    )}
-                  </div>
-                </div>
-
-                {index < deployments.length - 1 && <div className="deployment-line"></div>}
-              </div>
-            ))}
-          </div>
-        )}
+      <div className="deployment-summary-grid">
+        <div className="mini-stat"><span>Total records</span><strong>{deployments.length}</strong></div>
+        <div className="mini-stat"><span>Completed</span><strong>{deployments.filter(item => item.status === 'completed').length}</strong></div>
+        <div className="mini-stat"><span>In progress</span><strong>{deployments.filter(item => item.status === 'in-progress').length}</strong></div>
+        <div className="mini-stat"><span>Failed</span><strong>{deployments.filter(item => item.status === 'failed').length}</strong></div>
       </div>
 
-      {/* Deployment Stats */}
-      <div className="section">
-        <h2>Deployment Statistics</h2>
-        <div className="stats-row">
-          <div className="stat-item">
-            <div className="stat-box">
-              <div className="stat-number">{deployments.length}</div>
-              <div className="stat-text">Total Deployments</div>
-            </div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-box">
-              <div className="stat-number">{deployments.filter(d => d.status === 'completed').length}</div>
-              <div className="stat-text">Successful</div>
-            </div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-box">
-              <div className="stat-number">{deployments.filter(d => d.status === 'in-progress').length}</div>
-              <div className="stat-text">In Progress</div>
-            </div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-box">
-              <div className="stat-number">{deployments.filter(d => d.status === 'failed').length}</div>
-              <div className="stat-text">Failed</div>
-            </div>
-          </div>
+      <div className="section-heading-row deployment-list-heading">
+        <div><h2>Deployment history</h2><p>Newest activity appears first.</p></div>
+        <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)} aria-label="Filter deployments by status">
+          <option value="all">All statuses</option>
+          <option value="in-progress">In progress</option>
+          <option value="pending">Pending</option>
+          <option value="completed">Completed</option>
+          <option value="failed">Failed</option>
+        </select>
+      </div>
+
+      {filteredDeployments.length === 0 ? (
+        <div className="empty-message enhanced-empty">
+          <div className="empty-icon">↗</div>
+          <h3>{deployments.length ? 'No records in this status' : 'No deployment records yet'}</h3>
+          <p>{deployments.length ? 'Choose a different status filter.' : 'Create a record to start building a version history for a project.'}</p>
         </div>
-      </div>
+      ) : (
+        <div className="deployment-timeline">
+          {filteredDeployments.map(deployment => (
+            <article key={deployment.id} className="deployment-item">
+              <div className="deployment-rail"><span className="deployment-dot" style={{ backgroundColor: getStatusColor(deployment.status) }} /></div>
+              <div className="deployment-content">
+                <div className="deployment-header">
+                  <div><p className="eyebrow">DEPLOYMENT #{String(deployment.id).padStart(4, '0')}</p><h3>{deployment.project_name || getProjectName(deployment.project_id)}</h3></div>
+                  <span className={'badge badge-' + deployment.status}>{deployment.status}</span>
+                </div>
+                <div className="deployment-meta-grid">
+                  <div><span>Version</span><strong>{deployment.version}</strong></div>
+                  <div><span>Branch</span><strong>{deployment.branch}</strong></div>
+                  <div><span>Created</span><strong>{deployment.created_at ? new Date(deployment.created_at).toLocaleString() : '—'}</strong></div>
+                  <div><span>Completed</span><strong>{deployment.completed_at ? new Date(deployment.completed_at).toLocaleString() : 'Not recorded'}</strong></div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
