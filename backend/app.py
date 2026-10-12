@@ -285,8 +285,9 @@ def register():
     if len(password) < 8:
         abort(400, description="Password must contain at least 8 characters.")
 
-    conn = get_db()
+    conn = None
     try:
+        conn = get_db()
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute(
@@ -308,14 +309,15 @@ def register():
         app.logger.exception("Registration database error")
         return jsonify({"error": "Registration is temporarily unavailable."}), 503
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 
 @app.route("/api/auth/login", methods=["POST"])
 def login():
     data = json_body()
     email = read_string(data, "email", required=True, max_length=255).lower()
-    password = read_string(data, "password", required=True, max_length=1024)
+    password = read_password(data)
 
     if email == DEMO_EMAIL and not DEMO_AUTH_ENABLED:
         return jsonify({"error": "The demo account is disabled in this environment."}), 401
