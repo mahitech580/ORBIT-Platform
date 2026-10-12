@@ -46,8 +46,9 @@ class HealthContractTests(unittest.TestCase):
         orbit.app.config["TESTING"] = True
         orbit.get_db = fail_connection
         try:
-            response = orbit.app.test_client().get("/health")
-            self.assertEqual(response.status_code, 503)
+            with orbit.app.app_context():
+                response, status_code = orbit.health()
+            self.assertEqual(status_code, 503)
             self.assertEqual(response.get_json()["database"], "unavailable")
         finally:
             orbit.get_db = original
