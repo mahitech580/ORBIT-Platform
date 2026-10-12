@@ -1,337 +1,124 @@
-# 🚀 ORBIT Platform
-
-A complete cloud deployment management system built with **Python Flask**, **React**, and **PostgreSQL**.
-
-## 📋 Tech Stack
-
-- **Backend**: Python 3.10+ (Flask)
-- **Frontend**: React 18 (Vite)
-- **Database**: PostgreSQL 14+
-- **Only**: HTML, CSS, JavaScript, ReactJS, Python, SQL
-
-## 🎯 Features
+# ORBIT Platform 2.0
 
-✅ User authentication with JWT  
-✅ Project management  
-✅ Deployment tracking  
-✅ Metrics & monitoring  
-✅ Real-time dashboard  
-✅ Responsive UI  
+ORBIT is a project operations workspace built with React, Vite, Flask, and PostgreSQL. Version 2.0 focuses on safer account handling, user-scoped project data, reliable local configuration, usable project management, and honest deployment-status reporting.
 
-## 📂 Project Structure
+## What it does
 
-```
-ORBIT-CLEAN/
-├── backend/
-│   ├── app.py              # Flask API server
-│   └── requirements.txt     # Python dependencies
-├── frontend/
-│   ├── index.html          # HTML entry
-│   ├── vite.config.js      # Vite config
-│   ├── package.json        # NPM dependencies
-│   └── src/
-│       ├── App.jsx         # Main React component
-│       ├── main.jsx        # React entry point
-│       ├── pages/          # Page components
-│       ├── components/     # Reusable components
-│       └── css/            # Stylesheets
-├── database/
-│   └── schema.sql          # PostgreSQL schema
-└── .env                    # Configuration
-```
-
-## 🚀 Quick Start
-
-### 1. Install PostgreSQL
-
-**Windows:**
-```bash
-# Download and install from https://www.postgresql.org/download/windows/
-# Or use Chocolatey:
-choco install postgresql
-```
-
-**Mac:**
-```bash
-brew install postgresql
-brew services start postgresql
-```
-
-**Linux:**
-```bash
-sudo apt-get install postgresql postgresql-contrib
-sudo systemctl start postgresql
-```
-
-### 2. Set Up Database
-
-```bash
-# Connect to PostgreSQL
-psql -U postgres
-
-# Create database
-CREATE DATABASE orbit;
-
-# Exit psql
-\q
-
-# Load schema
-psql -U postgres -d orbit -f database/schema.sql
-```
-
-### 3. Backend Setup
-
-```bash
-# Install Python dependencies
-pip install -r backend/requirements.txt
-
-# Run Flask server
-cd backend
-python app.py
-```
-
-Backend runs on: **http://localhost:5000**
-
-### 4. Frontend Setup
-
-```bash
-# Install Node dependencies
-cd frontend
-npm install
-
-# Run development server
-npm run dev
-```
-
-Frontend runs on: **http://localhost:3000**
-
-## 📖 Usage
-
-### Login
-
-- **Email**: demo@orbit.local
-- **Password**: demo123
-
-### Features
-
-**Dashboard**
-- View total projects and deployments
-- See recent projects and deployments
-- Monitor deployment statistics
-
-**Projects**
-- Create new projects
-- Select runtime (Node.js, Python, Java, Go)
-- View all projects
-- Delete projects
-
-**Deployments**
-- Deploy projects by version and branch
-- Track deployment status
-- View deployment history
-- Timeline view of all deployments
-
-**Metrics**
-- View performance metrics
-- Monitor CPU, memory, requests
-- See average metrics and trends
-- Visual chart representation
-
-## 🔌 API Endpoints
-
-### Authentication
-```bash
-POST /api/auth/login
-POST /api/auth/register
-```
-
-### Projects
-```bash
-GET /api/projects
-POST /api/projects
-GET /api/projects/<id>
-PUT /api/projects/<id>
-DELETE /api/projects/<id>
-```
-
-### Deployments
-```bash
-GET /api/deployments
-POST /api/projects/<id>/deploy
-GET /api/deployments/<id>
-```
-
-### Metrics
-```bash
-GET /api/metrics/<project_id>
-```
-
-### Instances
-```bash
-GET /api/instances
-POST /api/instances
-```
-
-### Teams
-```bash
-GET /api/teams
-POST /api/teams
-```
-
-## 🗄️ Database Schema
-
-**Tables:**
-- `users` - User accounts
-- `teams` - Team management
-- `projects` - Projects
-- `deployments` - Deployment records
-- `instances` - Compute instances
-- `metrics` - Performance metrics
-- `logs` - Application logs
-
-## 🛠️ Development
-
-### Backend Development
-
-Edit `backend/app.py` to add new endpoints:
-
-```python
-@app.route('/api/your-endpoint', methods=['POST'])
-@token_required
-def your_endpoint():
-    data = request.get_json()
-    # Your logic here
-    return jsonify({'success': True}), 200
-```
-
-### Frontend Development
-
-React components in `frontend/src/`:
-
-```jsx
-import React, { useState, useEffect } from 'react';
-
-export default function YourComponent() {
-  const [data, setData] = useState(null);
-  
-  useEffect(() => {
-    // Fetch data
-  }, []);
-  
-  return (
-    <div>
-      {/* Your JSX */}
-    </div>
-  );
-}
-```
-
-## 🔐 Security
-
-- JWT authentication (token-based)
-- Password hashing
-- CORS enabled
-- Input validation
-- SQL injection prevention
-
-## 📊 Production Deployment
-
-### Python Backend
-```bash
-# Install gunicorn
-pip install gunicorn
-
-# Run with gunicorn
-gunicorn -w 4 -b 0.0.0.0:5000 backend.app:app
-```
-
-### React Frontend
-```bash
-# Build for production
-npm run build
-
-# Deploy dist/ folder to static hosting
-```
-
-### Database
-- Use managed PostgreSQL (AWS RDS, Google Cloud SQL, Heroku Postgres)
-- Enable backups
-- Use connection pooling
-
-## 🐛 Troubleshooting
-
-### Port already in use
-```bash
-# Windows
-netstat -ano | findstr :5000
-
-# Mac/Linux
-lsof -i :5000
-```
-
-### Database connection fails
-```bash
-# Check PostgreSQL is running
-# Windows: Services > PostgreSQL
-# Mac: brew services list
-# Linux: sudo systemctl status postgresql
-
-# Check credentials in .env
-# Create database if not exists
-psql -U postgres -c "CREATE DATABASE orbit;"
-```
-
-### Node modules issues
-```bash
-rm -rf node_modules package-lock.json
-npm install
-```
-
-## 📝 Notes
-
-- Demo credentials: `demo@orbit.local` / `demo123`
-- API runs on `http://localhost:5000`
-- Frontend runs on `http://localhost:3000`
-- Database: PostgreSQL on `localhost:5432`
-
-## 🚀 What's Included
-
-- **Backend**: 400+ lines of Python Flask code
-- **Frontend**: 1000+ lines of React code
-- **Database**: Complete SQL schema with indexes
-- **CSS**: Professional styling (800+ lines)
-- **HTML**: Semantic markup
-
-## 📚 Documentation
-
-All code is well-commented and easy to understand. Just edit files and restart servers to see changes.
-
-## 💡 Next Steps
-
-1. Create an account with registration endpoint
-2. Create your first project
-3. Deploy it
-4. Monitor metrics
-5. Add more features
-
-## 🎓 Learning Resources
-
-- [Flask Documentation](https://flask.palletsprojects.com/)
-- [React Documentation](https://react.dev/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-- [JWT Authentication](https://jwt.io/)
-
-## 📞 Support
-
-- Check console logs for errors
-- Review database queries in `backend/app.py`
-- Check network tab in browser DevTools
-- Read error messages carefully
-
----
-
-**Version**: 1.0.0  
-**Status**: Production Ready  
-**License**: MIT
-
-🎉 **Happy Coding!**
+- Account registration and sign-in with signed, expiring JWTs.
+- Private owner-scoped team and project inventory.
+- Create, inspect, update, archive, and delete projects.
+- Record deployments with project, version, branch, and status history.
+- View recorded CPU, memory, request, error, and response-time measurements.
+- Health endpoint that checks the PostgreSQL connection instead of assuming it is available.
+- Responsive operations interface with search and filtering.
+- Repeatable database bootstrap schema and a documented compatibility audit.
+
+## Important capability boundary
+
+ORBIT 2.0 records deployment intent and status. It does **not** build source code, execute deployment jobs, provision cloud infrastructure, or collect live telemetry by itself. Those capabilities require a worker/runner, a cloud-provider adapter, and a metrics ingestion pipeline, which are not in this repository yet. The interface calls this out instead of implying a recorded row is a real cloud deployment.
+
+## Technology
+
+- Frontend: React 18, Vite, Axios
+- Backend: Python 3.10+, Flask, PyJWT, psycopg2, Werkzeug password hashing
+- Database: PostgreSQL 14+
+- API: JSON over HTTP with Bearer-token authentication
+
+## Local setup
+
+Prerequisites: Python 3.10+, Node.js 18+, npm, and PostgreSQL 14+.
+
+1. Create a PostgreSQL database named orbit.
+2. Copy .env.example to .env and set your local database password and development secret.
+3. Run the schema against the database using psql -U postgres -d orbit -f database/schema.sql.
+4. Install backend packages using pip install -r backend/requirements.txt.
+5. Start the backend from the backend directory with python app.py.
+6. In a second terminal, install frontend packages from the frontend directory with npm install, then run npm run dev.
+7. Open http://localhost:3000.
+
+The backend uses the variables in .env when python-dotenv is installed, as listed in requirements.txt. The frontend calls /api by default and uses the Vite proxy in development. Set VITE_API_URL to an absolute API base only when the frontend and API are intentionally hosted separately.
+
+## Local demo account
+
+When APP_ENV is not production and ENABLE_DEMO_AUTH is enabled, use:
+
+- Email: demo@orbit.local
+- Password: demo123
+
+The seed schema includes this account and sample projects. Demo authentication is a local-development convenience. Disable it in production by setting APP_ENV=production and ENABLE_DEMO_AUTH=false, and configure a strong, unique SECRET_KEY.
+
+## Configuration
+
+- APP_ENV: development or production. Production mode requires SECRET_KEY and disables demo sign-in by default.
+- SECRET_KEY: signing key for JWTs. Never commit a production value.
+- ENABLE_DEMO_AUTH: enables the fixed demo credentials; use false outside local development.
+- DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD: PostgreSQL connection settings.
+- DB_CONNECT_TIMEOUT: connection timeout in seconds.
+- DB_SSLMODE: optional PostgreSQL SSL mode.
+- CORS_ORIGINS: comma-separated list of browser origins allowed to call the API.
+- FLASK_DEBUG: set to 1 only for local development.
+- FLASK_HOST and PORT: local server bind address and port.
+- VITE_API_URL: optional frontend API base; defaults to /api.
+
+The .env.example file is a starter configuration, not a production secret store.
+
+## API overview
+
+Public endpoints:
+- GET /health — app version and actual database readiness.
+- GET /api/meta — capability declaration and version.
+- POST /api/auth/register — create a user and private default team.
+- POST /api/auth/login — issue a JWT.
+
+Bearer-token endpoints:
+- GET /api/auth/me — current database account.
+- GET /api/projects — list projects in teams owned by the signed-in user.
+- POST /api/projects — create a project in an owned team.
+- GET, PUT, DELETE /api/projects/:id — read and manage an owned project.
+- POST /api/projects/:id/deploy — record a deployment request.
+- GET /api/deployments and GET /api/deployments/:id — owned deployment history.
+- GET /api/metrics/:project_id — last 100 recorded measurements and safe summary values.
+- GET, POST /api/instances — list or record workspace instances associated with a project.
+- GET, POST /api/teams — list or create teams owned by the signed-in user.
+
+Responses use JSON. Expected validation errors return an explanatory 4xx response; unexpected server errors return a generic message and are logged server-side.
+
+## Security notes
+
+- Production startup fails when SECRET_KEY is missing.
+- Passwords for registered accounts use Werkzeug PBKDF2-SHA256 hashing.
+- Existing 64-character SHA-256 password hashes are verified for compatibility and re-hashed after a successful login.
+- API routes require a valid Bearer token.
+- Project, deployment, team, metric, and instance reads are scoped to the requesting user’s owned teams.
+- CORS defaults to local development origins and can be configured explicitly.
+- Database errors and stack traces are not returned to the browser.
+- The sample login is meant for local development only.
+
+## Compatibility and investigation notes
+
+See docs/REVERSE_ENGINEERING.md for the observed 1.x behavior, issues confirmed from source, compatibility decisions, and the manual verification matrix. The changes preserve the existing principal screen concepts and response keys while adding clearer validation, private project scoping, session recovery, and an explicit boundary around cloud operations.
+
+## Validation
+
+The GitHub Actions workflow runs the database-free backend contract tests and builds the frontend production bundle. For local checks, install the backend dependencies, then run the following from the repository root:
+
+    python -m compileall -q backend
+    cd backend
+    python -m unittest discover -s tests -v
+    cd ../frontend
+    npm ci
+    npm run build
+
+The health-check contract test simulates a PostgreSQL outage; the other included tests cover password-hash compatibility and JSON serialization. Full route-level integration tests against PostgreSQL are still a roadmap item.
+
+## Roadmap
+
+1. Add a deployment runner interface with dry-run and queued-job states.
+2. Integrate a provider adapter only after credentials, permissions, and resource cleanup are defined.
+3. Add a metrics ingestion endpoint or agent with source timestamps and retention.
+4. Add unit/integration tests against a disposable PostgreSQL database.
+5. Add CI checks for Python linting, frontend builds, migration validation, and API regression tests.
+
+## License
+
+No license file was present in the inspected repository at the time of this release. Add a license before redistributing ORBIT if you intend to grant reuse rights.

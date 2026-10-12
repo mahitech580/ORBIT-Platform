@@ -1,333 +1,632 @@
-"""
-ORBIT Platform - Python Flask Backend
-Simple, clean API without extra dependencies
-"""
+"""ORBIT Platform 2.0 API.
 
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import psycopg2
-from psycopg2.extras import RealDictCursor
-import os
-import json
-import hashlib
-import jwt
-from datetime import datetime, timedelta
+ORBIT manages project metadata and deployment records. The current release does
+not build artifacts or provision cloud infrastructure; that requires a runner
+and a cloud-provider adapter, neither of which is present in the repository.
+"""
+from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal
 from functools import wraps
+import hashlib
+import hmac
+import os
+import re
+
+import jwt
+import psycopg2
+from dotenv import load_dotenv
+from flask import Flask, abort, jsonify, request
+from werkzeug.exceptions import HTTPException
+from flask_cors import CORS
+from psycopg2 import IntegrityError
+from psycopg2.extras import RealDictCursor
+from werkzeug.security import check_password_hash, generate_password_hash
+
+load_dotenv()
+
+APP_VERSION = "2.0.0"
+APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
+IS_PRODUCTION = APP_ENV in {"production", "prod"}
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    if IS_PRODUCTION:
+        raise RuntimeError("SECRET_KEY must be configured in production.")
+    SECRET_KEY = "development-only-key-change-before-deployment"
+    print("WARNING: using a development SECRET_KEY; configure SECRET_KEY before deployment.")
+
+DEMO_EMAIL = "demo@orbit.local"
+DEMO_PASSWORD = "demo123"
+DEMO_AUTH_ENABLED = os.getenv("ENABLE_DEMO_AUTH", "false" if IS_PRODUCTION else "true").lower() in {"1", "true", "yes"}
+
+DATABASE = {
+    "host": os.getenv("DB_HOST", "localhost"),
+    "database": os.getenv("DB_NAME", "orbit"),
+    "user": os.getenv("DB_USER", "postgres"),
+    "password": os.getenv("DB_PASSWORD", "password"),
+    "port": int(os.getenv("DB_PORT", "5432")),
+    "connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "5")),
+}
+if os.getenv("DB_SSLMODE"):
+    DATABASE["sslmode"] = os.getenv("DB_SSLMODE")
 
 app = Flask(__name__)
-CORS(app)
+app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024
+allowed_origins = [origin.strip() for origin in os.getenv(
+    "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
+).split(",") if origin.strip()]
+CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
 
-# Configuration
-DATABASE = {
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'database': os.getenv('DB_NAME', 'orbit'),
-    'user': os.getenv('DB_USER', 'postgres'),
-    'password': os.getenv('DB_PASSWORD', 'password'),
-    'port': os.getenv('DB_PORT', 5432)
-}
+RUNTIMES = {"node", "python", "java", "go"}
+PROJECT_STATUSES = {"active", "archived"}
+USERNAME_RE = re.compile(r"^[A-Za-z0-9_.-]{3,50}$")
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-change-this')
 
-# Database Connection
+def json_safe(value):
+    """Convert common PostgreSQL values into portable JSON types."""
+    if isinstance(value, dict):
+        return {key: json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_safe(item) for item in value]
+    if isinstance(value, Decimal):
+        return float(value)
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    return value
+
+
 def get_db():
-    conn = psycopg2.connect(**DATABASE)
-    return conn
+    """Open a short-lived connection. Callers always close it."""
+    return psycopg2.connect(**DATABASE)
 
-def execute_query(query, params=None):
-    """Execute SELECT query and return results"""
+
+def db_fetch_all(query, params=()):
     conn = get_db()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    cur.execute(query, params or [])
-    results = cur.fetchall()
-    cur.close()
-    conn.close()
-    return results
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+        conn.commit()
+        return json_safe([dict(row) for row in rows])
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
-def execute_update(query, params=None):
-    """Execute INSERT/UPDATE/DELETE and return affected rows"""
+
+def db_execute(query, params=(), returning=False):
     conn = get_db()
-    cur = conn.cursor()
-    cur.execute(query, params or [])
-    conn.commit()
-    affected = cur.rowcount
-    cur.close()
-    conn.close()
-    return affected
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(query, params)
+            result = json_safe([dict(row) for row in cursor.fetchall()]) if returning else cursor.rowcount
+        conn.commit()
+        return result
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
-# JWT Auth
-def token_required(f):
-    @wraps(f)
+
+def hash_password(password):
+    return generate_password_hash(password, method="pbkdf2:sha256:600000")
+
+
+def verify_password(password, stored_hash):
+    """Verify modern Werkzeug hashes and migrate legacy SHA-256 hashes on login."""
+    if not isinstance(password, str) or not isinstance(stored_hash, str):
+        return False
+    if re.fullmatch(r"[a-fA-F0-9]{64}", stored_hash):
+        digest = hashlib.sha256(password.encode("utf-8")).hexdigest()
+        return hmac.compare_digest(digest, stored_hash.lower())
+    try:
+        return check_password_hash(stored_hash, password)
+    except (ValueError, TypeError):
+        return False
+
+
+def public_user(user):
+    first = (user.get("first_name") or "").strip()
+    last = (user.get("last_name") or "").strip()
+    display_name = " ".join(part for part in (first, last) if part) or user.get("username") or user.get("email")
+    return {
+        "id": user.get("id"),
+        "email": user.get("email"),
+        "username": user.get("username"),
+        "name": display_name,
+    }
+
+
+def issue_token(user):
+    payload = {
+        "user_id": int(user["id"]),
+        "email": user.get("email"),
+        "iat": datetime.now(timezone.utc),
+        "exp": datetime.now(timezone.utc) + timedelta(hours=12),
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+
+
+def json_body():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        abort(400, description="Send a JSON object in the request body.")
+    return data
+
+
+def read_string(data, key, default="", required=False, max_length=255):
+    value = data.get(key, default)
+    if value is None:
+        value = default
+    if not isinstance(value, str):
+        abort(400, description=key.replace("_", " ").capitalize() + " must be text.")
+    value = value.strip()
+    if required and not value:
+        abort(400, description=key.replace("_", " ").capitalize() + " is required.")
+    if len(value) > max_length:
+        abort(400, description=key.replace("_", " ").capitalize() + " must be at most " + str(max_length) + " characters.")
+    return value
+
+
+def read_password(data):
+    password = data.get("password")
+    if not isinstance(password, str) or not password:
+        abort(400, description="Password is required.")
+    if len(password) > 1024:
+        abort(400, description="Password must be at most 1024 characters.")
+    return password
+
+
+def positive_int(value, label):
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        abort(400, description=label + " must be a positive integer.")
+    if number < 1:
+        abort(400, description=label + " must be a positive integer.")
+    return number
+
+
+def token_required(view):
+    @wraps(view)
     def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization', '').replace('Bearer ', '')
-        if not token:
-            return jsonify({'error': 'Missing token'}), 401
+        header = request.headers.get("Authorization", "")
+        scheme, separator, token = header.partition(" ")
+        if not separator or scheme.lower() != "bearer" or not token.strip():
+            return jsonify({"error": "A Bearer token is required."}), 401
         try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-            request.user_id = payload['user_id']
-        except:
-            return jsonify({'error': 'Invalid token'}), 401
-        return f(*args, **kwargs)
+            claims = jwt.decode(token.strip(), SECRET_KEY, algorithms=["HS256"])
+            request.user_id = positive_int(claims.get("user_id"), "Token user ID")
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TypeError, ValueError):
+            return jsonify({"error": "Your session is invalid or expired. Please sign in again."}), 401
+        return view(*args, **kwargs)
     return decorated
 
-# Health Check
-@app.route('/health', methods=['GET'])
+
+def owned_project(project_id, user_id):
+    rows = db_fetch_all(
+        """SELECT p.*, t.name AS team_name
+           FROM projects p
+           JOIN teams t ON t.id = p.team_id
+           WHERE p.id = %s AND t.owner_id = %s""",
+        (project_id, user_id),
+    )
+    return rows[0] if rows else None
+
+
+@app.errorhandler(413)
+def payload_too_large(error):
+    return jsonify({"error": "Request body is too large."}), 413
+
+
+
+@app.errorhandler(HTTPException)
+def handle_http_error(error):
+    return jsonify({"error": error.description, "status": error.code}), error.code
+
+
+@app.errorhandler(Exception)
+def handle_unexpected_error(error):
+    app.logger.exception("Unhandled API error")
+    return jsonify({"error": "An unexpected server error occurred."}), 500
+
+
+@app.route("/health", methods=["GET"])
 def health():
-    return jsonify({
-        'status': 'UP',
-        'timestamp': datetime.now().isoformat(),
-        'database': 'Connected'
-    }), 200
-
-# ============= AUTH ENDPOINTS =============
-@app.route('/api/auth/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    
-    # Hash password
-    password_hash = hashlib.sha256(password.encode()).hexdigest()
-    
-    # Check user (demo login)
-    if email == 'demo@orbit.local' and password == 'demo123':
-        token = jwt.encode({
-            'user_id': 1,
-            'email': email,
-            'exp': datetime.utcnow() + timedelta(hours=24)
-        }, SECRET_KEY, algorithm='HS256')
-        
-        return jsonify({
-            'token': token,
-            'user': {'id': 1, 'email': email, 'name': 'Demo User'}
-        }), 200
-    
-    return jsonify({'error': 'Invalid credentials'}), 401
-
-@app.route('/api/auth/register', methods=['POST'])
-def register():
-    data = request.get_json()
-    email = data.get('email')
-    username = data.get('username')
-    password = data.get('password')
-    
-    password_hash = hashlib.sha256(password.encode()).hexdigest()
-    
+    database_status = "unavailable"
     try:
-        execute_update(
-            "INSERT INTO users (email, username, password_hash, first_name) VALUES (%s, %s, %s, %s)",
-            [email, username, password_hash, data.get('first_name', '')]
-        )
-        
-        return jsonify({'success': True, 'message': 'User created'}), 201
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        conn = get_db()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+            database_status = "connected"
+        finally:
+            conn.close()
+    except Exception:
+        app.logger.warning("Health check could not connect to PostgreSQL.")
+    status_code = 200 if database_status == "connected" else 503
+    return jsonify({
+        "status": "ok" if status_code == 200 else "degraded",
+        "version": APP_VERSION,
+        "database": database_status,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }), status_code
 
-# ============= PROJECT ENDPOINTS =============
-@app.route('/api/projects', methods=['GET'])
+
+@app.route("/api/meta", methods=["GET"])
+def metadata():
+    return jsonify({
+        "name": "ORBIT Platform",
+        "version": APP_VERSION,
+        "capabilities": {
+            "project_management": True,
+            "deployment_tracking": True,
+            "metrics_reporting": True,
+            "cloud_resource_provisioning": False,
+            "build_execution": False,
+        },
+    })
+
+
+@app.route("/api/auth/register", methods=["POST"])
+def register():
+    data = json_body()
+    email = read_string(data, "email", required=True, max_length=255).lower()
+    username = read_string(data, "username", required=True, max_length=50)
+    password = read_password(data)
+    first_name = read_string(data, "first_name", default="", max_length=100)
+    if not EMAIL_RE.fullmatch(email):
+        abort(400, description="Enter a valid email address.")
+    if not USERNAME_RE.fullmatch(username):
+        abort(400, description="Username must be 3–50 characters and use letters, numbers, dots, underscores, or hyphens.")
+    if len(password) < 8:
+        abort(400, description="Password must contain at least 8 characters.")
+
+    conn = None
+    try:
+        conn = get_db()
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    """INSERT INTO users (email, username, password_hash, first_name)
+                       VALUES (%s, %s, %s, %s)
+                       RETURNING id, email, username, first_name, last_name""",
+                    (email, username, hash_password(password), first_name),
+                )
+                user = dict(cursor.fetchone())
+                cursor.execute(
+                    "INSERT INTO teams (name, owner_id, description) VALUES (%s, %s, %s)",
+                    ("Default Team", user["id"], "Default workspace"),
+                )
+        user = json_safe(user)
+        return jsonify({"success": True, "token": issue_token(user), "user": public_user(user)}), 201
+    except IntegrityError:
+        return jsonify({"error": "That email address or username is already registered."}), 409
+    except psycopg2.Error:
+        app.logger.exception("Registration database error")
+        return jsonify({"error": "Registration is temporarily unavailable."}), 503
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@app.route("/api/auth/login", methods=["POST"])
+def login():
+    data = json_body()
+    email = read_string(data, "email", required=True, max_length=255).lower()
+    password = read_password(data)
+
+    if email == DEMO_EMAIL and not DEMO_AUTH_ENABLED:
+        return jsonify({"error": "The demo account is disabled in this environment."}), 401
+
+    try:
+        rows = db_fetch_all(
+            """SELECT id, email, username, password_hash, first_name, last_name
+               FROM users WHERE LOWER(email) = %s LIMIT 1""",
+            (email,),
+        )
+        if not rows:
+            return jsonify({"error": "Invalid email or password."}), 401
+        user = rows[0]
+        password_matches = verify_password(password, user.get("password_hash"))
+        local_demo_signin = (
+            email == DEMO_EMAIL
+            and DEMO_AUTH_ENABLED
+            and hmac.compare_digest(password, DEMO_PASSWORD)
+        )
+        # Upgrade the placeholder seed hash used by older ORBIT 1.x databases,
+        # but only for the explicit local demo account and only in demo-enabled environments.
+        if not password_matches and local_demo_signin:
+            upgraded_hash = hash_password(password)
+            db_execute(
+                "UPDATE users SET password_hash = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+                (upgraded_hash, user["id"]),
+            )
+            user["password_hash"] = upgraded_hash
+            password_matches = True
+        if not password_matches:
+            return jsonify({"error": "Invalid email or password."}), 401
+        if re.fullmatch(r"[a-fA-F0-9]{64}", user.get("password_hash") or ""):
+            upgraded_hash = hash_password(password)
+            db_execute(
+                "UPDATE users SET password_hash = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+                (upgraded_hash, user["id"]),
+            )
+            user["password_hash"] = upgraded_hash
+        return jsonify({"token": issue_token(user), "user": public_user(user)})
+    except psycopg2.Error:
+        app.logger.exception("Login database error")
+        return jsonify({"error": "Sign-in is temporarily unavailable."}), 503
+
+
+@app.route("/api/auth/me", methods=["GET"])
+@token_required
+def auth_me():
+    rows = db_fetch_all(
+        "SELECT id, email, username, first_name, last_name FROM users WHERE id = %s",
+        (request.user_id,),
+    )
+    if not rows:
+        return jsonify({"error": "Account not found."}), 401
+    return jsonify({"user": public_user(rows[0])})
+
+
+@app.route("/api/projects", methods=["GET"])
 @token_required
 def get_projects():
-    try:
-        projects = execute_query(
-            "SELECT p.*, t.name as team_name FROM projects p JOIN teams t ON p.team_id = t.id"
-        )
-        return jsonify({'projects': projects}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    rows = db_fetch_all(
+        """SELECT p.*, t.name AS team_name
+           FROM projects p JOIN teams t ON t.id = p.team_id
+           WHERE t.owner_id = %s
+           ORDER BY p.created_at DESC, p.id DESC""",
+        (request.user_id,),
+    )
+    return jsonify({"projects": rows})
 
-@app.route('/api/projects', methods=['POST'])
+
+@app.route("/api/projects", methods=["POST"])
 @token_required
 def create_project():
-    data = request.get_json()
-    
-    try:
-        execute_update(
-            "INSERT INTO projects (team_id, name, description, runtime) VALUES (%s, %s, %s, %s)",
-            [data.get('team_id', 1), data.get('name'), data.get('description'), data.get('runtime', 'node')]
-        )
-        
-        return jsonify({'success': True, 'message': 'Project created'}), 201
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+    data = json_body()
+    name = read_string(data, "name", required=True, max_length=120)
+    description = read_string(data, "description", default="", max_length=2000)
+    runtime = read_string(data, "runtime", default="node", max_length=30).lower()
+    if runtime not in RUNTIMES:
+        abort(400, description="Runtime must be one of: node, python, java, go.")
 
-@app.route('/api/projects/<int:project_id>', methods=['GET'])
+    supplied_team = data.get("team_id")
+    if supplied_team is None:
+        teams = db_fetch_all("SELECT id FROM teams WHERE owner_id = %s ORDER BY id LIMIT 1", (request.user_id,))
+        if not teams:
+            abort(400, description="Create a team before creating a project.")
+        team_id = teams[0]["id"]
+    else:
+        team_id = positive_int(supplied_team, "Team ID")
+
+    permitted = db_fetch_all("SELECT id FROM teams WHERE id = %s AND owner_id = %s", (team_id, request.user_id))
+    if not permitted:
+        abort(404, description="Team not found.")
+    created = db_execute(
+        """INSERT INTO projects (team_id, name, description, runtime)
+           VALUES (%s, %s, %s, %s) RETURNING id""",
+        (team_id, name, description, runtime),
+        returning=True,
+    )
+    project = owned_project(created[0]["id"], request.user_id)
+    return jsonify({"success": True, "project": project}), 201
+
+
+@app.route("/api/projects/<int:project_id>", methods=["GET"])
 @token_required
 def get_project(project_id):
-    try:
-        project = execute_query(
-            "SELECT p.*, t.name as team_name FROM projects p JOIN teams t ON p.team_id = t.id WHERE p.id = %s",
-            [project_id]
-        )
-        
-        if not project:
-            return jsonify({'error': 'Project not found'}), 404
-        
-        return jsonify(project[0]), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    project = owned_project(project_id, request.user_id)
+    if not project:
+        abort(404, description="Project not found.")
+    return jsonify(project)
 
-@app.route('/api/projects/<int:project_id>', methods=['PUT'])
+
+@app.route("/api/projects/<int:project_id>", methods=["PUT"])
 @token_required
 def update_project(project_id):
-    data = request.get_json()
-    
-    try:
-        execute_update(
-            "UPDATE projects SET name = %s, description = %s, status = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
-            [data.get('name'), data.get('description'), data.get('status'), project_id]
-        )
-        
-        return jsonify({'success': True, 'message': 'Project updated'}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+    data = json_body()
+    current = owned_project(project_id, request.user_id)
+    if not current:
+        abort(404, description="Project not found.")
+    name = read_string(data, "name", default=current["name"], required=True, max_length=120)
+    description = read_string(data, "description", default=current.get("description") or "", max_length=2000)
+    runtime = read_string(data, "runtime", default=current["runtime"], max_length=30).lower()
+    status = read_string(data, "status", default=current["status"], max_length=30).lower()
+    if runtime not in RUNTIMES:
+        abort(400, description="Runtime must be one of: node, python, java, go.")
+    if status not in PROJECT_STATUSES:
+        abort(400, description="Status must be active or archived.")
+    db_execute(
+        """UPDATE projects AS p
+           SET name = %s, description = %s, runtime = %s, status = %s,
+               updated_at = CURRENT_TIMESTAMP
+           FROM teams AS t
+           WHERE p.id = %s AND p.team_id = t.id AND t.owner_id = %s""",
+        (name, description, runtime, status, project_id, request.user_id),
+    )
+    return jsonify({"success": True, "project": owned_project(project_id, request.user_id)})
 
-@app.route('/api/projects/<int:project_id>', methods=['DELETE'])
+
+@app.route("/api/projects/<int:project_id>", methods=["DELETE"])
 @token_required
 def delete_project(project_id):
-    try:
-        execute_update("DELETE FROM projects WHERE id = %s", [project_id])
-        return jsonify({'success': True, 'message': 'Project deleted'}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+    deleted = db_execute(
+        """DELETE FROM projects AS p USING teams AS t
+           WHERE p.team_id = t.id AND t.owner_id = %s AND p.id = %s
+           RETURNING p.id""",
+        (request.user_id, project_id),
+        returning=True,
+    )
+    if not deleted:
+        abort(404, description="Project not found.")
+    return jsonify({"success": True, "deleted_id": project_id})
 
-# ============= DEPLOYMENT ENDPOINTS =============
-@app.route('/api/projects/<int:project_id>/deploy', methods=['POST'])
+
+@app.route("/api/projects/<int:project_id>/deploy", methods=["POST"])
 @token_required
 def deploy_project(project_id):
-    data = request.get_json()
-    
-    try:
-        execute_update(
-            "INSERT INTO deployments (project_id, version, status, branch, deployed_by) VALUES (%s, %s, %s, %s, %s)",
-            [project_id, data.get('version', '1.0.0'), 'in-progress', data.get('branch', 'main'), request.user_id]
-        )
-        
-        return jsonify({'success': True, 'message': 'Deployment started'}), 201
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+    data = json_body()
+    project = owned_project(project_id, request.user_id)
+    if not project:
+        abort(404, description="Project not found.")
+    version = read_string(data, "version", default="1.0.0", required=True, max_length=80)
+    branch = read_string(data, "branch", default="main", required=True, max_length=200)
+    rows = db_execute(
+        """INSERT INTO deployments (project_id, version, status, branch, deployed_by)
+           VALUES (%s, %s, %s, %s, %s)
+           RETURNING id, project_id, version, status, branch, created_at""",
+        (project_id, version, "in-progress", branch, request.user_id),
+        returning=True,
+    )
+    return jsonify({
+        "success": True,
+        "message": "Deployment record created. This release tracks deployments but does not provision cloud resources.",
+        "deployment": rows[0],
+    }), 201
 
-@app.route('/api/deployments', methods=['GET'])
+
+@app.route("/api/deployments", methods=["GET"])
 @token_required
 def get_deployments():
-    try:
-        deployments = execute_query(
-            "SELECT d.*, p.name as project_name FROM deployments d JOIN projects p ON d.project_id = p.id ORDER BY d.created_at DESC"
-        )
-        return jsonify({'deployments': deployments}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    rows = db_fetch_all(
+        """SELECT d.*, p.name AS project_name
+           FROM deployments d
+           JOIN projects p ON p.id = d.project_id
+           JOIN teams t ON t.id = p.team_id
+           WHERE t.owner_id = %s
+           ORDER BY d.created_at DESC, d.id DESC""",
+        (request.user_id,),
+    )
+    return jsonify({"deployments": rows})
 
-@app.route('/api/deployments/<int:deployment_id>', methods=['GET'])
+
+@app.route("/api/deployments/<int:deployment_id>", methods=["GET"])
 @token_required
 def get_deployment(deployment_id):
-    try:
-        deployment = execute_query(
-            "SELECT d.*, p.name as project_name FROM deployments d JOIN projects p ON d.project_id = p.id WHERE d.id = %s",
-            [deployment_id]
-        )
-        
-        if not deployment:
-            return jsonify({'error': 'Deployment not found'}), 404
-        
-        return jsonify(deployment[0]), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    rows = db_fetch_all(
+        """SELECT d.*, p.name AS project_name
+           FROM deployments d
+           JOIN projects p ON p.id = d.project_id
+           JOIN teams t ON t.id = p.team_id
+           WHERE d.id = %s AND t.owner_id = %s""",
+        (deployment_id, request.user_id),
+    )
+    if not rows:
+        abort(404, description="Deployment not found.")
+    return jsonify(rows[0])
 
-# ============= METRICS ENDPOINTS =============
-@app.route('/api/metrics/<int:project_id>', methods=['GET'])
+
+@app.route("/api/metrics/<int:project_id>", methods=["GET"])
 @token_required
 def get_metrics(project_id):
-    try:
-        metrics = execute_query(
-            "SELECT * FROM metrics WHERE project_id = %s ORDER BY timestamp DESC LIMIT 100",
-            [project_id]
-        )
-        
-        if metrics:
-            avg_cpu = sum(m['cpu_usage'] for m in metrics if m['cpu_usage']) / len([m for m in metrics if m['cpu_usage']])
-            avg_memory = sum(m['memory_usage'] for m in metrics if m['memory_usage']) / len([m for m in metrics if m['memory_usage']])
-            
-            return jsonify({
-                'metrics': metrics,
-                'summary': {
-                    'avg_cpu': round(avg_cpu, 2),
-                    'avg_memory': round(avg_memory, 2),
-                    'total_requests': sum(m['requests_total'] for m in metrics if m['requests_total'])
-                }
-            }), 200
-        
-        return jsonify({'metrics': [], 'summary': {}}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    project = owned_project(project_id, request.user_id)
+    if not project:
+        abort(404, description="Project not found.")
+    metrics = db_fetch_all(
+        """SELECT * FROM metrics WHERE project_id = %s
+           ORDER BY timestamp DESC LIMIT 100""",
+        (project_id,),
+    )
+    cpu_values = [float(row["cpu_usage"]) for row in metrics if row.get("cpu_usage") is not None]
+    memory_values = [float(row["memory_usage"]) for row in metrics if row.get("memory_usage") is not None]
+    summary = {
+        "avg_cpu": round(sum(cpu_values) / len(cpu_values), 2) if cpu_values else 0,
+        "avg_memory": round(sum(memory_values) / len(memory_values), 2) if memory_values else 0,
+        "total_requests": sum(int(row.get("requests_total") or 0) for row in metrics),
+    }
+    return jsonify({"metrics": metrics, "summary": summary})
 
-# ============= INSTANCES ENDPOINTS =============
-@app.route('/api/instances', methods=['GET'])
+
+@app.route("/api/instances", methods=["GET"])
 @token_required
 def get_instances():
-    try:
-        instances = execute_query(
-            "SELECT i.*, p.name as project_name FROM instances i JOIN projects p ON i.project_id = p.id ORDER BY i.created_at DESC"
-        )
-        return jsonify({'instances': instances}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    rows = db_fetch_all(
+        """SELECT i.*, p.name AS project_name
+           FROM instances i
+           JOIN projects p ON p.id = i.project_id
+           JOIN teams t ON t.id = p.team_id
+           WHERE t.owner_id = %s
+           ORDER BY i.created_at DESC""",
+        (request.user_id,),
+    )
+    return jsonify({"instances": rows})
 
-@app.route('/api/instances', methods=['POST'])
+
+@app.route("/api/instances", methods=["POST"])
 @token_required
 def create_instance():
-    data = request.get_json()
-    
-    try:
-        execute_update(
-            "INSERT INTO instances (deployment_id, project_id, name, instance_type, status) VALUES (%s, %s, %s, %s, %s)",
-            [data.get('deployment_id'), data.get('project_id'), data.get('name'), data.get('instance_type', 't3.medium'), 'running']
+    data = json_body()
+    project_id = positive_int(data.get("project_id"), "Project ID")
+    if not owned_project(project_id, request.user_id):
+        abort(404, description="Project not found.")
+    name = read_string(data, "name", required=True, max_length=120)
+    instance_type = read_string(data, "instance_type", default="t3.medium", max_length=80)
+    deployment_id = data.get("deployment_id")
+    if deployment_id is not None:
+        deployment_id = positive_int(deployment_id, "Deployment ID")
+        match = db_fetch_all(
+            """SELECT d.id FROM deployments d
+               JOIN projects p ON p.id = d.project_id
+               JOIN teams t ON t.id = p.team_id
+               WHERE d.id = %s AND d.project_id = %s AND t.owner_id = %s""",
+            (deployment_id, project_id, request.user_id),
         )
-        
-        return jsonify({'success': True, 'message': 'Instance created'}), 201
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        if not match:
+            abort(400, description="Deployment must belong to the selected project.")
+    else:
+        recent = db_fetch_all(
+            "SELECT id FROM deployments WHERE project_id = %s ORDER BY created_at DESC LIMIT 1",
+            (project_id,),
+        )
+        if not recent:
+            abort(400, description="Create a deployment record before adding an instance.")
+        deployment_id = recent[0]["id"]
+    rows = db_execute(
+        """INSERT INTO instances (deployment_id, project_id, name, instance_type, status)
+           VALUES (%s, %s, %s, %s, %s) RETURNING id, deployment_id, project_id, name, instance_type, status""",
+        (deployment_id, project_id, name, instance_type, "running"),
+        returning=True,
+    )
+    return jsonify({"success": True, "instance": rows[0]}), 201
 
-# ============= TEAMS ENDPOINTS =============
-@app.route('/api/teams', methods=['GET'])
+
+@app.route("/api/teams", methods=["GET"])
 @token_required
 def get_teams():
-    try:
-        teams = execute_query(
-            "SELECT t.*, u.username as owner_name FROM teams t JOIN users u ON t.owner_id = u.id"
-        )
-        return jsonify({'teams': teams}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    rows = db_fetch_all(
+        """SELECT t.*, u.username AS owner_name
+           FROM teams t JOIN users u ON u.id = t.owner_id
+           WHERE t.owner_id = %s ORDER BY t.created_at DESC""",
+        (request.user_id,),
+    )
+    return jsonify({"teams": rows})
 
-@app.route('/api/teams', methods=['POST'])
+
+@app.route("/api/teams", methods=["POST"])
 @token_required
 def create_team():
-    data = request.get_json()
-    
-    try:
-        execute_update(
-            "INSERT INTO teams (name, owner_id, description) VALUES (%s, %s, %s)",
-            [data.get('name'), request.user_id, data.get('description', '')]
-        )
-        
-        return jsonify({'success': True, 'message': 'Team created'}), 201
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+    data = json_body()
+    name = read_string(data, "name", required=True, max_length=120)
+    description = read_string(data, "description", default="", max_length=2000)
+    rows = db_execute(
+        """INSERT INTO teams (name, owner_id, description)
+           VALUES (%s, %s, %s) RETURNING id, name, owner_id, description, created_at""",
+        (name, request.user_id, description),
+        returning=True,
+    )
+    return jsonify({"success": True, "team": rows[0]}), 201
 
-# ============= ERROR HANDLERS =============
-@app.errorhandler(404)
-def not_found(error):
-    return jsonify({'error': 'Endpoint not found'}), 404
 
-@app.errorhandler(500)
-def internal_error(error):
-    return jsonify({'error': 'Internal server error'}), 500
-
-if __name__ == '__main__':
-    print("""
-    ╔════════════════════════════════════════╗
-    ║   ORBIT Platform - Python Backend      ║
-    ║   Running on http://localhost:5000     ║
-    ║   Login: demo@orbit.local / demo123    ║
-    ╚════════════════════════════════════════╝
-    """)
-    app.run(debug=True, host='0.0.0.0', port=5000)
+if __name__ == "__main__":
+    app.run(
+        debug=os.getenv("FLASK_DEBUG", "0") == "1" and not IS_PRODUCTION,
+        host=os.getenv("FLASK_HOST", "127.0.0.1"),
+        port=int(os.getenv("PORT", "5000")),
+    )

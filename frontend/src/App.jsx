@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -7,192 +7,222 @@ import Deployments from './pages/Deployments';
 import Metrics from './pages/Metrics';
 import Navigation from './components/Navigation';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
+
+function readStoredUser() {
+  try {
+    return JSON.parse(localStorage.getItem('orbit.user') || 'null');
+  } catch {
+    return null;
+  }
+}
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
-  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(() => localStorage.getItem('token') || null);
+  const [user, setUser] = useState(readStoredUser);
   const [projects, setProjects] = useState([]);
   const [deployments, setDeployments] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
 
-  // API Client
-  const api = axios.create({
+  const api = useMemo(() => axios.create({
     baseURL: API_URL,
-    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-  });
+    timeout: 15000,
+    headers: { Accept: 'application/json' }
+  }), []);
 
-  // Update API headers when token changes
   useEffect(() => {
-    if (token) {
-      api.defaults.headers['Authorization'] = `Bearer ${token}`;
-    }
-  }, [token]);
+    const interceptorId = api.interceptors.response.use(
+      response => response,
+      requestError => {
+        if (requestError.response?.status === 401 && localStorage.getItem('token')) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('orbit.user');
+          setToken(null);
+          setUser(null);
+          setProjects([]);
+          setDeployments([]);
+          setError('Your session expired. Please sign in again.');
+        }
+        return Promise.reject(requestError);
+      }
+    );
+    return () => api.interceptors.response.eject(interceptorId);
+  }, [api]);
 
-  // Fetch projects
-  const fetchProjects = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/projects');
-      setProjects(response.data.projects);
-      setError(null);
-    } catch (err) {
-      setError('Failed to fetch projects: ' + err.message);
-    } finally {
+  async function refreshWorkspace() {
+    const responses = await Promise.all([
+      api.get('/projects'),
+      api.get('/deployments')
+    ]);
+    setProjects(responses[0].data.projects || []);
+    setDeployments(responses[1].data.deployments || []);
+    setError('');
+  }
+
+  useEffect(() => {
+    if (!token) {
+      delete api.defaults.headers.common.Authorization;
+      setProjects([]);
+      setDeployments([]);
       setLoading(false);
+      return undefined;
     }
+
+    api.defaults.headers.common.Authorization = 'Bearer ' + token;
+    let active = true;
+    setLoading(true);
+    Promise.all([
+      api.get('/projects'),
+      api.get('/deployments')
+    ]).then(responses => {
+      if (!active) return;
+      setProjects(responses[0].data.projects || []);
+      setDeployments(responses[1].data.deployments || []);
+      setError('');
+    }).catch(requestError => {
+      if (!active) return;
+      if (requestError.response?.status !== 401) {
+        setError(requestError.response?.data?.error || 'Could not load the ORBIT workspace. Check the API and database.');
+      }
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+
+    return () => { active = false; };
+  }, [api, token]);
+
+  const handleLogin = (newToken, userData) => {
+    localStorage.setItem('token', newToken);
+    localStorage.setItem('orbit.user', JSON.stringify(userData || null));
+    setToken(newToken);
+    setUser(userData || null);
+    setCurrentPage('dashboard');
+    setError('');
   };
 
-  // Fetch deployments
-  const fetchDeployments = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/deployments');
-      setDeployments(response.data.deployments);
-      setError(null);
-    } catch (err) {
-      setError('Failed to fetch deployments: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('orbit.user');
+    setToken(null);
+    setUser(null);
+    setProjects([]);
+    setDeployments([]);
+    setCurrentPage('dashboard');
+    setError('');
   };
 
-  // Create project
-  const createProject = async (projectData) => {
+  const createProject = async projectData => {
     try {
       setLoading(true);
       await api.post('/projects', projectData);
-      fetchProjects();
-      setError(null);
+      await refreshWorkspace();
       return true;
-    } catch (err) {
-      setError('Failed to create project: ' + err.message);
+    } catch (requestError) {
+      setError(requestError.response?.data?.error || 'Could not create the project.');
       return false;
     } finally {
       setLoading(false);
     }
   };
 
-  // Deploy project
-  const deployProject = async (projectId, deployData) => {
+  const updateProject = async (projectId, projectData) => {
     try {
       setLoading(true);
-      await api.post(`/projects/${projectId}/deploy`, deployData);
-      fetchDeployments();
-      setError(null);
+      await api.put('/projects/' + projectId, projectData);
+      await refreshWorkspace();
       return true;
-    } catch (err) {
-      setError('Failed to deploy: ' + err.message);
+    } catch (requestError) {
+      setError(requestError.response?.data?.error || 'Could not update the project.');
       return false;
     } finally {
       setLoading(false);
     }
   };
 
-  // Delete project
-  const deleteProject = async (projectId) => {
+  const deleteProject = async projectId => {
     try {
       setLoading(true);
-      await api.delete(`/projects/${projectId}`);
-      fetchProjects();
-      setError(null);
+      await api.delete('/projects/' + projectId);
+      await refreshWorkspace();
       return true;
-    } catch (err) {
-      setError('Failed to delete project: ' + err.message);
+    } catch (requestError) {
+      setError(requestError.response?.data?.error || 'Could not delete the project.');
       return false;
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle login
-  const handleLogin = (newToken, userData) => {
-    setToken(newToken);
-    setUser(userData);
-    localStorage.setItem('token', newToken);
-    fetchProjects();
-    fetchDeployments();
-    setCurrentPage('dashboard');
+  const createDeployment = async (projectId, deploymentData) => {
+    try {
+      setLoading(true);
+      await api.post('/projects/' + projectId + '/deploy', deploymentData);
+      await refreshWorkspace();
+      return true;
+    } catch (requestError) {
+      setError(requestError.response?.data?.error || 'Could not record the deployment.');
+      return false;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Handle logout
-  const handleLogout = () => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem('token');
-    setCurrentPage('login');
-  };
-
-  // Render page
   const renderPage = () => {
-    if (!token) {
-      return <Login onLogin={handleLogin} api={api} />;
-    }
+    if (!token) return <Login onLogin={handleLogin} api={api} />;
 
     switch (currentPage) {
-      case 'dashboard':
-        return (
-          <Dashboard 
-            projects={projects} 
-            deployments={deployments}
-            loading={loading}
-          />
-        );
       case 'projects':
-        return (
-          <Projects 
-            projects={projects}
-            loading={loading}
-            onCreateProject={createProject}
-            onDeleteProject={deleteProject}
-            api={api}
-          />
-        );
+        return <Projects
+          projects={projects}
+          loading={loading}
+          onCreateProject={createProject}
+          onUpdateProject={updateProject}
+          onDeleteProject={deleteProject}
+        />;
       case 'deployments':
-        return (
-          <Deployments 
-            deployments={deployments}
-            projects={projects}
-            loading={loading}
-            onDeploy={deployProject}
-            api={api}
-          />
-        );
+        return <Deployments
+          deployments={deployments}
+          projects={projects}
+          loading={loading}
+          onDeploy={createDeployment}
+        />;
       case 'metrics':
-        return (
-          <Metrics 
-            projects={projects}
-            api={api}
-          />
-        );
+        return <Metrics projects={projects} api={api} />;
+      case 'dashboard':
       default:
-        return <Dashboard />;
+        return <Dashboard projects={projects} deployments={deployments} loading={loading} />;
     }
   };
 
   return (
     <div className="app">
-      {token && (
-        <Navigation 
-          currentPage={currentPage} 
-          onPageChange={setCurrentPage}
-          user={user}
-          onLogout={handleLogout}
-        />
-      )}
-      
-      <div className="main-content">
+      {token && <Navigation
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
+        user={user}
+        onLogout={handleLogout}
+      />}
+      <main className="main-content">
         {error && (
-          <div className="error-banner">
+          <div className="error-banner" role="alert">
             <span>{error}</span>
-            <button onClick={() => setError(null)}>✕</button>
+            <button type="button" aria-label="Dismiss error" onClick={() => setError('')}>×</button>
           </div>
         )}
-        
+        {token && loading && projects.length === 0 && deployments.length === 0 && (
+          <div className="workspace-loading" role="status">
+            <span className="loading-pulse" />
+            <span>Loading your workspace…</span>
+          </div>
+        )}
         {renderPage()}
-      </div>
+        {token && <footer className="app-footer">
+          <span>ORBIT Platform</span>
+          <span>2.0.0 · Project and deployment operations</span>
+        </footer>}
+      </main>
     </div>
   );
 }
