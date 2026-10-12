@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { createDemoApi } from './utils/demoApi';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
@@ -8,6 +9,7 @@ import Metrics from './pages/Metrics';
 import Navigation from './components/Navigation';
 
 const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
 function readStoredUser() {
   try {
@@ -26,13 +28,14 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const api = useMemo(() => axios.create({
+  const api = useMemo(() => DEMO_MODE ? createDemoApi() : axios.create({
     baseURL: API_URL,
     timeout: 15000,
     headers: { Accept: 'application/json' }
   }), []);
 
   useEffect(() => {
+    if (DEMO_MODE) return undefined;
     const interceptorId = api.interceptors.response.use(
       response => response,
       requestError => {
@@ -198,6 +201,10 @@ export default function App() {
 
   return (
     <div className="app">
+      {DEMO_MODE && <div className="demo-mode-banner" role="status">
+        <strong>GitHub Pages demo</strong>
+        <span>Browser-only sample data · No real authentication, cloud deployment, or live telemetry</span>
+      </div>}
       {token && <Navigation
         currentPage={currentPage}
         onPageChange={setCurrentPage}

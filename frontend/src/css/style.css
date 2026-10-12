@@ -360,3 +360,29 @@ button { color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+
+/* Explicit disclosure for the static GitHub Pages browser demo. */
+.demo-mode-banner {
+  position: relative;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 7px 12px;
+  padding: 10px 18px;
+  color: #d8e1f6;
+  background: #18243a;
+  border-bottom: 1px solid rgba(139, 156, 255, .24);
+  font-size: 11px;
+  line-height: 1.55;
+  text-align: center;
+}
+.demo-mode-banner strong {
+  color: #c2ccff;
+  font-weight: 850;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.demo-mode-banner span { color: #9fadc7; }

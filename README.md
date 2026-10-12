@@ -24,6 +24,18 @@ ORBIT 2.0 records deployment intent and status. It does **not** build source cod
 - Database: PostgreSQL 14+
 - API: JSON over HTTP with Bearer-token authentication
 
+## Public demo site
+
+The [ORBIT Platform browser demo](https://mahitech580.github.io/ORBIT-Platform/) is a static React build published on GitHub Pages. It runs in **browser-demo mode**: sample projects and sample measurements are stored in your browser's local storage. The demo includes working project create/edit/archive/delete flows and deployment-history records, but it does not contact a Flask server.
+
+Demo login:
+- Email: `demo@orbit.local`
+- Password: `demo123`
+
+The banner inside the site identifies demo mode. Do not enter real passwords or sensitive data. Demo registration is browser-local, and clearing this site's storage resets the demo workspace. The preloaded CPU, memory, request, and latency values are illustrative sample data—not live telemetry.
+
+GitHub Pages cannot run the Flask API or PostgreSQL database. To use real server-backed accounts and records, run the frontend and backend together using the Local setup instructions below, or deploy the backend and database to an appropriate server and set `VITE_API_URL` to that API.
+
 ## Local setup
 
 Prerequisites: Python 3.10+, Node.js 18+, npm, and PostgreSQL 14+.

@@ -63,3 +63,8 @@ These are test cases to run locally; they are not claimed as executed in this en
 | Expired token | Use an expired or malformed Bearer token | HTTP 401 and client returns to sign-in |
 | Production config | Start with APP_ENV=production and no SECRET_KEY | Startup stops with an explicit configuration error |
 | Frontend build | Run npm install then npm run build in frontend | Vite creates the production bundle without compile errors |
+
+
+## GitHub Pages follow-up
+
+Source inspection found that Vite's default root path would request assets from the domain root, rather than the repository subpath `/ORBIT-Platform/`. It also found that the static Pages site had no route to a live Flask/PostgreSQL API. The follow-up adds a Pages-specific Vite base and a separate browser demo API backed by localStorage. The page displays a clear demo disclosure; synthetic measurements are sample data, not collected telemetry. The `Publish ORBIT GitHub Pages Demo` workflow builds and deploys the static frontend after changes land on `main`.
