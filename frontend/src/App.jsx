@@ -7,9 +7,16 @@ import Projects from './pages/Projects';
 import Deployments from './pages/Deployments';
 import Metrics from './pages/Metrics';
 import Navigation from './components/Navigation';
+import CommandPalette from './components/CommandPalette';
 
 const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+const PAGE_LABELS = {
+  dashboard: 'Overview',
+  projects: 'Projects',
+  deployments: 'Deployments',
+  metrics: 'Observability'
+};
 
 function readStoredUser() {
   try {
@@ -17,6 +24,11 @@ function readStoredUser() {
   } catch {
     return null;
   }
+}
+
+function getInitials(user) {
+  const name = user?.name || user?.username || user?.email || 'O';
+  return name.trim().charAt(0).toUpperCase() || 'O';
 }
 
 export default function App() {
@@ -27,12 +39,25 @@ export default function App() {
   const [deployments, setDeployments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [commandOpen, setCommandOpen] = useState(false);
 
   const api = useMemo(() => DEMO_MODE ? createDemoApi() : axios.create({
     baseURL: API_URL,
     timeout: 15000,
     headers: { Accept: 'application/json' }
   }), []);
+
+  useEffect(() => {
+    const handleShortcut = event => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k' && token) {
+        event.preventDefault();
+        setCommandOpen(true);
+      }
+      if (event.key === 'Escape') setCommandOpen(false);
+    };
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
+  }, [token]);
 
   useEffect(() => {
     if (DEMO_MODE) return undefined;
@@ -55,10 +80,7 @@ export default function App() {
   }, [api]);
 
   async function refreshWorkspace() {
-    const responses = await Promise.all([
-      api.get('/projects'),
-      api.get('/deployments')
-    ]);
+    const responses = await Promise.all([api.get('/projects'), api.get('/deployments')]);
     setProjects(responses[0].data.projects || []);
     setDeployments(responses[1].data.deployments || []);
     setError('');
@@ -76,22 +98,20 @@ export default function App() {
     api.defaults.headers.common.Authorization = 'Bearer ' + token;
     let active = true;
     setLoading(true);
-    Promise.all([
-      api.get('/projects'),
-      api.get('/deployments')
-    ]).then(responses => {
-      if (!active) return;
-      setProjects(responses[0].data.projects || []);
-      setDeployments(responses[1].data.deployments || []);
-      setError('');
-    }).catch(requestError => {
-      if (!active) return;
-      if (requestError.response?.status !== 401) {
-        setError(requestError.response?.data?.error || 'Could not load the ORBIT workspace. Check the API and database.');
-      }
-    }).finally(() => {
-      if (active) setLoading(false);
-    });
+    Promise.all([api.get('/projects'), api.get('/deployments')])
+      .then(responses => {
+        if (!active) return;
+        setProjects(responses[0].data.projects || []);
+        setDeployments(responses[1].data.deployments || []);
+        setError('');
+      })
+      .catch(requestError => {
+        if (!active) return;
+        if (requestError.response?.status !== 401) {
+          setError(requestError.response?.data?.error || 'Could not load the ORBIT workspace. Check the API and database.');
+        }
+      })
+      .finally(() => { if (active) setLoading(false); });
 
     return () => { active = false; };
   }, [api, token]);
@@ -125,9 +145,7 @@ export default function App() {
     } catch (requestError) {
       setError(requestError.response?.data?.error || 'Could not create the project.');
       return false;
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const updateProject = async (projectId, projectData) => {
@@ -139,9 +157,7 @@ export default function App() {
     } catch (requestError) {
       setError(requestError.response?.data?.error || 'Could not update the project.');
       return false;
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const deleteProject = async projectId => {
@@ -153,9 +169,7 @@ export default function App() {
     } catch (requestError) {
       setError(requestError.response?.data?.error || 'Could not delete the project.');
       return false;
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const createDeployment = async (projectId, deploymentData) => {
@@ -167,51 +181,48 @@ export default function App() {
     } catch (requestError) {
       setError(requestError.response?.data?.error || 'Could not record the deployment.');
       return false;
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const renderPage = () => {
     if (!token) return <Login onLogin={handleLogin} api={api} />;
-
     switch (currentPage) {
       case 'projects':
-        return <Projects
-          projects={projects}
-          loading={loading}
-          onCreateProject={createProject}
-          onUpdateProject={updateProject}
-          onDeleteProject={deleteProject}
-        />;
+        return <Projects projects={projects} loading={loading} onCreateProject={createProject} onUpdateProject={updateProject} onDeleteProject={deleteProject} />;
       case 'deployments':
-        return <Deployments
-          deployments={deployments}
-          projects={projects}
-          loading={loading}
-          onDeploy={createDeployment}
-        />;
+        return <Deployments deployments={deployments} projects={projects} loading={loading} onDeploy={createDeployment} />;
       case 'metrics':
         return <Metrics projects={projects} api={api} />;
       case 'dashboard':
       default:
-        return <Dashboard projects={projects} deployments={deployments} loading={loading} />;
+        return <Dashboard projects={projects} deployments={deployments} loading={loading} onPageChange={setCurrentPage} />;
     }
   };
 
   return (
-    <div className="app">
+    <div className={token ? 'app' : 'app app-auth'}>
       {DEMO_MODE && <div className="demo-mode-banner" role="status">
-        <strong>GitHub Pages demo</strong>
-        <span>Browser-only sample data · No real authentication, cloud deployment, or live telemetry</span>
+        <span className="demo-banner-dot" />
+        <strong>Browser demo</strong>
+        <span>Sample workspace · Changes are saved in this browser only · No cloud resources are provisioned</span>
       </div>}
-      {token && <Navigation
-        currentPage={currentPage}
-        onPageChange={setCurrentPage}
-        user={user}
-        onLogout={handleLogout}
-      />}
+      {token && <Navigation currentPage={currentPage} onPageChange={setCurrentPage} user={user} onLogout={handleLogout} />}
       <main className="main-content">
+        {token && <header className="topbar">
+          <div className="topbar-context">
+            <span className="topbar-kicker">CONTROL PLANE <span>/</span> WORKSPACE</span>
+            <strong>{PAGE_LABELS[currentPage] || 'Overview'}</strong>
+          </div>
+          <div className="topbar-actions">
+            <button type="button" className="command-trigger" onClick={() => setCommandOpen(true)} aria-label="Open quick navigation">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.1 4.1" /></svg>
+              <span>Quick jump</span><kbd>Ctrl K</kbd>
+            </button>
+            <div className="environment-pill"><span className="status-pulse" />{DEMO_MODE ? 'Browser demo' : 'API mode'}</div>
+            <div className="topbar-date">{new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</div>
+            <div className="topbar-avatar" aria-label={'Signed in as ' + (user?.name || user?.email || 'workspace user')}>{getInitials(user)}</div>
+          </div>
+        </header>}
         {error && (
           <div className="error-banner" role="alert">
             <span>{error}</span>
@@ -219,17 +230,15 @@ export default function App() {
           </div>
         )}
         {token && loading && projects.length === 0 && deployments.length === 0 && (
-          <div className="workspace-loading" role="status">
-            <span className="loading-pulse" />
-            <span>Loading your workspace…</span>
-          </div>
+          <div className="workspace-loading" role="status"><span className="loading-pulse" /><span>Loading your workspace…</span></div>
         )}
         {renderPage()}
         {token && <footer className="app-footer">
-          <span>ORBIT Platform</span>
-          <span>2.0.0 · Project and deployment operations</span>
+          <span><strong>ORBIT</strong> · project operations</span>
+          <span>2.0.0 <i /> Built for clarity, not noise</span>
         </footer>}
       </main>
+      {token && commandOpen && <CommandPalette onClose={() => setCommandOpen(false)} onSelect={page => { setCurrentPage(page); setCommandOpen(false); }} />}
     </div>
   );
 }
