@@ -7,7 +7,7 @@ import { test } from 'node:test';
 test('Framer Motion honors the operating-system reduced-motion preference', async () => {
   const source = await readFile(new URL('../App.jsx', import.meta.url), 'utf8');
 
-  assert.match(source, /import \\{[^}]*\\bMotionConfig\\b[^}]*\\} from 'framer-motion';/);
+  assert.match(source, /import \{[^}]*\bMotionConfig\b[^}]*\} from 'framer-motion';/);
   const opening = source.indexOf('<MotionConfig reducedMotion="user">');
   const closing = source.lastIndexOf('</MotionConfig>');
   const appRoot = source.indexOf("<div className={'app'", opening);
