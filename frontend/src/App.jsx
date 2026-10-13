@@ -17,9 +17,34 @@ const HEALTH_URL = import.meta.env.VITE_HEALTH_URL || API_URL.replace(/\/api\/?$
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 const DEFAULT_REFRESH_SECONDS = 30;
 
+function readInitialToken() {
+  try {
+    const existing = localStorage.getItem('token');
+    if (existing) return existing;
+    // GitHub Pages is a browser-only demo; open the workspace immediately on first visit.
+    // This token is only a demo identifier consumed by demoApi, never a server JWT.
+    if (DEMO_MODE && localStorage.getItem('orbit.demo.loggedOut') !== 'true') {
+      const demoToken = 'orbit-pages-demo-1-' + Date.now().toString(36);
+      localStorage.setItem('token', demoToken);
+      if (!localStorage.getItem('orbit.user')) {
+        localStorage.setItem('orbit.user', JSON.stringify({
+          id: 1, email: 'demo@orbit.local', username: 'demo', name: 'Demo User'
+        }));
+      }
+      return demoToken;
+    }
+    return null;
+  } catch { return null; }
+}
+
 function readStoredUser() {
-  try { return JSON.parse(localStorage.getItem('orbit.user') || 'null'); }
-  catch { return null; }
+  try {
+    const stored = JSON.parse(localStorage.getItem('orbit.user') || 'null');
+    if (stored) return stored;
+    return DEMO_MODE && localStorage.getItem('token')?.startsWith('orbit-pages-demo-')
+      ? { id: 1, email: 'demo@orbit.local', username: 'demo', name: 'Demo User' }
+      : null;
+  } catch { return null; }
 }
 
 function readStoredTheme() {
@@ -36,7 +61,7 @@ function readRefreshSeconds() {
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
-  const [token, setToken] = useState(() => localStorage.getItem('token') || null);
+  const [token, setToken] = useState(readInitialToken);
   const [user, setUser] = useState(readStoredUser);
   const [projects, setProjects] = useState([]);
   const [deployments, setDeployments] = useState([]);
@@ -158,6 +183,7 @@ export default function App() {
   }, [token, refreshSeconds, loadWorkspace]);
 
   const handleLogin = (newToken, userData) => {
+    localStorage.removeItem('orbit.demo.loggedOut');
     localStorage.setItem('token', newToken);
     localStorage.setItem('orbit.user', JSON.stringify(userData || null));
     setToken(newToken);
@@ -169,6 +195,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('orbit.user');
+    if (DEMO_MODE) localStorage.setItem('orbit.demo.loggedOut', 'true');
     setToken(null);
     setUser(null);
     setProjects([]);
