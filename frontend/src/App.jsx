@@ -11,6 +11,8 @@ import Instances from './pages/Instances';
 import Settings from './pages/Settings';
 import Navigation from './components/Navigation';
 import CommandPalette from './components/CommandPalette';
+import SmokeBackground from './components/SmokeBackground';
+import { AnimatePresence, motion } from 'framer-motion';
 
 const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 const HEALTH_URL = import.meta.env.VITE_HEALTH_URL || API_URL.replace(/\/api\/?$/, '') + '/health';
@@ -48,8 +50,8 @@ function readStoredUser() {
 }
 
 function readStoredTheme() {
-  try { return localStorage.getItem('orbit.theme') === 'light'; }
-  catch { return false; }
+  try { return localStorage.getItem('orbit.theme') !== 'dark'; }
+  catch { return true; }
 }
 
 function readRefreshSeconds() {
@@ -332,7 +334,8 @@ export default function App() {
   };
 
   return (
-    <div className={'app' + (lightMode ? ' light-mode' : '') + (!token ? ' app-auth' : '')}>
+    <div className={'app' + (lightMode ? ' light-mode' : ' dark-mode') + (!token ? ' app-auth' : '')}>
+      <SmokeBackground lightMode={lightMode} />
       {DEMO_MODE && token && <div className="demo-mode-banner" role="status">
         <span className="demo-banner-dot" /><strong>Browser demo</strong>
         <span>Changes stay in this browser · Cloud provisioning is disabled</span>
@@ -353,7 +356,11 @@ export default function App() {
         {token && loading && projects.length === 0 && deployments.length === 0 && (
           <div className="workspace-loading" role="status"><span className="loading-pulse" /> Loading workspace records…</div>
         )}
-        {renderPage()}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div key={token ? currentPage : 'login'} className="page-transition" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.22, ease: 'easeOut' }}>
+            {renderPage()}
+          </motion.div>
+        </AnimatePresence>
         {token && <footer className="app-footer">
           <span><strong>ORBIT</strong> · Project Operations Platform</span>
           <span>v2.0.0 <i /> {DEMO_MODE ? 'Browser demo' : 'Live API workspace'} · <a href="https://github.com/mahitech580/ORBIT-Platform" target="_blank" rel="noreferrer">Source code</a></span>
