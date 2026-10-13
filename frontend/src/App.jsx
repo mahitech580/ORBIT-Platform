@@ -7,6 +7,7 @@ import Projects from './pages/Projects';
 import Deployments from './pages/Deployments';
 import Metrics from './pages/Metrics';
 import Navigation from './components/Navigation';
+import CommandPalette from './components/CommandPalette';
 
 const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
@@ -38,12 +39,25 @@ export default function App() {
   const [deployments, setDeployments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [commandOpen, setCommandOpen] = useState(false);
 
   const api = useMemo(() => DEMO_MODE ? createDemoApi() : axios.create({
     baseURL: API_URL,
     timeout: 15000,
     headers: { Accept: 'application/json' }
   }), []);
+
+  useEffect(() => {
+    const handleShortcut = event => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k' && token) {
+        event.preventDefault();
+        setCommandOpen(true);
+      }
+      if (event.key === 'Escape') setCommandOpen(false);
+    };
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
+  }, [token]);
 
   useEffect(() => {
     if (DEMO_MODE) return undefined;
@@ -200,6 +214,10 @@ export default function App() {
             <strong>{PAGE_LABELS[currentPage] || 'Overview'}</strong>
           </div>
           <div className="topbar-actions">
+            <button type="button" className="command-trigger" onClick={() => setCommandOpen(true)} aria-label="Open quick navigation">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.1 4.1" /></svg>
+              <span>Quick jump</span><kbd>Ctrl K</kbd>
+            </button>
             <div className="environment-pill"><span className="status-pulse" />{DEMO_MODE ? 'Browser demo' : 'API mode'}</div>
             <div className="topbar-date">{new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</div>
             <div className="topbar-avatar" aria-label={'Signed in as ' + (user?.name || user?.email || 'workspace user')}>{getInitials(user)}</div>
@@ -220,6 +238,7 @@ export default function App() {
           <span>2.0.0 <i /> Built for clarity, not noise</span>
         </footer>}
       </main>
+      {token && commandOpen && <CommandPalette onClose={() => setCommandOpen(false)} onSelect={page => { setCurrentPage(page); setCommandOpen(false); }} />}
     </div>
   );
 }
