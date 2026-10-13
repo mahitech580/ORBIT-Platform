@@ -52,6 +52,21 @@ test('deployment records are visible in the deployment list', async () => {
   assert.ok(list.data.deployments.some(item => item.id === created.data.deployment.id));
 });
 
+
+test('creates and lists instance metadata linked to a deployment record', async () => {
+  const release = await api.post('/projects/1/deploy', { version: '4.1.0', branch: 'main' });
+  const saved = await api.post('/instances', {
+    project_id: 1,
+    deployment_id: release.data.deployment.id,
+    name: 'api-worker-01',
+    instance_type: 't3.small'
+  });
+  assert.equal(saved.status, 201);
+  assert.equal(saved.data.instance.name, 'api-worker-01');
+  const list = await api.get('/instances');
+  assert.ok(list.data.instances.some(item => item.id === saved.data.instance.id && item.project_name === 'Sample App'));
+});
+
 test('deleting a project also removes its deployments and metrics', async () => {
   await api.post('/projects/1/deploy', { version: '3.0.0', branch: 'test' });
   await api.delete('/projects/1');
