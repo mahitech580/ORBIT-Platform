@@ -25,6 +25,8 @@ function initialState() {
       { id: 1, project_id: 1, project_name: 'Sample App', version: '1.0.0', branch: 'main', status: 'completed', deployed_by: 1, created_at: isoDaysAgo(4), completed_at: isoDaysAgo(4, 13) },
       { id: 2, project_id: 2, project_name: 'API Server', version: '0.8.2', branch: 'develop', status: 'in-progress', deployed_by: 1, created_at: isoDaysAgo(1), completed_at: null }
     ],
+    instances: [],
+    nextInstanceId: 1,
     metrics: {
       1: Array.from({ length: 8 }, (_, index) => {
         const cpu = [24, 31, 28, 44, 38, 57, 41, 35][index];
@@ -56,6 +58,7 @@ function readState() {
     state.accounts ||= [];
     state.teams ||= [];
     state.metrics ||= {};
+    state.instances ||= [];
     return state;
   } catch {
     const state = initialState();
@@ -187,7 +190,17 @@ export function createDemoApi() {
         });
       }
       if (route === '/teams') return response({ teams: state.teams.filter(team => Number(team.owner_id) === activeUserId()) });
-      if (route === '/instances') return response({ instances: [] });
+      if (route === '/instances') {
+        const projectIds = new Set(ownedProjects(state).map(project => Number(project.id)));
+        const instances = (state.instances || [])
+          .filter(instance => projectIds.has(Number(instance.project_id)))
+          .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+          .map(instance => ({
+            ...instance,
+            project_name: instance.project_name || state.projects.find(project => Number(project.id) === Number(instance.project_id))?.name || 'Unknown project'
+          }));
+        return response({ instances });
+      }
       fail('Demo API route not found: GET ' + route, 404);
     },
 
@@ -272,6 +285,36 @@ export function createDemoApi() {
         }, 201);
       }
 
+      if (route === '/instances') {
+        const project = ownedProject(state, payload.project_id);
+        if (!project) fail('Project not found.', 404);
+        const name = String(payload.name || '').trim();
+        const instanceType = String(payload.instance_type || 't3.medium').trim();
+        if (!name) fail('Instance name is required.');
+        if (name.length > 120 || instanceType.length > 80) fail('Instance fields exceed their maximum length.');
+        const allDeployments = visibleDeployments(state);
+        const deployment = allDeployments.find(item =>
+          Number(item.id) === Number(payload.deployment_id) &&
+          Number(item.project_id) === Number(project.id)
+        );
+        if (!deployment) fail('Choose a deployment record that belongs to this project.', 400);
+        state.instances ||= [];
+        const id = nextId(state, 'nextInstanceId', state.instances);
+        const instance = {
+          id,
+          project_id: project.id,
+          project_name: project.name,
+          deployment_id: deployment.id,
+          name,
+          instance_type: instanceType,
+          status: 'running',
+          created_at: new Date().toISOString()
+        };
+        state.instances.push(instance);
+        writeState(state);
+        return response({ success: true, instance }, 201);
+      }
+
       if (route === '/teams') {
         const name = String(payload.name || '').trim();
         if (!name) fail('Team name is required.');
@@ -313,6 +356,7 @@ export function createDemoApi() {
       if (!project) fail('Project not found.', 404);
       state.projects = state.projects.filter(item => Number(item.id) !== Number(project.id));
       state.deployments = state.deployments.filter(item => Number(item.project_id) !== Number(project.id));
+      state.instances = (state.instances || []).filter(item => Number(item.project_id) !== Number(project.id));
       delete state.metrics[project.id];
       writeState(state);
       return response({ success: true, deleted_id: project.id });

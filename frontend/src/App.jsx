@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { createDemoApi } from './utils/demoApi';
 import Login from './pages/Login';
@@ -6,18 +6,32 @@ import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import Deployments from './pages/Deployments';
 import Metrics from './pages/Metrics';
+import Teams from './pages/Teams';
+import Instances from './pages/Instances';
+import Settings from './pages/Settings';
 import Navigation from './components/Navigation';
 import CommandPalette from './components/CommandPalette';
 
 const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
+const HEALTH_URL = import.meta.env.VITE_HEALTH_URL || API_URL.replace(/\/api\/?$/, '') + '/health';
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+const DEFAULT_REFRESH_SECONDS = 30;
 
 function readStoredUser() {
+  try { return JSON.parse(localStorage.getItem('orbit.user') || 'null'); }
+  catch { return null; }
+}
+
+function readStoredTheme() {
+  try { return localStorage.getItem('orbit.theme') === 'light'; }
+  catch { return false; }
+}
+
+function readRefreshSeconds() {
   try {
-    return JSON.parse(localStorage.getItem('orbit.user') || 'null');
-  } catch {
-    return null;
-  }
+    const seconds = Number(localStorage.getItem('orbit.refreshSeconds'));
+    return [15, 30, 60].includes(seconds) ? seconds : DEFAULT_REFRESH_SECONDS;
+  } catch { return DEFAULT_REFRESH_SECONDS; }
 }
 
 export default function App() {
@@ -26,9 +40,16 @@ export default function App() {
   const [user, setUser] = useState(readStoredUser);
   const [projects, setProjects] = useState([]);
   const [deployments, setDeployments] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [instances, setInstances] = useState([]);
+  const [health, setHealth] = useState(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [commandOpen, setCommandOpen] = useState(false);
+  const [lightMode, setLightMode] = useState(readStoredTheme);
+  const [refreshSeconds, setRefreshSeconds] = useState(readRefreshSeconds);
 
   const api = useMemo(() => DEMO_MODE ? createDemoApi() : axios.create({
     baseURL: API_URL,
@@ -36,17 +57,48 @@ export default function App() {
     headers: { Accept: 'application/json' }
   }), []);
 
-  useEffect(() => {
-    const handleShortcut = event => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k' && token) {
-        event.preventDefault();
-        setCommandOpen(true);
-      }
-      if (event.key === 'Escape') setCommandOpen(false);
-    };
-    window.addEventListener('keydown', handleShortcut);
-    return () => window.removeEventListener('keydown', handleShortcut);
-  }, [token]);
+  const updateHealth = useCallback(() => {
+    if (DEMO_MODE) {
+      setHealth({ status: 'demo', database: 'browser storage', mode: 'browser-demo', timestamp: new Date().toISOString() });
+      return;
+    }
+    axios.get(HEALTH_URL, { timeout: 5000 })
+      .then(response => setHealth(response.data || { status: 'unknown' }))
+      .catch(requestError => {
+        setHealth(requestError.response?.data || {
+          status: 'unavailable',
+          database: 'unavailable',
+          timestamp: new Date().toISOString()
+        });
+      });
+  }, []);
+
+  const loadWorkspace = useCallback(async ({ showSpinner = false } = {}) => {
+    if (!token) return false;
+    if (showSpinner) setLoading(true);
+    try {
+      const [projectResponse, deploymentResponse, teamResponse, instanceResponse] = await Promise.all([
+        api.get('/projects'),
+        api.get('/deployments'),
+        api.get('/teams'),
+        api.get('/instances')
+      ]);
+      setProjects(projectResponse.data.projects || []);
+      setDeployments(deploymentResponse.data.deployments || []);
+      setTeams(teamResponse.data.teams || []);
+      setInstances(instanceResponse.data.instances || []);
+      setLastSyncedAt(new Date());
+      setError('');
+      updateHealth();
+      return true;
+    } catch (requestError) {
+      setError(requestError.response?.data?.error || 'Could not refresh the workspace. Your last loaded data is still visible.');
+      updateHealth();
+      return false;
+    } finally {
+      if (showSpinner) setLoading(false);
+    }
+  }, [api, token, updateHealth]);
 
   useEffect(() => {
     if (DEMO_MODE) return undefined;
@@ -60,6 +112,8 @@ export default function App() {
           setUser(null);
           setProjects([]);
           setDeployments([]);
+          setTeams([]);
+          setInstances([]);
           setError('Your session expired. Please sign in again.');
         }
         return Promise.reject(requestError);
@@ -68,40 +122,40 @@ export default function App() {
     return () => api.interceptors.response.eject(interceptorId);
   }, [api]);
 
-  async function refreshWorkspace() {
-    const responses = await Promise.all([api.get('/projects'), api.get('/deployments')]);
-    setProjects(responses[0].data.projects || []);
-    setDeployments(responses[1].data.deployments || []);
-    setError('');
-  }
-
   useEffect(() => {
     if (!token) {
       delete api.defaults.headers.common.Authorization;
       setProjects([]);
       setDeployments([]);
+      setTeams([]);
+      setInstances([]);
+      setHealth(null);
+      setLastSyncedAt(null);
       setLoading(false);
       return undefined;
     }
     api.defaults.headers.common.Authorization = 'Bearer ' + token;
-    let active = true;
-    setLoading(true);
-    Promise.all([api.get('/projects'), api.get('/deployments')])
-      .then(responses => {
-        if (!active) return;
-        setProjects(responses[0].data.projects || []);
-        setDeployments(responses[1].data.deployments || []);
-        setError('');
-      })
-      .catch(requestError => {
-        if (!active) return;
-        if (requestError.response?.status !== 401) {
-          setError(requestError.response?.data?.error || 'Could not load the ORBIT workspace. Check the API and database.');
-        }
-      })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [api, token]);
+    loadWorkspace({ showSpinner: true });
+    return undefined;
+  }, [api, token, loadWorkspace]);
+
+  useEffect(() => {
+    if (!token) return undefined;
+    const tick = () => {
+      if (document.visibilityState === 'visible') loadWorkspace();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') loadWorkspace();
+    };
+    window.addEventListener('focus', tick);
+    document.addEventListener('visibilitychange', onVisibility);
+    const interval = window.setInterval(tick, refreshSeconds * 1000);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', tick);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [token, refreshSeconds, loadWorkspace]);
 
   const handleLogin = (newToken, userData) => {
     localStorage.setItem('token', newToken);
@@ -119,15 +173,24 @@ export default function App() {
     setUser(null);
     setProjects([]);
     setDeployments([]);
+    setTeams([]);
+    setInstances([]);
+    setHealth(null);
     setCurrentPage('dashboard');
     setError('');
+  };
+
+  const refreshNow = async () => {
+    setRefreshing(true);
+    try { await loadWorkspace(); }
+    finally { setRefreshing(false); }
   };
 
   const createProject = async projectData => {
     try {
       setLoading(true);
       await api.post('/projects', projectData);
-      await refreshWorkspace();
+      await loadWorkspace();
       return true;
     } catch (requestError) {
       setError(requestError.response?.data?.error || 'Could not create the project.');
@@ -139,7 +202,7 @@ export default function App() {
     try {
       setLoading(true);
       await api.put('/projects/' + projectId, projectData);
-      await refreshWorkspace();
+      await loadWorkspace();
       return true;
     } catch (requestError) {
       setError(requestError.response?.data?.error || 'Could not update the project.');
@@ -151,7 +214,7 @@ export default function App() {
     try {
       setLoading(true);
       await api.delete('/projects/' + projectId);
-      await refreshWorkspace();
+      await loadWorkspace();
       return true;
     } catch (requestError) {
       setError(requestError.response?.data?.error || 'Could not delete the project.');
@@ -163,12 +226,48 @@ export default function App() {
     try {
       setLoading(true);
       await api.post('/projects/' + projectId + '/deploy', deploymentData);
-      await refreshWorkspace();
+      await loadWorkspace();
       return true;
     } catch (requestError) {
       setError(requestError.response?.data?.error || 'Could not record the deployment.');
       return false;
     } finally { setLoading(false); }
+  };
+
+  const createTeam = async teamData => {
+    try {
+      setLoading(true);
+      await api.post('/teams', teamData);
+      await loadWorkspace();
+      return true;
+    } catch (requestError) {
+      setError(requestError.response?.data?.error || 'Could not create the team.');
+      return false;
+    } finally { setLoading(false); }
+  };
+
+  const createInstance = async instanceData => {
+    try {
+      setLoading(true);
+      await api.post('/instances', instanceData);
+      await loadWorkspace();
+      return true;
+    } catch (requestError) {
+      setError(requestError.response?.data?.error || 'Could not create the instance record.');
+      return false;
+    } finally { setLoading(false); }
+  };
+
+  const changeRefreshSeconds = value => {
+    const normalized = [15, 30, 60].includes(Number(value)) ? Number(value) : DEFAULT_REFRESH_SECONDS;
+    localStorage.setItem('orbit.refreshSeconds', String(normalized));
+    setRefreshSeconds(normalized);
+  };
+
+  const toggleTheme = () => {
+    const next = !lightMode;
+    localStorage.setItem('orbit.theme', next ? 'light' : 'dark');
+    setLightMode(next);
   };
 
   const renderPage = () => {
@@ -180,33 +279,58 @@ export default function App() {
         return <Deployments deployments={deployments} projects={projects} loading={loading} onDeploy={createDeployment} />;
       case 'metrics':
         return <Metrics projects={projects} api={api} />;
+      case 'teams':
+        return <Teams teams={teams} loading={loading} onCreateTeam={createTeam} onRefresh={refreshNow} />;
+      case 'instances':
+        return <Instances instances={instances} projects={projects} deployments={deployments} loading={loading} onCreateInstance={createInstance} />;
+      case 'settings':
+        return <Settings demoMode={DEMO_MODE} health={health} lastSyncedAt={lastSyncedAt} refreshSeconds={refreshSeconds} onRefreshSecondsChange={changeRefreshSeconds} lightMode={lightMode} onToggleTheme={toggleTheme} onRefresh={refreshNow} />;
       case 'dashboard':
       default:
-        return <Dashboard projects={projects} deployments={deployments} loading={loading} onPageChange={setCurrentPage} />;
+        return <Dashboard
+          projects={projects}
+          deployments={deployments}
+          teams={teams}
+          instances={instances}
+          health={health}
+          user={user}
+          demoMode={DEMO_MODE}
+          loading={loading}
+          refreshing={refreshing}
+          lastSyncedAt={lastSyncedAt}
+          onRefresh={refreshNow}
+          onPageChange={setCurrentPage}
+        />;
     }
   };
 
   return (
-    <div className={token ? 'app' : 'app app-auth'}>
-      {DEMO_MODE && <div className="demo-mode-banner" role="status">
-        <span className="demo-banner-dot" />
-        <strong>Demo environment</strong>
-        <span>Sample workspace · Changes stay in this browser · Cloud provisioning is disabled</span>
+    <div className={'app' + (lightMode ? ' light-mode' : '') + (!token ? ' app-auth' : '')}>
+      {DEMO_MODE && token && <div className="demo-mode-banner" role="status">
+        <span className="demo-banner-dot" /><strong>Browser demo</strong>
+        <span>Changes stay in this browser · Cloud provisioning is disabled</span>
       </div>}
       {token && <Navigation
         currentPage={currentPage}
         onPageChange={setCurrentPage}
         onOpenCommand={() => setCommandOpen(true)}
+        onToggleTheme={toggleTheme}
+        lightMode={lightMode}
         user={user}
         onLogout={handleLogout}
+        health={health}
+        demoMode={DEMO_MODE}
       />}
       <main className="main-content">
         {error && <div className="error-banner" role="alert"><span>{error}</span><button type="button" aria-label="Dismiss error" onClick={() => setError('')}>×</button></div>}
         {token && loading && projects.length === 0 && deployments.length === 0 && (
-          <div className="workspace-loading" role="status"><span className="loading-pulse" /> Loading workspace…</div>
+          <div className="workspace-loading" role="status"><span className="loading-pulse" /> Loading workspace records…</div>
         )}
         {renderPage()}
-        {token && <footer className="app-footer"><span>© ORBIT Platform</span><span>Project and deployment tracking · Version 2.0.0</span></footer>}
+        {token && <footer className="app-footer">
+          <span><strong>ORBIT</strong> · Project Operations Platform</span>
+          <span>v2.0.0 <i /> {DEMO_MODE ? 'Browser demo' : 'Live API workspace'} · <a href="https://github.com/mahitech580/ORBIT-Platform" target="_blank" rel="noreferrer">Source code</a></span>
+        </footer>}
       </main>
       {token && commandOpen && <CommandPalette onClose={() => setCommandOpen(false)} onSelect={page => { setCurrentPage(page); setCommandOpen(false); }} />}
     </div>
