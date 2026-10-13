@@ -1,239 +1,164 @@
 import React, { useMemo } from 'react';
 
-const formatDate = value => {
-  if (!value) return '—';
+const dateLabel = value => {
+  if (!value) return 'date unavailable';
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return Number.isNaN(date.getTime()) ? 'date unavailable' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 };
-
-const formatRelative = value => {
+const relativeDate = value => {
   if (!value) return 'Date not recorded';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Date not recorded';
   const days = Math.floor((Date.now() - date.getTime()) / 86400000);
-  if (days <= 0) return 'Today';
-  if (days === 1) return 'Yesterday';
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
   if (days < 7) return days + ' days ago';
-  return formatDate(value);
+  return dateLabel(value);
 };
-
-function IconBadge({ children, tone = '' }) {
-  return <span className={'stat-icon' + (tone ? ' ' + tone : '')} aria-hidden="true">{children}</span>;
-}
+const runtimeLabel = runtime => ({ node: 'Node.js', python: 'Python', java: 'Java', go: 'Go' }[String(runtime || '').toLowerCase()] || runtime || 'Unknown');
 
 export default function Dashboard({ projects, deployments, loading, onPageChange }) {
-  const stats = useMemo(() => {
-    const completed = deployments.filter(item => item.status === 'completed').length;
-    const inProgress = deployments.filter(item => item.status === 'in-progress').length;
-    const pending = deployments.filter(item => item.status === 'pending').length;
-    const failed = deployments.filter(item => item.status === 'failed').length;
-    return {
-      totalProjects: projects.length,
-      activeProjects: projects.filter(project => project.status === 'active').length,
-      archivedProjects: projects.filter(project => project.status === 'archived').length,
-      totalDeployments: deployments.length,
-      completed,
-      inProgress,
-      pending,
-      failed,
-      terminal: completed + failed
-    };
-  }, [projects, deployments]);
+  const stats = useMemo(() => ({
+    total: projects.length,
+    active: projects.filter(project => project.status === 'active').length,
+    archived: projects.filter(project => project.status === 'archived').length,
+    releases: deployments.length,
+    completed: deployments.filter(item => item.status === 'completed').length,
+    running: deployments.filter(item => item.status === 'in-progress').length,
+    failed: deployments.filter(item => item.status === 'failed').length
+  }), [projects, deployments]);
 
+  const recentProjects = useMemo(() => [...projects].sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0)).slice(0, 5), [projects]);
+  const recentDeployments = useMemo(() => [...deployments].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 5), [deployments]);
   const activity = useMemo(() => {
-    const points = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    for (let offset = 6; offset >= 0; offset -= 1) {
+    return Array.from({ length: 35 }, (_, index) => {
       const date = new Date(today);
-      date.setDate(today.getDate() - offset);
+      date.setDate(today.getDate() - (34 - index));
       const key = [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
-      points.push({
-        key,
-        label: date.toLocaleDateString(undefined, { weekday: 'short' }),
-        count: deployments.filter(item => {
-          if (!item.created_at) return false;
-          const created = new Date(item.created_at);
-          if (Number.isNaN(created.getTime())) return false;
-          const createdKey = [created.getFullYear(), String(created.getMonth() + 1).padStart(2, '0'), String(created.getDate()).padStart(2, '0')].join('-');
-          return createdKey === key;
-        }).length
-      });
-    }
-    return points;
+      const count = deployments.filter(item => {
+        if (!item.created_at) return false;
+        const created = new Date(item.created_at);
+        return !Number.isNaN(created.getTime()) &&
+          [created.getFullYear(), String(created.getMonth() + 1).padStart(2, '0'), String(created.getDate()).padStart(2, '0')].join('-') === key;
+      }).length;
+      return { key, date, count };
+    });
   }, [deployments]);
+  const maxDaily = Math.max(1, ...activity.map(point => point.count));
 
-  const recentDeployments = useMemo(() => [...deployments]
-    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
-    .slice(0, 4), [deployments]);
-
-  const maxActivity = Math.max(1, ...activity.map(point => point.count));
-  const isEmpty = !projects.length && !deployments.length;
-  const totalForRing = deployments.length || 1;
-  const successShare = stats.completed / totalForRing * 100;
-  const runningShare = (stats.completed + stats.inProgress) / totalForRing * 100;
-  const warningShare = (stats.completed + stats.inProgress + stats.pending) / totalForRing * 100;
-  const statusParts = [
-    { key: 'completed', label: 'Completed', count: stats.completed, color: '#6de0cb' },
-    { key: 'in-progress', label: 'In progress', count: stats.inProgress, color: '#8198ff' },
-    { key: 'pending', label: 'Pending', count: stats.pending, color: '#ffcf75' },
-    { key: 'failed', label: 'Failed', count: stats.failed, color: '#ff829a' }
-  ];
+  const getProjectName = deployment => deployment.project_name ||
+    projects.find(project => Number(project.id) === Number(deployment.project_id))?.name || 'Unknown project';
 
   return (
     <div className="page dashboard-page">
-      <section className="overview-hero">
-        <div className="hero-copy">
-          <p className="eyebrow">ORBIT PLATFORM / COMMAND CENTER</p>
-          <h1>Your release workflow,<br /><span>in clear view.</span></h1>
-          <p>Keep application inventory and release history in one focused workspace. Everything here reflects records saved to your ORBIT workspace.</p>
-          <div className="hero-actions">
-            <button type="button" className="btn btn-primary" onClick={() => onPageChange('projects')}>Explore projects <span aria-hidden="true">↗</span></button>
-            <button type="button" className="btn btn-secondary" onClick={() => onPageChange('deployments')}>View deployments</button>
-          </div>
+      <div className="repo-heading-row">
+        <div className="repo-title-group">
+          <div className="repo-avatar"><svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="2.4" /><ellipse cx="12" cy="12" rx="9" ry="4.2" transform="rotate(-35 12 12)" /></svg></div>
+          <div><div className="breadcrumb"><span>workspace</span><span>/</span><strong>overview</strong><span className="public-tag">PUBLIC DEMO</span></div><p className="repo-description">A single place to organize projects, review deployment records, and inspect recorded metrics.</p></div>
         </div>
-        <div className="hero-visual" aria-hidden="true">
-          <span className="orbit-ring" />
-          <span className="orbit-ring ring-two" />
-          <span className="orbit-satellite s-one" />
-          <span className="orbit-satellite s-two" />
-          <span className="orbit-core">
-            <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="2.5" /><ellipse cx="12" cy="12" rx="9" ry="4.2" transform="rotate(-35 12 12)" /><path d="m17.5 5.4 1.9-1.9" />
-            </svg>
-          </span>
-        </div>
-      </section>
-
-      <div className="stats-grid" aria-label="Workspace summary">
-        <article className="stat-card">
-          <div className="stat-card-head"><span className="stat-kicker">Application inventory</span><IconBadge>▦</IconBadge></div>
-          <strong className="stat-value">{stats.totalProjects}</strong>
-          <div className="stat-detail"><strong>{stats.activeProjects}</strong> active · {stats.archivedProjects} archived</div>
-        </article>
-        <article className="stat-card">
-          <div className="stat-card-head"><span className="stat-kicker">Active projects</span><IconBadge tone="teal">↗</IconBadge></div>
-          <strong className="stat-value">{stats.activeProjects}</strong>
-          <div className="stat-detail">Out of {stats.totalProjects} tracked projects</div>
-        </article>
-        <article className="stat-card">
-          <div className="stat-card-head"><span className="stat-kicker">Release records</span><IconBadge tone="violet">⌁</IconBadge></div>
-          <strong className="stat-value">{stats.totalDeployments}</strong>
-          <div className="stat-detail">{stats.inProgress} in progress · {stats.pending} pending</div>
-        </article>
-        <article className="stat-card">
-          <div className="stat-card-head"><span className="stat-kicker">Completed records</span><IconBadge tone="gold">✓</IconBadge></div>
-          <strong className="stat-value">{stats.completed}</strong>
-          <div className="stat-detail">{stats.failed} failed record{stats.failed === 1 ? '' : 's'} · {stats.terminal} terminal</div>
-        </article>
+        <div className="repo-heading-actions"><button type="button" className="btn btn-secondary" onClick={() => onPageChange('projects')}>＋ New project</button></div>
       </div>
 
-      {loading && isEmpty && <div className="workspace-loading"><span className="loading-pulse" /> Loading workspace records…</div>}
-      {!loading && isEmpty && (
-        <div className="empty-message enhanced-empty dashboard-empty">
-          <div className="empty-icon">✳</div>
-          <h3>Welcome to your command center</h3>
-          <p>Your workspace is ready. Create a project to start organizing your application inventory and recording release activity.</p>
-          <button className="btn btn-primary" type="button" onClick={() => onPageChange('projects')}>Create your first project <span aria-hidden="true">→</span></button>
-        </div>
-      )}
-
-      <div className="dashboard-layout">
-        <section className="panel">
-          <div className="panel-heading">
-            <div><p className="eyebrow">ACTIVITY / LAST 7 DAYS</p><h2>Release activity</h2><p>Deployment records created each day</p></div>
-            <span className="panel-tag"><span className="status-pulse" /> Recorded data</span>
-          </div>
-          <div className="activity-chart" role="img" aria-label={'Deployment records during the last seven days. Total: ' + activity.reduce((sum, point) => sum + point.count, 0)}>
-            <div className="chart-y-axis"><span>{maxActivity}</span><span>{Math.ceil(maxActivity / 2)}</span><span>0</span></div>
-            <div className="activity-plot">
-              {activity.map(point => (
-                <div className="activity-bar-wrap" key={point.key} title={point.count + ' deployment record' + (point.count === 1 ? '' : 's')}>
-                  <div className={'activity-bar' + (point.count ? ' has-value' : '')} style={{ height: point.count ? Math.max(9, point.count / maxActivity * 100) + '%' : '0%' }} />
-                  <span className="activity-bar-wrap-label">{point.label}</span>
-                </div>
-              ))}
-              {activity.every(point => point.count === 0) && <div className="chart-empty">No deployment records created in the last 7 days</div>}
-            </div>
-          </div>
-          <div className="chart-footnote"><span>7-day window</span><strong>{activity.reduce((sum, point) => sum + point.count, 0)} records</strong></div>
-        </section>
-
-        <section className="panel">
-          <div className="panel-heading">
-            <div><p className="eyebrow">RELEASE RECORDS</p><h2>Status distribution</h2><p>Current states in your history</p></div>
-            <span className="panel-tag">All records</span>
-          </div>
-          <div className="status-overview">
-            <div className="status-ring" style={{
-              '--success-share': successShare + '%',
-              '--running-share': runningShare + '%',
-              '--warning-share': warningShare + '%',
-              background: deployments.length
-                ? undefined
-                : 'conic-gradient(#33435f 0 100%)'
-            }}>
-              <div className="status-ring-inner"><strong>{stats.totalDeployments}</strong><span>records</span></div>
-            </div>
-            <div className="status-legend">
-              {statusParts.map(part => (
-                <div className="status-legend-row" key={part.key}>
-                  <span className="status-legend-label"><i style={{ '--dot-color': part.color }} />{part.label}</span>
-                  <strong>{part.count}</strong>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="status-footnote">These are tracked deployment states. ORBIT does not execute builds or provision cloud resources in this release.</div>
-        </section>
+      <div className="repo-underbar">
+        <span><strong>{stats.total}</strong> projects</span>
+        <span className="underbar-sep">·</span>
+        <span><strong>{stats.releases}</strong> deployment records</span>
+        <span className="underbar-sep">·</span>
+        <span><i className="status-dot" /> {stats.active} active</span>
       </div>
 
-      <div className="dashboard-layout">
-        <section className="panel">
-          <div className="panel-heading">
-            <div><p className="eyebrow">LATEST UPDATES</p><h2>Recent deployment records</h2><p>Most recently created entries in your workspace</p></div>
-            <button type="button" className="btn btn-secondary btn-small" onClick={() => onPageChange('deployments')}>View all <span aria-hidden="true">↗</span></button>
+      <div className="github-page-grid">
+        <section className="github-main-column">
+          <div className="section-header">
+            <div><h2>Workspace activity</h2><p>Deployment records created over the last 5 weeks</p></div>
+            <span className="muted-label">{stats.releases} total</span>
           </div>
-          {recentDeployments.length ? (
-            <div className="activity-list">
-              {recentDeployments.map(deployment => {
-                const color = deployment.status === 'completed' ? '#6de0cb' : deployment.status === 'failed' ? '#ff829a' : deployment.status === 'pending' ? '#ffcf75' : '#8ba5ff';
-                return <div className="activity-item" key={deployment.id}>
-                  <span className="activity-item-icon" aria-hidden="true">↗</span>
-                  <div className="activity-item-content">
-                    <strong>{deployment.project_name || projects.find(project => Number(project.id) === Number(deployment.project_id))?.name || 'Project'}</strong>
-                    <span>Version {deployment.version || '—'} · branch {deployment.branch || '—'}</span>
-                    <span className="activity-status" style={{ '--status-color': color }}>{String(deployment.status || 'unknown').replace('-', ' ')}</span>
-                  </div>
-                  <span className="activity-item-meta">{formatRelative(deployment.created_at)}</span>
-                </div>;
+
+          <div className="contribution-card">
+            <div className="contribution-topline">
+              <span>{stats.releases} deployment records tracked</span>
+              <span className="contribution-caption">Less <i className="level-0" /><i className="level-1" /><i className="level-2" /><i className="level-3" /> More</span>
+            </div>
+            <div className="contribution-months"><span>5 weeks ago</span><span>4 weeks ago</span><span>3 weeks ago</span><span>2 weeks ago</span><span>This week</span></div>
+            <div className="contribution-grid" role="img" aria-label="Daily deployment records represented as activity squares">
+              {activity.map(point => {
+                const level = point.count === 0 ? 0 : point.count / maxDaily >= .75 ? 3 : point.count / maxDaily >= .4 ? 2 : 1;
+                return <span key={point.key} className={'contribution-cell level-' + level} title={point.count + ' record' + (point.count === 1 ? '' : 's') + ' on ' + point.date.toLocaleDateString()} />;
               })}
             </div>
-          ) : (
-            <div className="empty-message enhanced-empty compact-empty">
-              <h3>No release records yet</h3>
-              <p>Once you record a deployment, it will appear here with its current status and version.</p>
-              <button type="button" className="btn btn-secondary" onClick={() => onPageChange('deployments')}>Record a deployment</button>
-            </div>
-          )}
+            <div className="contribution-bottomline"><span>Activity based on saved records, not real-time build telemetry.</span><button type="button" className="text-button" onClick={() => onPageChange('deployments')}>View deployment history →</button></div>
+          </div>
+
+          <div className="section-header section-header-with-action">
+            <div><h2>Repositories <span className="count-pill">{stats.total}</span></h2><p>Projects registered in this workspace</p></div>
+            <button type="button" className="text-button" onClick={() => onPageChange('projects')}>View all projects →</button>
+          </div>
+
+          {recentProjects.length ? <div className="repository-list">
+            {recentProjects.map(project => (
+              <article className="repository-list-item" key={project.id}>
+                <div className="repo-list-icon">{runtimeLabel(project.runtime).slice(0, 1)}</div>
+                <div className="repo-list-content">
+                  <button type="button" className="repo-link" onClick={() => onPageChange('projects')}>{project.name}</button>
+                  <p>{project.description || 'No description provided.'}</p>
+                  <div className="repo-item-meta">
+                    <span className="language-dot runtime-{project.runtime}" />
+                    <span>{runtimeLabel(project.runtime)}</span>
+                    <span className={'state-pill ' + (project.status === 'active' ? 'green' : 'gray')}>{project.status || 'active'}</span>
+                    <span>Updated {relativeDate(project.updated_at || project.created_at)}</span>
+                  </div>
+                </div>
+                <button type="button" className="btn btn-secondary btn-small" onClick={() => onPageChange('projects')}>Manage</button>
+              </article>
+            ))}
+          </div> : <div className="github-empty"><div className="empty-icon">▤</div><h3>No projects yet</h3><p>Create your first project to start organizing your workspace.</p><button className="btn btn-primary" type="button" onClick={() => onPageChange('projects')}>Create a project</button></div>}
+
+          <div className="section-header section-header-with-action recent-release-heading">
+            <div><h2>Recent deployments <span className="count-pill">{stats.releases}</span></h2><p>Newest deployment records and their current status</p></div>
+            <button type="button" className="text-button" onClick={() => onPageChange('deployments')}>View history →</button>
+          </div>
+          {recentDeployments.length ? <div className="table-shell">
+            <table className="table github-table">
+              <thead><tr><th>Project</th><th>Version / branch</th><th>Status</th><th>Created</th></tr></thead>
+              <tbody>{recentDeployments.map(deployment => <tr key={deployment.id}>
+                <td><button type="button" className="repo-link" onClick={() => onPageChange('deployments')}>{getProjectName(deployment)}</button></td>
+                <td><span className="code-chip">{deployment.version || '—'}</span><span className="table-secondary">{deployment.branch || 'main'}</span></td>
+                <td><span className={'state-pill ' + (deployment.status === 'completed' ? 'green' : deployment.status === 'failed' ? 'red' : deployment.status === 'pending' ? 'yellow' : 'blue')}>{String(deployment.status || 'unknown').replace('-', ' ')}</span></td>
+                <td className="table-secondary">{dateLabel(deployment.created_at)}</td>
+              </tr>)}</tbody>
+            </table>
+          </div> : <div className="github-empty github-empty-small"><p>No deployment records yet.</p><button className="text-button" type="button" onClick={() => onPageChange('deployments')}>Record your first deployment →</button></div>}
         </section>
 
-        <section className="panel">
-          <div className="panel-heading"><div><p className="eyebrow">SHORTCUTS</p><h2>Quick access</h2><p>Jump straight to a workspace task</p></div></div>
-          <div className="quick-actions">
-            <button type="button" className="quick-action" onClick={() => onPageChange('projects')}>
-              <span className="quick-action-icon">＋</span><span><strong>Project inventory</strong><small>Create, edit, organize</small></span>
-            </button>
-            <button type="button" className="quick-action" onClick={() => onPageChange('deployments')}>
-              <span className="quick-action-icon">↗</span><span><strong>Release history</strong><small>Record a deployment</small></span>
-            </button>
-            <button type="button" className="quick-action" onClick={() => onPageChange('metrics')}>
-              <span className="quick-action-icon">⌁</span><span><strong>Observability</strong><small>Review recorded metrics</small></span>
-            </button>
-          </div>
-          <div className="workspace-note"><span className="workspace-note-mark">i</span><p><strong>Clear by design.</strong> Dashboard counts come from saved workspace records. Telemetry is only shown when measurement data exists.</p></div>
-        </section>
+        <aside className="github-sidebar-column">
+          <section className="about-panel">
+            <h2>About</h2>
+            <p>ORBIT is a project operations workspace for tracking application inventory, deployment history, and measured metrics.</p>
+            <div className="about-link"><span>⌘</span><span>Project operations</span></div>
+            <div className="about-link"><span>◷</span><span>Deployment history</span></div>
+            <div className="about-link"><span>⌁</span><span>Recorded observability</span></div>
+            <div className="about-note"><strong>Demo limitation</strong><p>This public version saves sample data in your browser. It does not execute builds, provision cloud infrastructure, or generate live telemetry.</p></div>
+          </section>
+
+          <section className="sidebar-section">
+            <div className="section-header"><h2>Summary</h2></div>
+            <div className="summary-row"><span><i className="summary-dot green-dot" /> Active projects</span><strong>{stats.active}</strong></div>
+            <div className="summary-row"><span><i className="summary-dot blue-dot" /> Completed records</span><strong>{stats.completed}</strong></div>
+            <div className="summary-row"><span><i className="summary-dot yellow-dot" /> In progress</span><strong>{stats.running}</strong></div>
+            <div className="summary-row"><span><i className="summary-dot red-dot" /> Failed records</span><strong>{stats.failed}</strong></div>
+          </section>
+
+          <section className="sidebar-section">
+            <div className="section-header"><h2>Explore</h2></div>
+            <button type="button" className="sidebar-action" onClick={() => onPageChange('projects')}><span className="sidebar-action-icon">▤</span><span><strong>Projects</strong><small>Create and manage runtimes</small></span><span className="sidebar-action-arrow">→</span></button>
+            <button type="button" className="sidebar-action" onClick={() => onPageChange('deployments')}><span className="sidebar-action-icon">↗</span><span><strong>Deployments</strong><small>View tracked release history</small></span><span className="sidebar-action-arrow">→</span></button>
+            <button type="button" className="sidebar-action" onClick={() => onPageChange('metrics')}><span className="sidebar-action-icon">⌁</span><span><strong>Observability</strong><small>Review recorded measurements</small></span><span className="sidebar-action-arrow">→</span></button>
+          </section>
+        </aside>
       </div>
+      {loading && <div className="inline-loading"><span className="loading-pulse" /> Syncing workspace records…</div>}
     </div>
   );
 }

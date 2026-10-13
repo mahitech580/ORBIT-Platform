@@ -11,12 +11,6 @@ import CommandPalette from './components/CommandPalette';
 
 const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
-const PAGE_LABELS = {
-  dashboard: 'Overview',
-  projects: 'Projects',
-  deployments: 'Deployments',
-  metrics: 'Observability'
-};
 
 function readStoredUser() {
   try {
@@ -24,11 +18,6 @@ function readStoredUser() {
   } catch {
     return null;
   }
-}
-
-function getInitials(user) {
-  const name = user?.name || user?.username || user?.email || 'O';
-  return name.trim().charAt(0).toUpperCase() || 'O';
 }
 
 export default function App() {
@@ -94,7 +83,6 @@ export default function App() {
       setLoading(false);
       return undefined;
     }
-
     api.defaults.headers.common.Authorization = 'Bearer ' + token;
     let active = true;
     setLoading(true);
@@ -112,7 +100,6 @@ export default function App() {
         }
       })
       .finally(() => { if (active) setLoading(false); });
-
     return () => { active = false; };
   }, [api, token]);
 
@@ -203,40 +190,23 @@ export default function App() {
     <div className={token ? 'app' : 'app app-auth'}>
       {DEMO_MODE && <div className="demo-mode-banner" role="status">
         <span className="demo-banner-dot" />
-        <strong>Browser demo</strong>
-        <span>Sample workspace · Changes are saved in this browser only · No cloud resources are provisioned</span>
+        <strong>Demo environment</strong>
+        <span>Sample workspace · Changes stay in this browser · Cloud provisioning is disabled</span>
       </div>}
-      {token && <Navigation currentPage={currentPage} onPageChange={setCurrentPage} user={user} onLogout={handleLogout} />}
+      {token && <Navigation
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
+        onOpenCommand={() => setCommandOpen(true)}
+        user={user}
+        onLogout={handleLogout}
+      />}
       <main className="main-content">
-        {token && <header className="topbar">
-          <div className="topbar-context">
-            <span className="topbar-kicker">CONTROL PLANE <span>/</span> WORKSPACE</span>
-            <strong>{PAGE_LABELS[currentPage] || 'Overview'}</strong>
-          </div>
-          <div className="topbar-actions">
-            <button type="button" className="command-trigger" onClick={() => setCommandOpen(true)} aria-label="Open quick navigation">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.1 4.1" /></svg>
-              <span>Quick jump</span><kbd>Ctrl K</kbd>
-            </button>
-            <div className="environment-pill"><span className="status-pulse" />{DEMO_MODE ? 'Browser demo' : 'API mode'}</div>
-            <div className="topbar-date">{new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</div>
-            <div className="topbar-avatar" aria-label={'Signed in as ' + (user?.name || user?.email || 'workspace user')}>{getInitials(user)}</div>
-          </div>
-        </header>}
-        {error && (
-          <div className="error-banner" role="alert">
-            <span>{error}</span>
-            <button type="button" aria-label="Dismiss error" onClick={() => setError('')}>×</button>
-          </div>
-        )}
+        {error && <div className="error-banner" role="alert"><span>{error}</span><button type="button" aria-label="Dismiss error" onClick={() => setError('')}>×</button></div>}
         {token && loading && projects.length === 0 && deployments.length === 0 && (
-          <div className="workspace-loading" role="status"><span className="loading-pulse" /><span>Loading your workspace…</span></div>
+          <div className="workspace-loading" role="status"><span className="loading-pulse" /> Loading workspace…</div>
         )}
         {renderPage()}
-        {token && <footer className="app-footer">
-          <span><strong>ORBIT</strong> · project operations</span>
-          <span>2.0.0 <i /> Built for clarity, not noise</span>
-        </footer>}
+        {token && <footer className="app-footer"><span>© ORBIT Platform</span><span>Project and deployment tracking · Version 2.0.0</span></footer>}
       </main>
       {token && commandOpen && <CommandPalette onClose={() => setCommandOpen(false)} onSelect={page => { setCurrentPage(page); setCommandOpen(false); }} />}
     </div>
