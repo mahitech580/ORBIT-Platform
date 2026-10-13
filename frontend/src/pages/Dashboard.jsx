@@ -1,4 +1,8 @@
 import React, { useMemo } from 'react';
+import { motion } from 'framer-motion';
+
+const riseIn = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.48, ease: [0.22, 1, 0.36, 1] } } };
+const staggerIn = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.075, delayChildren: 0.06 } } };
 
 const EARTH_IMAGE = 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=1800&q=85';
 const MOUNTAIN_IMAGE = 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1000&q=85';
@@ -180,7 +184,7 @@ export default function Dashboard({
 
     <div className="dashboard-layout">
       <main className="dashboard-primary">
-        <section className="hero-banner" style={{ '--earth-image': 'url("' + EARTH_IMAGE + '")' }}>
+        <motion.section className="hero-banner" style={{ '--earth-image': 'url("' + EARTH_IMAGE + '")' }} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}>
           <div className="hero-image-shade" />
           <div className="hero-content">
             <span className="hero-eyebrow"><i /> PROJECT OPERATIONS PLATFORM</span>
@@ -192,30 +196,30 @@ export default function Dashboard({
             </div>
           </div>
           <div className="hero-planet-mark" aria-hidden="true"><span className="planet-orbit one" /><span className="planet-orbit two" /><span className="planet-core">O</span></div>
-        </section>
+        </motion.section>
 
-        <section className="stats-grid" aria-label="Workspace counts">
-          <article className="metric-card metric-blue">
+        <motion.section className="stats-grid" aria-label="Workspace counts" variants={staggerIn} initial="hidden" animate="show">
+          <motion.article className="metric-card metric-blue" variants={riseIn} whileHover={{ y: -3, transition: { duration: 0.18 } }}>
             <div className="metric-card-top"><span>Total projects</span><StatIcon icon="▣" color="blue" /></div>
             <div className="metric-value">{stats.projects}<span className="metric-detail-count">{stats.activeProjects} active</span></div>
             <div className="metric-card-foot"><span className="metric-foot-dot" /> Project inventory</div><span className="metric-card-glow" />
-          </article>
-          <article className="metric-card metric-violet">
+          </motion.article>
+          <motion.article className="metric-card metric-violet" variants={riseIn} whileHover={{ y: -3, transition: { duration: 0.18 } }}>
             <div className="metric-card-top"><span>Deployment records</span><StatIcon icon="↗" color="violet" /></div>
             <div className="metric-value">{stats.releases}<span className="metric-detail-count">{stats.pending} in progress</span></div>
             <div className="metric-card-foot"><span className="metric-foot-dot" /> Release history</div><span className="metric-card-glow" />
-          </article>
-          <article className="metric-card metric-green">
+          </motion.article>
+          <motion.article className="metric-card metric-green" variants={riseIn} whileHover={{ y: -3, transition: { duration: 0.18 } }}>
             <div className="metric-card-top"><span>System health</span><StatIcon icon="⌁" color="green" /></div>
             <div className="metric-value metric-health-value">{healthText}<i className={'health-status-dot ' + stateTone(health?.status)} /></div>
             <div className="metric-card-foot"><span className="metric-foot-dot" />{demoMode ? 'Local sample data' : health?.database === 'connected' ? 'Database connected' : 'Based on API health check'}</div><span className="metric-card-glow" />
-          </article>
-          <article className="metric-card metric-orange">
+          </motion.article>
+          <motion.article className="metric-card metric-orange" variants={riseIn} whileHover={{ y: -3, transition: { duration: 0.18 } }}>
             <div className="metric-card-top"><span>Workspace teams</span><StatIcon icon="♧" color="orange" /></div>
             <div className="metric-value">{stats.activeTeams}<span className="metric-detail-count">{stats.instanceRecords} instance records</span></div>
             <div className="metric-card-foot"><span className="metric-foot-dot" /> Teams & resources</div><span className="metric-card-glow" />
-          </article>
-        </section>
+          </motion.article>
+        </motion.section>
 
         <div className="dashboard-analytics-grid">
           <section className="surface-card deployment-activity-card">
