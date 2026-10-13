@@ -531,3 +531,9 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
   .command-trigger kbd { display: none; }
   .command-footer span:last-child { display: none; }
 }
+
+
+/* Chart empty states stay legible without suggesting a zero-sized live metric. */
+.activity-plot { isolation: isolate; }
+.activity-plot .chart-empty { position: absolute; inset: 0; z-index: 3; width: auto; height: auto; padding: 15px; background: rgba(11,18,30,.9); line-height: 1.6; }
+.status-ring[style*="conic-gradient(#33435f"] { box-shadow: inset 0 0 0 1px rgba(145,166,203,.08); }

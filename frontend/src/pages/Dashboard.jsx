@@ -168,7 +168,10 @@ export default function Dashboard({ projects, deployments, loading, onPageChange
             <div className="status-ring" style={{
               '--success-share': successShare + '%',
               '--running-share': runningShare + '%',
-              '--warning-share': warningShare + '%'
+              '--warning-share': warningShare + '%',
+              background: deployments.length
+                ? undefined
+                : 'conic-gradient(#33435f 0 100%)'
             }}>
               <div className="status-ring-inner"><strong>{stats.totalDeployments}</strong><span>records</span></div>
             </div>
