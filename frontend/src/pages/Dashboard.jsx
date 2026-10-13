@@ -104,7 +104,7 @@ export default function Dashboard({ projects, deployments, loading, onPageChange
                   <button type="button" className="repo-link" onClick={() => onPageChange('projects')}>{project.name}</button>
                   <p>{project.description || 'No description provided.'}</p>
                   <div className="repo-item-meta">
-                    <span className="language-dot runtime-{project.runtime}" />
+                    <span className={"language-dot runtime-" + String(project.runtime || "").toLowerCase()} />
                     <span>{runtimeLabel(project.runtime)}</span>
                     <span className={'state-pill ' + (project.status === 'active' ? 'green' : 'gray')}>{project.status || 'active'}</span>
                     <span>Updated {relativeDate(project.updated_at || project.created_at)}</span>
