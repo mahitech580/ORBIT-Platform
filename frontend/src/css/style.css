@@ -1474,3 +1474,11 @@ textarea { min-height: 85px; resize: vertical; }
   .smoke-css-fallback { animation: none; }
   .metric-card:hover, .quick-action-tile:hover { transform: none; }
 }
+
+
+/* Keep the glass header and sidebar sticky above the animated canvas. */
+.global-header { position: sticky; top: 0; z-index: 200; }
+.workspace-sidebar { position: sticky; top: 70px; z-index: 160; }
+.main-content { position: relative; z-index: 1; }
+@media (max-width: 900px) { .workspace-sidebar { top: 68px; } }
+@media (max-width: 680px) { .workspace-sidebar { top: 60px; } }
