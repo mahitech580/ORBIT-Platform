@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build ORBIT frontend for the live API
+    name: Build static browser demo
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -38,9 +38,7 @@ jobs:
         working-directory: frontend
         env:
           GITHUB_PAGES: "true"
-          VITE_DEMO_MODE: "false"
-          VITE_API_URL: "https://orbit-platform-api-mahitech580.onrender.com/api"
-          VITE_HEALTH_URL: "https://orbit-platform-api-mahitech580.onrender.com/health"
+          VITE_DEMO_MODE: "true"
         run: npm run build
       - name: Upload static site artifact
         uses: actions/upload-pages-artifact@v3
