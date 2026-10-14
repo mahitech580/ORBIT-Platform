@@ -79,7 +79,9 @@ export function validateWorkspaceBackup(snapshot) {
     }
   }
 
-  if (snapshot.counts && collectionNames.some(name => !Object.prototype.hasOwnProperty.call(snapshot.counts, name))) {
+  if (!snapshot.counts || typeof snapshot.counts !== 'object' || Array.isArray(snapshot.counts)) {
+    errors.push('The backup count summary is missing or invalid.');
+  } else if (collectionNames.some(name => !Object.prototype.hasOwnProperty.call(snapshot.counts, name))) {
     errors.push('The backup count summary is incomplete.');
   }
 
@@ -128,6 +130,38 @@ export function validateWorkspaceBackup(snapshot) {
     }
     if (typeof instance.name !== 'string' || !instance.name.trim() || instance.name.length > 120) {
       errors.push('Instance record ' + (index + 1) + ' has an invalid name.');
+    }
+  });
+
+  const validateIds = (items, label) => {
+    const seen = new Set();
+    items.forEach((item, index) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return;
+      const id = Number(item.id);
+      if (!Number.isSafeInteger(id) || id < 1) {
+        errors.push(label + ' record ' + (index + 1) + ' has an invalid ID.');
+      } else if (seen.has(id)) {
+        errors.push(label + ' records contain duplicate ID ' + id + '.');
+      } else {
+        seen.add(id);
+      }
+    });
+    return seen;
+  };
+  const projectIds = validateIds(projects, 'Project');
+  validateIds(teams, 'Team');
+  const deploymentIds = validateIds(deployments, 'Deployment');
+  validateIds(instances, 'Instance');
+  deployments.forEach((deployment, index) => {
+    if (deployment && typeof deployment === 'object' && !Array.isArray(deployment) && !projectIds.has(Number(deployment.project_id))) {
+      errors.push('Deployment record ' + (index + 1) + ' references a project missing from the backup.');
+    }
+  });
+  instances.forEach((instance, index) => {
+    if (!instance || typeof instance !== 'object' || Array.isArray(instance)) return;
+    if (!projectIds.has(Number(instance.project_id))) errors.push('Instance record ' + (index + 1) + ' references a project missing from the backup.');
+    if (instance.deployment_id != null && !deploymentIds.has(Number(instance.deployment_id))) {
+      errors.push('Instance record ' + (index + 1) + ' references a deployment missing from the backup.');
     }
   });
   return { valid: errors.length === 0, errors, counts };
