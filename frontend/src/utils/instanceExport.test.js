@@ -18,7 +18,8 @@ test('prefers the denormalized project name when present', () => {
 
 test('neutralizes spreadsheet formula prefixes and escapes quotes', () => {
   const csv = buildInstanceCsv([{ id: 1, name: '=CMD("x,y")' }], []);
-  assert.ok(csv.includes('"'=CMD(""x,y"")"'));
+  const escapedCell = String.fromCharCode(34) + String.fromCharCode(39) + '=CMD(""x,y"")' + String.fromCharCode(34);
+  assert.ok(csv.includes(escapedCell));
 });
 
 test('handles empty or malformed instance input', () => {
