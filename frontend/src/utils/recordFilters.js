@@ -29,3 +29,41 @@ export function filterInstances(instances, projects = [], query = '') {
     ].some(value => searchable(value).includes(needle));
   });
 }
+
+
+function compareText(left, right) {
+  return String(left ?? '').localeCompare(String(right ?? ''), undefined, { sensitivity: 'base', numeric: true });
+}
+
+function timestampOrZero(value) {
+  const timestamp = Date.parse(value || '');
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function compareByMode(left, right, mode, labelField) {
+  if (mode === 'name-desc') return compareText(right[labelField], left[labelField]) || compareText(left.id, right.id);
+  if (mode === 'oldest') return timestampOrZero(left.created_at) - timestampOrZero(right.created_at) || compareText(left.id, right.id);
+  if (mode === 'status') return compareText(left.status, right.status) || compareText(left[labelField], right[labelField]) || compareText(left.id, right.id);
+  if (mode === 'newest') return timestampOrZero(right.created_at) - timestampOrZero(left.created_at) || compareText(left.id, right.id);
+  return compareText(left[labelField], right[labelField]) || compareText(left.id, right.id);
+}
+
+/** Return a deterministically sorted copy of the supplied team list. */
+export function sortTeams(teams, mode = 'name-asc') {
+  const records = Array.isArray(teams)
+    ? teams.filter(item => item && typeof item === 'object' && !Array.isArray(item))
+    : [];
+  const supported = new Set(['name-asc', 'name-desc', 'newest', 'oldest', 'status']);
+  const sortMode = supported.has(mode) ? mode : 'name-asc';
+  return [...records].sort((left, right) => compareByMode(left, right, sortMode, 'name'));
+}
+
+/** Return a deterministically sorted copy of the supplied instance list. */
+export function sortInstances(instances, mode = 'newest') {
+  const records = Array.isArray(instances)
+    ? instances.filter(item => item && typeof item === 'object' && !Array.isArray(item))
+    : [];
+  const supported = new Set(['name-asc', 'name-desc', 'newest', 'oldest', 'status']);
+  const sortMode = supported.has(mode) ? mode : 'newest';
+  return [...records].sort((left, right) => compareByMode(left, right, sortMode, 'name'));
+}
