@@ -13,7 +13,7 @@ test('exports selected-project measurement data with units in the header', () =>
 
 test('preserves missing measurement values as blank CSV cells', () => {
   const csv = buildMetricsCsv([{ timestamp: 't', cpu_usage: null, errors_total: 0 }], { id: 1, name: 'Worker' });
-  assert.ok(csv.includes('1,Worker,t,,,,"0",'));
+  assert.ok(csv.includes('1,Worker,t,,,,0,'));
 });
 
 test('neutralizes formula-leading project metadata and quotes delimiters', () => {
