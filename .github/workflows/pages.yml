@@ -1,4 +1,4 @@
-name: Publish ORBIT GitHub Pages Demo
+name: Publish ORBIT GitHub Pages Frontend
 
 on:
   push:
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build static browser demo
+    name: Build ORBIT frontend for the live API
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -38,7 +38,9 @@ jobs:
         working-directory: frontend
         env:
           GITHUB_PAGES: "true"
-          VITE_DEMO_MODE: "true"
+          VITE_DEMO_MODE: "false"
+          VITE_API_URL: "https://orbit-platform-api-mahitech580.onrender.com/api"
+          VITE_HEALTH_URL: "https://orbit-platform-api-mahitech580.onrender.com/health"
         run: npm run build
       - name: Upload static site artifact
         uses: actions/upload-pages-artifact@v3
