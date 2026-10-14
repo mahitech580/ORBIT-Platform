@@ -47,3 +47,8 @@ test('normalizes unexpected record collections to empty arrays', () => {
   assert.deepEqual(snapshot.records.projects, []);
   assert.deepEqual(snapshot.records.deployments, []);
 });
+
+
+test('defaults to the server API mode when mode is omitted', () => {
+  assert.equal(buildWorkspaceExport({}, 't').mode, 'server-api');
+});
