@@ -58,6 +58,9 @@ app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024
 allowed_origins = [origin.strip() for origin in os.getenv(
     "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,https://mahitech580.github.io"
 ).split(",") if origin.strip()]
+# Ensure the public GitHub Pages app is allowed even if Render has explicit CORS_ORIGINS.
+if "https://mahitech580.github.io" not in allowed_origins:
+    allowed_origins.append("https://mahitech580.github.io")
 CORS(app, resources={
     r"/api/*": {"origins": allowed_origins},
     r"/health": {"origins": allowed_origins},
