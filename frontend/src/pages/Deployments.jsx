@@ -1,17 +1,30 @@
 import React, { useMemo, useState } from 'react';
+import { filterDeployments } from '../utils/deploymentFilters.js';
 
 export default function Deployments({ deployments, projects, loading, onDeploy }) {
   const [showForm, setShowForm] = useState(false);
+  const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [projectFilter, setProjectFilter] = useState('all');
   const [formData, setFormData] = useState({
     project_id: projects.length > 0 ? projects[0].id : '',
     version: '1.0.0',
     branch: 'main'
   });
 
-  const filteredDeployments = useMemo(() => statusFilter === 'all'
-    ? deployments
-    : deployments.filter(deployment => deployment.status === statusFilter), [deployments, statusFilter]);
+  const filteredDeployments = useMemo(() => filterDeployments(deployments, {
+    query,
+    status: statusFilter,
+    projectId: projectFilter,
+    projects
+  }), [deployments, projects, query, projectFilter, statusFilter]);
+
+  const hasActiveFilters = Boolean(query.trim()) || projectFilter !== 'all' || statusFilter !== 'all';
+  const clearFilters = () => {
+    setQuery('');
+    setProjectFilter('all');
+    setStatusFilter('all');
+  };
 
   const handleInputChange = event => {
     const { name, value } = event.target;
@@ -103,21 +116,40 @@ export default function Deployments({ deployments, projects, loading, onDeploy }
       </div>
 
       <div className="section-heading-row deployment-list-heading">
-        <div><h2>Deployment history</h2><p>Newest activity appears first.</p></div>
-        <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)} aria-label="Filter deployments by status">
-          <option value="all">All statuses</option>
-          <option value="in-progress">In progress</option>
-          <option value="pending">Pending</option>
-          <option value="completed">Completed</option>
-          <option value="failed">Failed</option>
-        </select>
+        <div className="deployment-list-copy">
+          <h2>Deployment history</h2>
+          <p aria-live="polite">Newest activity first · Showing {filteredDeployments.length} of {deployments.length} records.</p>
+        </div>
+        <div className="deployment-filters">
+          <input
+            className="deployment-search-field"
+            type="search"
+            value={query}
+            onChange={event => setQuery(event.target.value)}
+            placeholder="Search ID, project, version, branch…"
+            aria-label="Search deployment history"
+          />
+          <select value={projectFilter} onChange={event => setProjectFilter(event.target.value)} aria-label="Filter deployments by project">
+            <option value="all">All projects</option>
+            {projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}
+          </select>
+          <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)} aria-label="Filter deployments by status">
+            <option value="all">All statuses</option>
+            <option value="in-progress">In progress</option>
+            <option value="pending">Pending</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+          </select>
+          {hasActiveFilters && <button type="button" className="btn btn-secondary" onClick={clearFilters}>Clear filters</button>}
+        </div>
       </div>
 
       {filteredDeployments.length === 0 ? (
         <div className="empty-message enhanced-empty">
           <div className="empty-icon">↗</div>
-          <h3>{deployments.length ? 'No records in this status' : 'No deployment records yet'}</h3>
-          <p>{deployments.length ? 'Choose a different status filter.' : 'Create a record to start building a version history for a project.'}</p>
+          <h3>{hasActiveFilters ? 'No deployments match these filters' : 'No deployment records yet'}</h3>
+          <p>{hasActiveFilters ? 'Try changing your search, project, or status filter.' : 'Create a record to start building a version history for a project.'}</p>
+          {hasActiveFilters && <button type="button" className="btn btn-secondary" onClick={clearFilters}>Clear filters</button>}
         </div>
       ) : (
         <div className="deployment-timeline">
