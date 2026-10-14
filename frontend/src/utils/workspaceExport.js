@@ -26,7 +26,7 @@ function csvCell(value) {
       : String(value);
 
   // Prefix formula-like text so spreadsheet applications do not execute it.
-  if (typeof value === 'string' && /^[\\u0000-\\u0020]*[=+\\-@]/.test(text)) {
+  if (typeof value === 'string' && /^[\x00-\x20]*[=+\-@]/.test(text)) {
     text = "'" + text;
   }
 
@@ -39,11 +39,11 @@ export function serializeWorkspaceCsv(workspace) {
   const records = COLLECTIONS.flatMap(type => (
     Array.isArray(source[type])
       ? source[type].filter(item => item && typeof item === 'object' && !Array.isArray(item))
-        .map(item => ({ record_type: type, ...item }))
+        .map(item => ({ ...item, record_type: type }))
       : []
   ));
   const columns = [...new Set(records.flatMap(record => Object.keys(record)))];
   const header = ['record_type', ...columns.filter(key => key !== 'record_type').sort()];
   const rows = records.map(record => header.map(key => csvCell(record[key])).join(','));
-  return [header.map(csvCell).join(','), ...rows].join('\\r\\n') + '\\r\\n';
+  return [header.map(csvCell).join(','), ...rows].join('\r\n') + '\r\n';
 }
