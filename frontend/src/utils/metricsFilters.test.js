@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { filterMetricsByRange } from './metricsFilters.js';
+import { filterMetricsByRange, parseMetricTimestamp } from './metricsFilters.js';
 
 const NOW = Date.parse('2026-10-14T12:00:00.000Z');
 
@@ -51,4 +51,25 @@ test('filtering does not mutate or reorder source records', () => {
   const result = filterMetricsByRange(metrics, '24h', NOW);
   assert.deepEqual(result.map(item => item.id), [3, 1]);
   assert.deepEqual(metrics.map(item => item.id), [3, 1]);
+});
+
+
+test('parses Unix seconds and Unix milliseconds consistently', () => {
+  assert.equal(parseMetricTimestamp(1791979200), NOW);
+  assert.equal(parseMetricTimestamp(1791979200000), NOW);
+});
+
+test('parses Date objects and rejects invalid timestamp values', () => {
+  assert.equal(parseMetricTimestamp(new Date(NOW)), NOW);
+  assert.equal(Number.isNaN(parseMetricTimestamp('')), true);
+  assert.equal(Number.isNaN(parseMetricTimestamp('invalid-date')), true);
+  assert.equal(Number.isNaN(parseMetricTimestamp(null)), true);
+  assert.equal(Number.isNaN(parseMetricTimestamp(new Date('invalid'))), true);
+});
+
+test('time-window filter includes a Unix-seconds measurement', () => {
+  assert.deepEqual(filterMetricsByRange([
+    { id: 1, timestamp: Math.floor(NOW / 1000) - 3600 },
+    { id: 2, timestamp: Math.floor(NOW / 1000) - 90000 }
+  ], '24h', NOW).map(item => item.id), [1]);
 });
