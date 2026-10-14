@@ -79,6 +79,10 @@ The .env.example file is a starter configuration, not a production secret store.
 
 Use **Settings → Workspace backup → Export JSON** to download the records currently loaded by the workspace. The versioned backup includes project, deployment, team, and instance records with a count summary. Fields whose names resemble credentials (passwords, tokens, API keys, cookies, and similar values) are omitted recursively. Authentication state is never passed to the exporter. Treat the file as operational data even after filtering, because project descriptions and execution metadata may still be sensitive.
 
+## Workspace backups
+
+Use **Settings → Workspace backup → Export JSON** to download the currently loaded project, deployment, team and instance records. In browser-demo mode, **Restore browser demo → Choose JSON file** validates the format and record relationships before asking for confirmation. Restore replaces the current demo user's workspace records and remaps IDs so references remain consistent. Metrics are not included, and restore is intentionally unavailable for server-backed accounts; the feature does not write imported data into a production database. Credential-like fields are omitted recursively, but operational descriptions and generated metadata may still be sensitive.
+
 ## API overview
 
 Public endpoints:
