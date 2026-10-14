@@ -52,3 +52,41 @@ test('normalizes unexpected record collections to empty arrays', () => {
 test('defaults to the server API mode when mode is omitted', () => {
   assert.equal(buildWorkspaceExport({}, 't').mode, 'server-api');
 });
+
+
+test('accepts a structurally valid version-one backup', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ projects: [{ id: 1 }], deployments: [], teams: [], instances: [] }, 't');
+  assert.deepEqual(validateWorkspaceBackup(snapshot), {
+    valid: true, errors: [], counts: { projects: 1, deployments: 0, teams: 0, instances: 0 }
+  });
+});
+
+test('rejects a file with an unrelated format or unsupported schema', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const base = buildWorkspaceExport({}, 't');
+  assert.equal(validateWorkspaceBackup({ ...base, format: 'OTHER' }).valid, false);
+  assert.ok(validateWorkspaceBackup({ ...base, schema_version: 99 }).errors.some(error => error.includes('schema')));
+});
+
+test('rejects missing collections and non-object records', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const base = buildWorkspaceExport({}, 't');
+  assert.equal(validateWorkspaceBackup({ ...base, records: { ...base.records, teams: null } }).valid, false);
+  assert.ok(validateWorkspaceBackup({ ...base, records: { ...base.records, projects: [null] } }).errors.some(error => error.includes('record objects')));
+});
+
+test('rejects inconsistent backup count summaries', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const base = buildWorkspaceExport({ projects: [{ id: 1 }] }, 't');
+  const corrupted = { ...base, counts: { ...base.counts, projects: 8 } };
+  assert.equal(validateWorkspaceBackup(corrupted).valid, false);
+  assert.ok(validateWorkspaceBackup(corrupted).errors.some(error => error.includes('count does not match')));
+});
+
+test('returns a stable validation error for primitive input', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  assert.deepEqual(validateWorkspaceBackup(null), {
+    valid: false, errors: ['The backup must be a JSON object.'], counts: null
+  });
+});
