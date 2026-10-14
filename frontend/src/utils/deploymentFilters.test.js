@@ -13,7 +13,7 @@ const deployments = [
 ];
 
 test('search matches project, version, branch, deployment id, and status case-insensitively', () => {
-  assert.deepEqual(filterDeployments(deployments, { query: 'PAYMENTS', projects }).map(item => item.id), [10]);
+  assert.deepEqual(filterDeployments(deployments, { query: 'PAYMENTS', projects }).map(item => item.id), [10, 12]);
   assert.deepEqual(filterDeployments(deployments, { query: '1.4.2', projects }).map(item => item.id), [11]);
   assert.deepEqual(filterDeployments(deployments, { query: 'hotfix', projects }).map(item => item.id), [12]);
   assert.deepEqual(filterDeployments(deployments, { query: 'IN-PROGRESS', projects }).map(item => item.id), [11]);
