@@ -15,5 +15,5 @@ export function createWorkspaceExport(workspace, exportedAt = new Date().toISOSt
 }
 
 export function serializeWorkspaceExport(workspace, exportedAt) {
-  return JSON.stringify(createWorkspaceExport(workspace, exportedAt), null, 2) + '\\n';
+  return JSON.stringify(createWorkspaceExport(workspace, exportedAt), null, 2) + '\n';
 }
