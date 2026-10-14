@@ -132,7 +132,7 @@ test('rejects an invalid backup before changing existing demo workspace state', 
   assert.deepEqual(after, before);
 });
 
-test('restoring an empty backup clears the current demo user's records', async () => {
+test("restoring an empty backup clears the current demo user records", async () => {
   const emptyBackup = buildWorkspaceExport({}, 'fixed-time');
   const result = await api.restoreWorkspace(emptyBackup);
   assert.deepEqual(result.data.restored, { projects: 0, deployments: 0, teams: 0, instances: 0 });
