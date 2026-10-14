@@ -172,7 +172,7 @@ export function createDemoApi() {
       const teamIdMap = new Map();
       const importedTeams = safe.teams.map((source, index) => {
         const id = nextId(state, 'nextTeamId', state.teams);
-        if (source.id != null) teamIdMap.set(String(source.id), id);
+        if (source.id != null) teamIdMap.set(Number(source.id), id);
         const team = {
           id, owner_id: userId,
           name: String(source.name).trim().slice(0, 120),
@@ -196,8 +196,8 @@ export function createDemoApi() {
       const projectIdMap = new Map();
       const importedProjects = safe.projects.map(source => {
         const id = nextId(state, 'nextProjectId', state.projects);
-        if (source.id != null) projectIdMap.set(String(source.id), id);
-        const teamId = teamIdMap.get(String(source.team_id)) || fallbackTeam?.id || null;
+        if (source.id != null) projectIdMap.set(Number(source.id), id);
+        const teamId = teamIdMap.get(Number(source.team_id)) || fallbackTeam?.id || null;
         const team = state.teams.find(item => Number(item.id) === Number(teamId));
         const project = {
           id,
@@ -217,10 +217,10 @@ export function createDemoApi() {
 
       const deploymentIdMap = new Map();
       const importedDeployments = safe.deployments.flatMap(source => {
-        const projectId = projectIdMap.get(String(source.project_id));
+        const projectId = projectIdMap.get(Number(source.project_id));
         if (!projectId) return [];
         const id = nextId(state, 'nextDeploymentId', state.deployments);
-        if (source.id != null) deploymentIdMap.set(String(source.id), id);
+        if (source.id != null) deploymentIdMap.set(Number(source.id), id);
         const project = state.projects.find(item => Number(item.id) === Number(projectId));
         const deployment = {
           id,
@@ -238,8 +238,8 @@ export function createDemoApi() {
       });
 
       const importedInstances = safe.instances.flatMap(source => {
-        const projectId = projectIdMap.get(String(source.project_id));
-        const deploymentId = deploymentIdMap.get(String(source.deployment_id));
+        const projectId = projectIdMap.get(Number(source.project_id));
+        const deploymentId = deploymentIdMap.get(Number(source.deployment_id));
         if (!projectId || !deploymentId) return [];
         const id = nextId(state, 'nextInstanceId', state.instances);
         const project = state.projects.find(item => Number(item.id) === Number(projectId));
