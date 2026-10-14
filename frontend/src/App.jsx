@@ -299,6 +299,16 @@ export default function App() {
     setLightMode(next);
   };
 
+  const importWorkspaceBackup = async snapshot => {
+    if (!DEMO_MODE || typeof api.restoreWorkspace !== 'function') {
+      throw new Error('Restore is available only in browser-demo mode.');
+    }
+    const result = await api.restoreWorkspace(snapshot);
+    const loaded = await loadWorkspace({ showSpinner: true });
+    if (!loaded) throw new Error('Backup was restored but the workspace could not refresh. Reload this page to verify the records.');
+    return result.data;
+  };
+
   const renderPage = () => {
     if (!token) return <Login onLogin={handleLogin} api={api} />;
     switch (currentPage) {
@@ -313,7 +323,7 @@ export default function App() {
       case 'instances':
         return <Instances instances={instances} projects={projects} deployments={deployments} loading={loading} onCreateInstance={createInstance} />;
       case 'settings':
-        return <Settings demoMode={DEMO_MODE} health={health} lastSyncedAt={lastSyncedAt} refreshSeconds={refreshSeconds} onRefreshSecondsChange={changeRefreshSeconds} lightMode={lightMode} onToggleTheme={toggleTheme} onRefresh={refreshNow} projects={projects} deployments={deployments} teams={teams} instances={instances} />;
+        return <Settings demoMode={DEMO_MODE} health={health} lastSyncedAt={lastSyncedAt} refreshSeconds={refreshSeconds} onRefreshSecondsChange={changeRefreshSeconds} lightMode={lightMode} onToggleTheme={toggleTheme} onRefresh={refreshNow} onImportBackup={importWorkspaceBackup} projects={projects} deployments={deployments} teams={teams} instances={instances} />;
       case 'dashboard':
       default:
         return <Dashboard
