@@ -90,3 +90,24 @@ test('returns a stable validation error for primitive input', async () => {
     valid: false, errors: ['The backup must be a JSON object.'], counts: null
   });
 });
+
+
+test('rejects a project linked to a team missing from the backup', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({
+    teams: [{ id: 1, name: 'Known Team' }],
+    projects: [{ id: 2, team_id: 99, name: 'Dangling project', runtime: 'python', status: 'active' }]
+  }, 't');
+  const result = validateWorkspaceBackup(snapshot);
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(error => error.includes('team missing from the backup')));
+});
+
+test('accepts consistent numeric string references in backup records', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({
+    teams: [{ id: 5, name: 'Team Five' }],
+    projects: [{ id: 6, team_id: '5', name: 'Typed reference', runtime: 'node', status: 'active' }]
+  }, 't');
+  assert.equal(validateWorkspaceBackup(snapshot).valid, true);
+});
