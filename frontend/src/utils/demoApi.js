@@ -1,3 +1,5 @@
+import { buildWorkspaceExport, validateWorkspaceBackup } from './workspaceExport.js';
+
 const STORAGE_KEY = 'orbit.pages.demo.data.v2';
 const DEMO_EMAIL = 'demo@orbit.local';
 const DEMO_PASSWORD = 'demo123';
@@ -147,6 +149,126 @@ function visibleDeployments(state) {
 export function createDemoApi() {
   return {
     defaults: { headers: { common: {} } },
+
+    async restoreWorkspace(snapshot) {
+      const validation = validateWorkspaceBackup(snapshot);
+      if (!validation.valid) fail(validation.errors.join(' '), 400);
+
+      const safe = buildWorkspaceExport({
+        mode: 'browser-demo',
+        ...snapshot.records
+      }).records;
+      const state = readState();
+      const userId = activeUserId();
+      const previousProjects = ownedProjects(state);
+      const previousProjectIds = new Set(previousProjects.map(item => Number(item.id)));
+
+      state.projects = state.projects.filter(item => !previousProjectIds.has(Number(item.id)) || Number(item.owner_id || 1) !== userId);
+      state.deployments = (state.deployments || []).filter(item => !previousProjectIds.has(Number(item.project_id)));
+      state.instances = (state.instances || []).filter(item => !previousProjectIds.has(Number(item.project_id)));
+      previousProjectIds.forEach(id => { delete state.metrics[id]; });
+      state.teams = (state.teams || []).filter(item => Number(item.owner_id || 1) !== userId);
+
+      const teamIdMap = new Map();
+      const importedTeams = safe.teams.map((source, index) => {
+        const id = nextId(state, 'nextTeamId', state.teams);
+        if (source.id != null) teamIdMap.set(String(source.id), id);
+        const team = {
+          id, owner_id: userId,
+          name: String(source.name).trim().slice(0, 120),
+          description: typeof source.description === 'string' ? source.description.slice(0, 2000) : 'Imported from ORBIT workspace backup'
+        };
+        state.teams.push(team);
+        return team;
+      });
+
+      let fallbackTeam = importedTeams[0] || state.teams.find(item => Number(item.owner_id || 1) === userId);
+      if (!fallbackTeam && safe.projects.length) {
+        fallbackTeam = {
+          id: nextId(state, 'nextTeamId', state.teams),
+          owner_id: userId,
+          name: 'Restored Workspace',
+          description: 'Created while restoring a workspace backup'
+        };
+        state.teams.push(fallbackTeam);
+      }
+
+      const projectIdMap = new Map();
+      const importedProjects = safe.projects.map(source => {
+        const id = nextId(state, 'nextProjectId', state.projects);
+        if (source.id != null) projectIdMap.set(String(source.id), id);
+        const teamId = teamIdMap.get(String(source.team_id)) || fallbackTeam?.id || null;
+        const team = state.teams.find(item => Number(item.id) === Number(teamId));
+        const project = {
+          id,
+          owner_id: userId,
+          team_id: teamId,
+          team_name: team?.name || 'Personal workspace',
+          name: String(source.name).trim().slice(0, 120),
+          description: typeof source.description === 'string' ? source.description.slice(0, 2000) : '',
+          runtime: ['node', 'python', 'java', 'go'].includes(String(source.runtime).toLowerCase()) ? String(source.runtime).toLowerCase() : 'node',
+          status: source.status === 'archived' ? 'archived' : 'active',
+          created_at: typeof source.created_at === 'string' ? source.created_at : new Date().toISOString(),
+          updated_at: typeof source.updated_at === 'string' ? source.updated_at : new Date().toISOString()
+        };
+        state.projects.push(project);
+        return project;
+      });
+
+      const deploymentIdMap = new Map();
+      const importedDeployments = safe.deployments.flatMap(source => {
+        const projectId = projectIdMap.get(String(source.project_id));
+        if (!projectId) return [];
+        const id = nextId(state, 'nextDeploymentId', state.deployments);
+        if (source.id != null) deploymentIdMap.set(String(source.id), id);
+        const project = state.projects.find(item => Number(item.id) === Number(projectId));
+        const deployment = {
+          id,
+          project_id: projectId,
+          project_name: project?.name || 'Unknown project',
+          version: String(source.version || '1.0.0').slice(0, 80),
+          branch: String(source.branch || 'main').slice(0, 200),
+          status: String(source.status || 'recorded').slice(0, 40),
+          deployed_by: userId,
+          created_at: typeof source.created_at === 'string' ? source.created_at : new Date().toISOString(),
+          completed_at: typeof source.completed_at === 'string' ? source.completed_at : null
+        };
+        state.deployments.push(deployment);
+        return [deployment];
+      });
+
+      const importedInstances = safe.instances.flatMap(source => {
+        const projectId = projectIdMap.get(String(source.project_id));
+        const deploymentId = deploymentIdMap.get(String(source.deployment_id));
+        if (!projectId || !deploymentId) return [];
+        const id = nextId(state, 'nextInstanceId', state.instances);
+        const project = state.projects.find(item => Number(item.id) === Number(projectId));
+        const instance = {
+          id,
+          project_id: projectId,
+          project_name: project?.name || 'Unknown project',
+          deployment_id: deploymentId,
+          name: String(source.name).trim().slice(0, 120),
+          instance_type: String(source.instance_type || 't3.medium').slice(0, 80),
+          status: String(source.status || 'running').slice(0, 40),
+          created_at: typeof source.created_at === 'string' ? source.created_at : new Date().toISOString()
+        };
+        state.instances.push(instance);
+        return [instance];
+      });
+
+      writeState(state);
+      return response({
+        success: true,
+        restored: {
+          projects: importedProjects.length,
+          deployments: importedDeployments.length,
+          teams: importedTeams.length,
+          instances: importedInstances.length
+        },
+        notice: 'Workspace records were replaced for the current demo user. Metrics are not included in backup files.'
+      });
+    },
 
     async get(path) {
       const route = String(path).replace(/^\/api(?=\/)/, '');
