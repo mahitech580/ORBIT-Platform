@@ -29,31 +29,45 @@ ORBIT 2.0 records deployment intent and status. It does **not** build source cod
 - Database: PostgreSQL 14+
 - API: JSON over HTTP with Bearer-token authentication
 
-## Public demo site
+## Hosted application
 
-The [ORBIT Platform browser demo](https://mahitech580.github.io/ORBIT-Platform/) is a static React build published on GitHub Pages. It runs in **browser-demo mode**: sample projects and sample measurements are stored in your browser's local storage. The demo includes working project create/edit/archive/delete flows and deployment-history records, but it does not contact a Flask server.
+The [ORBIT Platform frontend](https://mahitech580.github.io/ORBIT-Platform/) is published on GitHub Pages and calls the Flask API hosted separately on Render. The Pages build uses `VITE_DEMO_MODE=false`, so project, team, deployment, instance, and metrics screens use the server API rather than silently falling back to browser-local demo data.
 
-Demo login:
-- Email: `demo@orbit.local`
-- Password: `demo123`
+- API base: `https://orbit-platform-api-mahitech580.onrender.com/api`
+- Health: `https://orbit-platform-api-mahitech580.onrender.com/health`
+- Registration and sign-in create/use accounts in the hosted PostgreSQL database.
+- Deployment records are tracking records only. ORBIT does not build source code or provision cloud infrastructure, and sample-looking metrics are not live telemetry unless ingested from a real collector.
 
-The banner inside the site identifies demo mode. Do not enter real passwords or sensitive data. Demo registration is browser-local, and clearing this site's storage resets the demo workspace. The preloaded CPU, memory, request, and latency values are illustrative sample data—not live telemetry.
-
-GitHub Pages cannot run the Flask API or PostgreSQL database. To use real server-backed accounts and records, run the frontend and backend together using the Local setup instructions below, or deploy the backend and database to an appropriate server and set `VITE_API_URL` to that API.
+Render's free web service may spin down when idle and take time to wake. **Render Free PostgreSQL expires 30 days after creation and does not include backups**. Treat the free database as a temporary prototype environment; upgrade it or arrange exports before storing data you need to keep. See [Render's free-instance limitations](https://render.com/docs/free).
 
 ## Local setup
 
 Prerequisites: Python 3.10+, Node.js 18+, npm, and PostgreSQL 14+.
 
 1. Create a PostgreSQL database named orbit.
-2. Copy .env.example to .env and set your local database password and development secret.
-3. Run the schema against the database using psql -U postgres -d orbit -f database/schema.sql.
-4. Install backend packages using pip install -r backend/requirements.txt.
-5. Start the backend from the backend directory with python app.py.
-6. In a second terminal, install frontend packages from the frontend directory with npm install, then run npm run dev.
-7. Open http://localhost:3000.
+2. Copy .env.example to .env and set your local database password and a unique development secret.
+3. Create the tables and indexes with `psql -U postgres -d orbit -f database/schema.sql`.
+4. For the optional local demo account and sample projects, run `psql -U postgres -d orbit -f database/seed_demo.sql`. Do not seed demo records into a public production database.
+5. Install backend packages with `pip install -r backend/requirements.txt`.
+6. Start the API locally with `python backend/app.py` from the repository root.
+7. In a second terminal, install frontend packages from `frontend` with `npm install`, then run `npm run dev`.
+8. Open http://localhost:3000.
 
 The backend uses the variables in .env when python-dotenv is installed, as listed in requirements.txt. The frontend calls /api by default and uses the Vite proxy in development. Set VITE_API_URL to an absolute API base only when the frontend and API are intentionally hosted separately.
+
+## Deploying the backend to Render
+
+The repository can run as a Render Python web service in the same Singapore region as its PostgreSQL database. Configure these settings when connecting the repository:
+
+- Build command: `pip install -r backend/requirements.txt`
+- Start command: `python backend/init_db.py && gunicorn --chdir backend --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 60 app:app`
+- Health check path: `/health`
+- Environment: `APP_ENV=production`, `ENABLE_DEMO_AUTH=false`, `CORS_ORIGINS=https://mahitech580.github.io`, `DB_CONNECT_TIMEOUT=5`, and a strong random `SECRET_KEY`.
+- Set `DATABASE_URL` to the private connection string from the Render PostgreSQL instance. The app prefers `DATABASE_URL`; it enforces TLS for production connections unless `DB_SSLMODE` explicitly overrides it.
+- At service startup, `backend/init_db.py` retries temporary connection failures and idempotently creates tables and indexes from `database/schema.sql`. Demo seed data is kept in the separate `database/seed_demo.sql` file and is not automatically inserted in production.
+- The GitHub Pages action builds the frontend with `VITE_API_URL` and `VITE_HEALTH_URL` pointing at the hosted service and `VITE_DEMO_MODE=false`.
+
+If the service URL changes, update both Vite variables in `.github/workflows/pages.yml` before publishing the frontend.
 
 ## Local demo account
 
@@ -90,7 +104,7 @@ Use **Settings → Workspace backup → Export JSON** to download the currently 
 ## API overview
 
 Public endpoints:
-- GET /health — app version and actual database readiness.
+- GET /health and GET /api/health — app version and actual PostgreSQL connectivity/readiness.
 - GET /api/meta — capability declaration and version.
 - POST /api/auth/register — create a user and private default team.
 - POST /api/auth/login — issue a JWT.
