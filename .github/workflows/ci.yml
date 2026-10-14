@@ -14,8 +14,32 @@ permissions:
 
 jobs:
   backend-contract:
-    name: Backend compile and contract tests
+    name: Backend compile and PostgreSQL integration tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: orbit_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: orbit_ci_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d orbit_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_ENV: test
+      SECRET_KEY: orbit-ci-test-secret-not-for-production
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      DB_NAME: orbit_test
+      DB_USER: postgres
+      DB_PASSWORD: orbit_ci_test_password
+      DB_CONNECT_TIMEOUT: "5"
+      ORBIT_RUN_POSTGRES_INTEGRATION: "1"
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -27,7 +51,7 @@ jobs:
         run: python -m pip install -r backend/requirements.txt
       - name: Compile Python source
         run: python -m compileall -q backend
-      - name: Run database-free contract tests
+      - name: Run unit, contract and real PostgreSQL integration tests
         working-directory: backend
         run: python -m unittest discover -s tests -v
 
