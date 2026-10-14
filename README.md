@@ -11,6 +11,7 @@ ORBIT is a project operations workspace built with React, Vite, Flask, and Postg
 - View recorded CPU, memory, request, error, and response-time measurements.
 - Export a versioned JSON workspace backup for projects, deployments, teams, and instances, with credential-like fields removed.
 - Export the currently filtered project inventory or deployment history as spreadsheet-safe UTF-8 CSV, with formula-leading cells neutralized.
+- Export selected-project telemetry measurements to CSV with explicit units and spreadsheet formula protection.
 - Health endpoint that checks the PostgreSQL connection instead of assuming it is available.
 - Responsive operations interface with search and filtering.
 - Repeatable database bootstrap schema and a documented compatibility audit.
