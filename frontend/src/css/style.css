@@ -1511,3 +1511,7 @@ textarea { min-height: 85px; resize: vertical; }
   .project-export-button{width:100%;justify-content:center}
   .project-toolbar .result-count{width:100%;margin-left:0;text-align:left}
 }
+
+
+.metrics-export-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
+@media(max-width:560px){.metrics-export-actions{width:100%;justify-content:flex-start}.metrics-export-actions .btn{min-height:38px}}
