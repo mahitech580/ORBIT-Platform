@@ -12,7 +12,7 @@ import Settings from './pages/Settings';
 import Navigation from './components/Navigation';
 import CommandPalette from './components/CommandPalette';
 import SmokeBackground from './components/SmokeBackground';
-import { serializeWorkspaceExport } from './utils/workspaceExport';
+import { serializeWorkspaceCsv, serializeWorkspaceExport } from './utils/workspaceExport';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
@@ -288,15 +288,34 @@ export default function App() {
     } finally { setLoading(false); }
   };
 
-  const exportWorkspace = () => {
-    const contents = serializeWorkspaceExport({ projects, deployments, teams, instances });
-    const blob = new Blob([contents], { type: 'application/json;charset=utf-8' });
+  const downloadWorkspace = (contents, extension, mimeType) => {
+    const blob = new Blob([contents], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'orbit-workspace-' + new Date().toISOString().slice(0, 10) + '.json';
+    link.download = 'orbit-workspace-' + new Date().toISOString().slice(0, 10) + '.' + extension;
+    link.style.display = 'none';
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
+    link.remove();
+    // Keep the object URL alive long enough for browsers to start the download.
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const exportWorkspaceJson = () => {
+    downloadWorkspace(
+      serializeWorkspaceExport({ projects, deployments, teams, instances }),
+      'json',
+      'application/json;charset=utf-8'
+    );
+  };
+
+  const exportWorkspaceCsv = () => {
+    downloadWorkspace(
+      serializeWorkspaceCsv({ projects, deployments, teams, instances }),
+      'csv',
+      'text/csv;charset=utf-8'
+    );
   };
 
   const changeRefreshSeconds = value => {
@@ -325,7 +344,7 @@ export default function App() {
       case 'instances':
         return <Instances instances={instances} projects={projects} deployments={deployments} loading={loading} onCreateInstance={createInstance} />;
       case 'settings':
-        return <Settings demoMode={DEMO_MODE} health={health} lastSyncedAt={lastSyncedAt} refreshSeconds={refreshSeconds} onRefreshSecondsChange={changeRefreshSeconds} lightMode={lightMode} onToggleTheme={toggleTheme} onRefresh={refreshNow} onExportWorkspace={exportWorkspace} />;
+        return <Settings demoMode={DEMO_MODE} health={health} lastSyncedAt={lastSyncedAt} refreshSeconds={refreshSeconds} onRefreshSecondsChange={changeRefreshSeconds} lightMode={lightMode} onToggleTheme={toggleTheme} onRefresh={refreshNow} onExportWorkspaceJson={exportWorkspaceJson} onExportWorkspaceCsv={exportWorkspaceCsv} />;
       case 'dashboard':
       default:
         return <Dashboard
