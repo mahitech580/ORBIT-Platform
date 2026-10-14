@@ -42,3 +42,45 @@ export function buildWorkspaceExport({
     records: safeRecords
   };
 }
+
+
+/**
+ * Validate an imported snapshot before any restore code touches browser storage.
+ * This deliberately rejects unknown schema versions rather than guessing.
+ */
+export function validateWorkspaceBackup(snapshot) {
+  const errors = [];
+  const collectionNames = ['projects', 'deployments', 'teams', 'instances'];
+
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+    return { valid: false, errors: ['The backup must be a JSON object.'], counts: null };
+  }
+  if (snapshot.format !== 'ORBIT_WORKSPACE_BACKUP') errors.push('This file is not an ORBIT workspace backup.');
+  if (snapshot.schema_version !== 1) errors.push('Unsupported backup schema version.');
+  if (!snapshot.records || typeof snapshot.records !== 'object' || Array.isArray(snapshot.records)) {
+    errors.push('The backup is missing its records object.');
+    return { valid: false, errors, counts: null };
+  }
+
+  const counts = {};
+  for (const name of collectionNames) {
+    const collection = snapshot.records[name];
+    if (!Array.isArray(collection)) {
+      errors.push('The "' + name + '" collection must be an array.');
+      counts[name] = 0;
+      continue;
+    }
+    counts[name] = collection.length;
+    if (collection.some(item => !item || typeof item !== 'object' || Array.isArray(item))) {
+      errors.push('The "' + name + '" collection may contain only record objects.');
+    }
+    if (snapshot.counts && snapshot.counts[name] !== collection.length) {
+      errors.push('The "' + name + '" count does not match the backup records.');
+    }
+  }
+
+  if (snapshot.counts && collectionNames.some(name => !Object.prototype.hasOwnProperty.call(snapshot.counts, name))) {
+    errors.push('The backup count summary is incomplete.');
+  }
+  return { valid: errors.length === 0, errors, counts };
+}
