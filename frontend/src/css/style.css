@@ -1482,3 +1482,9 @@ textarea { min-height: 85px; resize: vertical; }
 .main-content { position: relative; z-index: 1; }
 @media (max-width: 900px) { .workspace-sidebar { top: 68px; } }
 @media (max-width: 680px) { .workspace-sidebar { top: 60px; } }
+
+
+/* Backup restore controls keep file selection accessible without crowding settings. */
+.backup-file-label{position:relative;display:inline-flex;align-items:center;justify-content:center;min-height:40px;white-space:nowrap;cursor:pointer}
+.backup-file-input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)}
+.backup-file-label:focus-within{outline:2px solid var(--accent, #57d091);outline-offset:3px}
