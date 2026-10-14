@@ -1,0 +1,175 @@
+"""End-to-end tests against an ephemeral real PostgreSQL database.
+
+These tests are enabled only in CI when ORBIT_RUN_POSTGRES_INTEGRATION=1.
+They must never target the hosted production database.
+"""
+import os
+from pathlib import Path
+import unittest
+
+import app as orbit
+
+
+RUN_POSTGRES_INTEGRATION = os.getenv("ORBIT_RUN_POSTGRES_INTEGRATION") == "1"
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+SCHEMA_PATH = REPOSITORY_ROOT / "database" / "schema.sql"
+
+
+@unittest.skipUnless(RUN_POSTGRES_INTEGRATION, "requires the isolated PostgreSQL CI service")
+class RealPostgresWorkflowTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        schema_sql = SCHEMA_PATH.read_text(encoding="utf-8")
+        connection = orbit.get_db()
+        try:
+            with connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(schema_sql)
+        finally:
+            connection.close()
+        cls.original_testing = orbit.app.config.get("TESTING", False)
+        orbit.app.config["TESTING"] = True
+
+    @classmethod
+    def tearDownClass(cls):
+        orbit.app.config["TESTING"] = cls.original_testing
+
+    def setUp(self):
+        self.client = orbit.app.test_client()
+        connection = orbit.get_db()
+        try:
+            with connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "TRUNCATE TABLE metrics, logs, instances, deployments, "
+                        "projects, teams, users RESTART IDENTITY CASCADE"
+                    )
+        finally:
+            connection.close()
+
+    def register(self, email, username):
+        response = self.client.post("/api/auth/register", json={
+            "email": email,
+            "username": username,
+            "password": "correct-horse-battery-42",
+            "first_name": "Integration"
+        })
+        self.assertEqual(response.status_code, 201, response.get_json())
+        body = response.get_json()
+        self.assertTrue(body["token"])
+        return body
+
+    @staticmethod
+    def auth(token):
+        return {"Authorization": "Bearer " + token}
+
+    def test_register_project_deployment_instance_and_metric_round_trip(self):
+        registered = self.register("integration@example.test", "integration_user")
+        token = registered["token"]
+
+        login = self.client.post("/api/auth/login", json={
+            "email": "integration@example.test",
+            "password": "correct-horse-battery-42"
+        })
+        self.assertEqual(login.status_code, 200, login.get_json())
+        self.assertEqual(login.get_json()["user"]["id"], registered["user"]["id"])
+
+        teams = self.client.get("/api/teams", headers=self.auth(token))
+        self.assertEqual(teams.status_code, 200, teams.get_json())
+        self.assertEqual(len(teams.get_json()["teams"]), 1)
+
+        project_response = self.client.post("/api/projects", headers=self.auth(token), json={
+            "name": "PostgreSQL integration project",
+            "description": "Created by the isolated CI end-to-end test",
+            "runtime": "python"
+        })
+        self.assertEqual(project_response.status_code, 201, project_response.get_json())
+        project = project_response.get_json()["project"]
+        project_id = project["id"]
+
+        deploy_response = self.client.post(
+            f"/api/projects/{project_id}/deploy",
+            headers=self.auth(token),
+            json={"version": "2.1.0-test", "branch": "integration-test"}
+        )
+        self.assertEqual(deploy_response.status_code, 201, deploy_response.get_json())
+        deployment = deploy_response.get_json()["deployment"]
+        self.assertEqual(deployment["project_id"], project_id)
+
+        instance_response = self.client.post("/api/instances", headers=self.auth(token), json={
+            "project_id": project_id,
+            "name": "integration-instance",
+            "instance_type": "test-small",
+            "deployment_id": deployment["id"]
+        })
+        self.assertEqual(instance_response.status_code, 201, instance_response.get_json())
+        self.assertEqual(instance_response.get_json()["instance"]["project_id"], project_id)
+
+        metric_response = self.client.post(
+            f"/api/metrics/{project_id}",
+            headers=self.auth(token),
+            json={
+                "cpu_usage": 23.75,
+                "memory_usage": 512,
+                "requests_total": 80,
+                "errors_total": 3,
+                "response_time_ms": 47.25,
+                "timestamp": "2026-10-14T12:00:00+05:30"
+            }
+        )
+        self.assertEqual(metric_response.status_code, 201, metric_response.get_json())
+        stored_metric = metric_response.get_json()["metric"]
+        self.assertEqual(stored_metric["project_id"], project_id)
+        self.assertEqual(stored_metric["cpu_usage"], 23.75)
+        self.assertEqual(stored_metric["timestamp"], "2026-10-14T06:30:00")
+
+        metrics_response = self.client.get(f"/api/metrics/{project_id}", headers=self.auth(token))
+        self.assertEqual(metrics_response.status_code, 200, metrics_response.get_json())
+        metrics_body = metrics_response.get_json()
+        self.assertEqual(len(metrics_body["metrics"]), 1)
+        self.assertEqual(metrics_body["metrics"][0]["id"], stored_metric["id"])
+        self.assertEqual(metrics_body["summary"]["avg_cpu"], 23.75)
+        self.assertEqual(metrics_body["summary"]["avg_memory"], 512)
+        self.assertEqual(metrics_body["summary"]["total_requests"], 80)
+
+        deployments = self.client.get("/api/deployments", headers=self.auth(token))
+        self.assertEqual(deployments.status_code, 200, deployments.get_json())
+        self.assertEqual(deployments.get_json()["deployments"][0]["project_name"], "PostgreSQL integration project")
+
+        instances = self.client.get("/api/instances", headers=self.auth(token))
+        self.assertEqual(instances.status_code, 200, instances.get_json())
+        self.assertEqual(instances.get_json()["instances"][0]["name"], "integration-instance")
+
+    def test_a_different_user_cannot_read_or_write_another_users_project_metrics(self):
+        owner = self.register("owner@example.test", "integration_owner")
+        stranger = self.register("stranger@example.test", "integration_stranger")
+        created = self.client.post("/api/projects", headers=self.auth(owner["token"]), json={
+            "name": "Private project",
+            "runtime": "python"
+        })
+        self.assertEqual(created.status_code, 201, created.get_json())
+        project_id = created.get_json()["project"]["id"]
+
+        read_response = self.client.get(
+            f"/api/metrics/{project_id}",
+            headers=self.auth(stranger["token"])
+        )
+        self.assertEqual(read_response.status_code, 404)
+
+        write_response = self.client.post(
+            f"/api/metrics/{project_id}",
+            headers=self.auth(stranger["token"]),
+            json={"cpu_usage": 5}
+        )
+        self.assertEqual(write_response.status_code, 404)
+
+        owner_metrics = self.client.get(
+            f"/api/metrics/{project_id}",
+            headers=self.auth(owner["token"])
+        )
+        self.assertEqual(owner_metrics.status_code, 200, owner_metrics.get_json())
+        self.assertEqual(owner_metrics.get_json()["metrics"], [])
+
+
+if __name__ == "__main__":
+    unittest.main()
