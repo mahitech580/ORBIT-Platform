@@ -1488,3 +1488,18 @@ textarea { min-height: 85px; resize: vertical; }
 .backup-file-label{position:relative;display:inline-flex;align-items:center;justify-content:center;min-height:40px;white-space:nowrap;cursor:pointer}
 .backup-file-input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)}
 .backup-file-label:focus-within{outline:2px solid var(--accent, #57d091);outline-offset:3px}
+
+
+/* Deployment history search and combined filters. */
+.deployment-list-heading { align-items: center; flex-wrap: wrap; gap: 16px; }
+.deployment-list-copy { min-width: 180px; }
+.deployment-filters { display: flex; flex: 1 1 600px; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.deployment-filters .deployment-search-field { flex: 1 1 240px; min-width: 210px; max-width: 420px; }
+.deployment-filters select { width: auto; min-width: 138px; max-width: 220px; }
+.deployment-filters .btn { white-space: nowrap; }
+@media (max-width: 680px) {
+  .deployment-filters { width: 100%; flex-basis: 100%; justify-content: stretch; }
+  .deployment-filters .deployment-search-field { flex: 1 1 100%; min-width: 0; max-width: none; }
+  .deployment-filters select { flex: 1 1 145px; min-width: 0; max-width: none; }
+  .deployment-filters > .btn { flex: 1 1 100%; }
+}
