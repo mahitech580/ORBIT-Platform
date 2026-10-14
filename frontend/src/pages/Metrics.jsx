@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { filterMetricsByRange } from '../utils/metricsFilters.js';
 import { summarizeMetrics } from '../utils/metricsSummary.js';
 import { buildMetricsCsv } from '../utils/metricsExport.js';
 
-export default function Metrics({ projects, api }) {
+export default function Metrics({ projects, api, refreshSeconds = 30 }) {
+  const requestSequence = useRef(0);
   const [selectedProject, setSelectedProject] = useState(null);
   const [metrics, setMetrics] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -19,27 +20,48 @@ export default function Metrics({ projects, api }) {
   }, [projects, selectedProject]);
 
   const fetchMetrics = useCallback(async () => {
+    const requestId = ++requestSequence.current;
     if (!selectedProject) {
       setMetrics([]);
       setSummary(null);
+      setError('');
+      setLoading(false);
       return;
     }
     setLoading(true);
     setError('');
     try {
       const response = await api.get('/metrics/' + selectedProject);
+      if (requestId !== requestSequence.current) return;
       setMetrics(response.data.metrics || []);
       setSummary(response.data.summary || { avg_cpu: 0, avg_memory: 0, total_requests: 0 });
     } catch (requestError) {
+      if (requestId !== requestSequence.current) return;
       setError(requestError.response?.data?.error || 'Could not load project telemetry.');
       setMetrics([]);
       setSummary(null);
     } finally {
-      setLoading(false);
+      if (requestId === requestSequence.current) setLoading(false);
     }
   }, [api, selectedProject]);
 
   useEffect(() => { fetchMetrics(); }, [fetchMetrics]);
+
+  useEffect(() => {
+    if (!selectedProject) return undefined;
+    const seconds = [15, 30, 60].includes(Number(refreshSeconds)) ? Number(refreshSeconds) : 30;
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') fetchMetrics();
+    };
+    const intervalId = window.setInterval(refreshWhenVisible, seconds * 1000);
+    window.addEventListener('focus', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [fetchMetrics, refreshSeconds, selectedProject]);
 
   const formatNumber = (value, digits = 1) => Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: digits });
   const visibleMetrics = useMemo(() => filterMetricsByRange(metrics, timeRange), [metrics, timeRange]);
@@ -67,7 +89,7 @@ export default function Metrics({ projects, api }) {
         <div>
           <p className="eyebrow">OBSERVABILITY / TELEMETRY</p>
           <h1>Metrics &amp; monitoring</h1>
-          <p className="page-subtitle">Inspect the latest metrics recorded for each project.</p>
+          <p className="page-subtitle">Inspect stored project telemetry. Refreshes every {refreshSeconds} seconds while this page is open.</p>
         </div>
         <button type="button" className="btn btn-secondary" onClick={fetchMetrics} disabled={loading || !selectedProject}>
           {loading ? 'Refreshing…' : '↻ Refresh'}
