@@ -12,11 +12,18 @@ export default function Instances({ instances = [], projects = [], deployments =
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState('');
   const [sortMode, setSortMode] = useState('newest');
+  const [inventoryStatus, setInventoryStatus] = useState('all');
+  const [inventoryProjectId, setInventoryProjectId] = useState('all');
+  const [inventoryType, setInventoryType] = useState('all');
 
   const availableProjects = useMemo(() => projects.filter(project => deployments.some(item => Number(item.project_id) === Number(project.id))), [projects, deployments]);
   const projectDeployments = useMemo(() => deployments.filter(item => Number(item.project_id) === Number(projectId)), [deployments, projectId]);
   const sortedInstances = useMemo(() => sortInstances(instances, sortMode), [instances, sortMode]);
-  const filteredInstances = useMemo(() => filterInstances(sortedInstances, projects, query), [sortedInstances, projects, query]);
+  const instanceTypes = useMemo(() => [...new Set(instances.map(item => item?.instance_type).filter(value => typeof value === 'string' && value.trim()))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true })), [instances]);
+  const instanceStatuses = useMemo(() => [...new Set(instances.map(item => item?.status).filter(value => typeof value === 'string' && value.trim()))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true })), [instances]);
+  const filteredInstances = useMemo(() => filterInstances(sortedInstances, projects, query, {
+    status: inventoryStatus, projectId: inventoryProjectId, instanceType: inventoryType
+  }), [sortedInstances, projects, query, inventoryStatus, inventoryProjectId, inventoryType]);
   const exportInstancesCsv = () => {
     if (!filteredInstances.length) return;
     const csv = buildInstanceCsv(filteredInstances, projects);
@@ -69,7 +76,11 @@ export default function Instances({ instances = [], projects = [], deployments =
     </section>}
     <div className="management-summary-row"><div className="summary-counter-card"><span>Instance records</span><strong>{instances.length}</strong></div><div className="summary-counter-card"><span>Projects with a deployment</span><strong>{availableProjects.length}</strong></div><div className="summary-counter-card"><span>Resource provisioning</span><strong className="summary-text-value">Disabled</strong></div></div>
     <section className="surface-card management-list-card"><div className="surface-card-header inventory-toolbar"><div><h2>Instance inventory</h2><p>Showing {filteredInstances.length} of {instances.length} stored records</p></div><div className="inventory-toolbar-actions"><select className="inventory-sort" value={sortMode} onChange={event => setSortMode(event.target.value)} aria-label="Sort instances"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="name-asc">Name A–Z</option><option value="name-desc">Name Z–A</option><option value="status">Status</option></select>
-          <input type="search" className="inventory-search" value={query} onChange={event => setQuery(event.target.value)} aria-label="Search instance inventory" placeholder="Search name, project, type, status…" /><button type="button" className="btn btn-secondary" onClick={exportInstancesCsv} disabled={!filteredInstances.length} title="Export filtered instance metadata as CSV">↓ Export CSV</button><span className="record-origin-label">API DATA</span></div></div>
+          <input type="search" className="inventory-search" value={query} onChange={event => setQuery(event.target.value)} aria-label="Search instance inventory" placeholder="Search name, project, type, status…" />
+          <select className="inventory-filter" value={inventoryStatus} onChange={event => setInventoryStatus(event.target.value)} aria-label="Filter instances by status"><option value="all">All states</option>{instanceStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select>
+          <select className="inventory-filter" value={inventoryProjectId} onChange={event => setInventoryProjectId(event.target.value)} aria-label="Filter instances by project"><option value="all">All projects</option>{projects.map(project => <option key={project.id} value={String(project.id)}>{project.name}</option>)}</select>
+          <select className="inventory-filter" value={inventoryType} onChange={event => setInventoryType(event.target.value)} aria-label="Filter instances by type"><option value="all">All types</option>{instanceTypes.map(type => <option key={type} value={type}>{type}</option>)}</select>
+          <button type="button" className="btn btn-secondary" onClick={exportInstancesCsv} disabled={!filteredInstances.length} title="Export filtered instance metadata as CSV">↓ Export CSV</button><span className="record-origin-label">API DATA</span></div></div>
       {loading && !instances.length ? <div className="empty-list-state">Loading instance records…</div> : filteredInstances.length ? <div className="responsive-table-wrap"><table className="dashboard-table"><thead><tr><th>Name</th><th>Project</th><th>Type</th><th>Recorded state</th><th>Deployment</th></tr></thead><tbody>{filteredInstances.map(instance => <tr key={instance.id}><td><strong className="table-strong-text">{instance.name || 'Instance record'}</strong><small className="table-subline">Record #{instance.id}</small></td><td>{instance.project_name || projects.find(project => Number(project.id) === Number(instance.project_id))?.name || '—'}</td><td><span className="code-value">{instance.instance_type || '—'}</span></td><td><span className="status-pill blue">{instance.status || 'recorded'}</span></td><td className="muted-cell">#{instance.deployment_id || '—'}</td></tr>)}</tbody></table></div> : <div className="empty-list-state"><span className="empty-state-icon">▧</span><h3>{instances.length ? 'No instances match this search' : 'No instance records'}</h3><p>{instances.length ? 'Try a different instance, project, type or status.' : 'Create a deployment record first, then add instance metadata associated with it.'}</p><button type="button" className="btn btn-secondary" onClick={openForm} disabled={!availableProjects.length}>Add instance record</button></div>}
     </section>
   </div>;
