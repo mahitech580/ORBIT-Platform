@@ -28,7 +28,7 @@ test('neutralizes spreadsheet formula prefixes in project text cells', () => {
     { id: 4, team_name: '-cmd' }
   ]);
   assert.ok(csv.includes("'=IMPORTXML"));
-  assert.ok(csv.includes("   '+SUM"));
+  assert.ok(csv.includes("'   +SUM"));
   assert.ok(csv.includes("'@malicious"));
   assert.ok(csv.includes("'-cmd"));
 });
