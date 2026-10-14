@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { filterMetricsByRange } from '../utils/metricsFilters.js';
+import { summarizeMetrics } from '../utils/metricsSummary.js';
 import { buildMetricsCsv } from '../utils/metricsExport.js';
 
 export default function Metrics({ projects, api }) {
@@ -42,18 +43,7 @@ export default function Metrics({ projects, api }) {
 
   const formatNumber = (value, digits = 1) => Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: digits });
   const visibleMetrics = useMemo(() => filterMetricsByRange(metrics, timeRange), [metrics, timeRange]);
-  const visibleSummary = useMemo(() => {
-    if (timeRange === 'all' && summary) return summary;
-    const average = field => {
-      const values = visibleMetrics.map(item => Number(item[field])).filter(Number.isFinite);
-      return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
-    };
-    return {
-      avg_cpu: average('cpu_usage'),
-      avg_memory: average('memory_usage'),
-      total_requests: visibleMetrics.reduce((sum, item) => sum + Number(item.requests_total || 0), 0)
-    };
-  }, [visibleMetrics, summary, timeRange]);
+  const visibleSummary = useMemo(() => summarizeMetrics(visibleMetrics), [visibleMetrics]);
   const selectedProjectName = projects.find(project => Number(project.id) === Number(selectedProject))?.name || 'Project';
   const selectedProjectRecord = projects.find(project => Number(project.id) === Number(selectedProject)) || { id: selectedProject, name: selectedProjectName };
   const exportMetricsCsv = () => {
