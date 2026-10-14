@@ -42,3 +42,40 @@ export function buildWorkspaceExport({
     records: safeRecords
   };
 }
+
+
+function csvCell(value) {
+  let text = value == null
+    ? ''
+    : typeof value === 'object'
+      ? JSON.stringify(value)
+      : String(value);
+
+  // CSV quoting alone does not prevent spreadsheet formula evaluation.
+  if (typeof value === 'string' && /^[\x00-\x20]*[=+\-@]/.test(text)) {
+    text = "'" + text;
+  }
+  return '"' + text.replaceAll('"', '""') + '"';
+}
+
+const METRIC_COLUMNS = [
+  ['project_name', 'project_name'],
+  ['timestamp', 'timestamp'],
+  ['cpu_usage', 'cpu_usage'],
+  ['memory_usage', 'memory_usage'],
+  ['requests_total', 'requests_total'],
+  ['errors_total', 'errors_total'],
+  ['response_time_ms', 'response_time_ms']
+];
+
+/** Serialize the selected project's recorded telemetry with a stable CSV schema. */
+export function serializeMetricsCsv(metrics, projectName) {
+  const rows = Array.isArray(metrics)
+    ? metrics.filter(metric => metric && typeof metric === 'object' && !Array.isArray(metric))
+    : [];
+  const header = METRIC_COLUMNS.map(([, label]) => csvCell(label)).join(',');
+  const body = rows.map(metric => METRIC_COLUMNS.map(([key]) => (
+    csvCell(key === 'project_name' ? projectName : metric[key])
+  )).join(','));
+  return [header, ...body].join('\r\n') + '\r\n';
+}
