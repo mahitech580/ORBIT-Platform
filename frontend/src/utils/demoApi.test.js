@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, test } from 'node:test';
 import { createDemoApi, demoStorageKey } from './demoApi.js';
+import { buildWorkspaceExport } from './workspaceExport.js';
 
 class MemoryStorage {
   constructor() { this.values = new Map(); }
@@ -85,4 +86,57 @@ test('demo sign-in accepts the documented credentials and rejects bad passwords'
   const result = await api.post('/auth/login', { email: 'demo@orbit.local', password: 'demo123' });
   assert.ok(result.data.token.startsWith('orbit-pages-demo-'));
   await assert.rejects(() => api.post('/auth/login', { email: 'demo@orbit.local', password: 'wrong' }), error => error.response.status === 401);
+});
+
+
+test('restores a validated backup while remapping project and deployment references', async () => {
+  const backup = buildWorkspaceExport({
+    mode: 'browser-demo',
+    teams: [{ id: 10, name: 'Restored Team', description: 'Restored workspace team' }],
+    projects: [{
+      id: 20, team_id: 10, name: 'Restored API', description: 'Imported project',
+      runtime: 'python', status: 'active', created_at: '2026-10-01T10:00:00.000Z',
+      updated_at: '2026-10-02T10:00:00.000Z'
+    }],
+    deployments: [{
+      id: 30, project_id: 20, project_name: 'Restored API', version: '2.1.0',
+      branch: 'main', status: 'completed', created_at: '2026-10-03T10:00:00.000Z',
+      completed_at: '2026-10-03T10:02:00.000Z'
+    }],
+    instances: [{
+      id: 40, project_id: 20, deployment_id: 30, name: 'restored-worker',
+      instance_type: 'small', status: 'running', created_at: '2026-10-03T10:03:00.000Z'
+    }]
+  }, '2026-10-14T06:00:00.000Z');
+
+  const result = await api.restoreWorkspace(backup);
+  assert.equal(result.data.success, true);
+  assert.deepEqual(result.data.restored, { projects: 1, deployments: 1, teams: 1, instances: 1 });
+  const projects = (await api.get('/projects')).data.projects;
+  const deployments = (await api.get('/deployments')).data.deployments;
+  const teams = (await api.get('/teams')).data.teams;
+  const instances = (await api.get('/instances')).data.instances;
+  assert.deepEqual(projects.map(project => project.name), ['Restored API']);
+  assert.equal(deployments[0].project_id, projects[0].id);
+  assert.equal(instances[0].project_id, projects[0].id);
+  assert.equal(instances[0].deployment_id, deployments[0].id);
+  assert.equal(teams[0].name, 'Restored Team');
+  assert.match(result.data.notice, /Metrics are not included/);
+});
+
+test('rejects an invalid backup before changing existing demo workspace state', async () => {
+  const before = (await api.get('/projects')).data.projects.map(project => project.id);
+  const invalid = { format: 'ORBIT_WORKSPACE_BACKUP', schema_version: 99, records: {}, counts: {} };
+  await assert.rejects(() => api.restoreWorkspace(invalid), error => error.response.status === 400);
+  const after = (await api.get('/projects')).data.projects.map(project => project.id);
+  assert.deepEqual(after, before);
+});
+
+test('restoring an empty backup clears the current demo user's records', async () => {
+  const emptyBackup = buildWorkspaceExport({}, 'fixed-time');
+  const result = await api.restoreWorkspace(emptyBackup);
+  assert.deepEqual(result.data.restored, { projects: 0, deployments: 0, teams: 0, instances: 0 });
+  assert.deepEqual((await api.get('/projects')).data.projects, []);
+  assert.deepEqual((await api.get('/deployments')).data.deployments, []);
+  assert.deepEqual((await api.get('/instances')).data.instances, []);
 });
