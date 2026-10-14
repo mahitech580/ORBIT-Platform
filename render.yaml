@@ -5,7 +5,7 @@ services:
     plan: free
     region: singapore
     branch: main
-    autoDeployTrigger: commit
+    autoDeployTrigger: checksPass
     buildCommand: pip install -r backend/requirements.txt
     startCommand: python backend/init_db.py && gunicorn --chdir backend --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 60 app:app
     healthCheckPath: /health
@@ -24,3 +24,12 @@ services:
         fromDatabase:
           name: orbit-platform-db-mahitech580
           property: connectionString
+
+databases:
+  - name: orbit-platform-db-mahitech580
+    databaseName: orbit_platform_db_mahitech580
+    user: orbit_platform_db_mahitech580_user
+    region: singapore
+    plan: free
+    postgresMajorVersion: "18"
+    ipAllowList: []
