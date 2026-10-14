@@ -1,5 +1,5 @@
-import React from 'react';
-import { buildWorkspaceExport } from '../utils/workspaceExport.js';
+import React, { useState } from 'react';
+import { buildWorkspaceExport, validateWorkspaceBackup } from '../utils/workspaceExport.js';
 
 const timeLabel = value => {
   if (!value) return 'Not synced in this session';
@@ -7,7 +7,9 @@ const timeLabel = value => {
   return Number.isNaN(date.getTime()) ? 'Unknown' : date.toLocaleString();
 };
 
-export default function Settings({ demoMode, health, lastSyncedAt, refreshSeconds, onRefreshSecondsChange, lightMode, onToggleTheme, onRefresh, projects = [], deployments = [], teams = [], instances = [] }) {
+export default function Settings({ demoMode, health, lastSyncedAt, refreshSeconds, onRefreshSecondsChange, lightMode, onToggleTheme, onRefresh, onImportBackup, projects = [], deployments = [], teams = [], instances = [] }) {
+  const [backupMessage, setBackupMessage] = useState('');
+  const [backupBusy, setBackupBusy] = useState(false);
   const exportWorkspace = () => {
     const backup = buildWorkspaceExport({
       mode: demoMode ? 'browser-demo' : 'server-api',
@@ -47,6 +49,35 @@ export default function Settings({ demoMode, health, lastSyncedAt, refreshSecond
     </section>
     <section className="surface-card settings-section"><div className="settings-section-head"><span className="settings-icon">⇩</span><div><h2>Workspace backup</h2><p>Download the records currently loaded in this workspace as a versioned JSON file.</p></div></div>
       <div className="setting-row"><div><strong>Export workspace records</strong><small>Project, deployment, team, and instance data only. Credential-like fields are stripped; the file may still contain operational information.</small></div><button type="button" className="btn btn-secondary" onClick={exportWorkspace}>↓ Export JSON</button></div>
+    </section>
+    <section className="surface-card settings-section"><div className="settings-section-head"><span className="settings-icon">↥</span><div><h2>Restore browser demo</h2><p>Validate a versioned backup before replacing this demo user's workspace records.</p></div></div>
+      <div className="setting-row"><div><strong>Import workspace backup</strong><small>Replaces this demo user's projects, deployments, teams, and instances. Metrics are not included. Server-backed restore is not enabled.</small></div>
+        {demoMode ? <label className="btn btn-secondary backup-file-label">↑ Choose JSON file<input className="backup-file-input" type="file" accept=".json,application/json" aria-label="Choose an ORBIT workspace backup JSON file" disabled={backupBusy} onChange={async event => {
+          const file = event.target.files?.[0];
+          event.target.value = '';
+          if (!file) return;
+          setBackupMessage('');
+          if (file.size > 2 * 1024 * 1024) { setBackupMessage('Backup files must be 2 MB or smaller.'); return; }
+          try {
+            const parsed = JSON.parse(await file.text());
+            const validation = validateWorkspaceBackup(parsed);
+            if (!validation.valid) throw new Error(validation.errors.join(' '));
+            const countLine = Object.entries(validation.counts).map(([key, count]) => count + ' ' + key).join(', ');
+            if (!window.confirm('Restore this backup (' + countLine + ')? Current demo workspace records will be replaced. This action cannot be undone.')) return;
+            if (typeof onImportBackup !== 'function') throw new Error('Backup restore is unavailable in this environment.');
+            setBackupBusy(true);
+            const result = await onImportBackup(parsed);
+            const restored = result?.restored || validation.counts;
+            setBackupMessage('Restore complete: ' + Object.entries(restored).map(([key, count]) => count + ' ' + key).join(', ') + '. Metrics were not included.');
+          } catch (error) {
+            setBackupMessage(error?.message || 'Could not read this backup file.');
+          } finally {
+            setBackupBusy(false);
+          }
+        }} /></label> : <span className="status-pill gray">Demo mode only</span>}
+      </div>
+      {backupBusy && <p className="settings-footnote" role="status">Restoring records…</p>}
+      {backupMessage && <p className="settings-footnote" role="status">{backupMessage}</p>}
     </section>
     <p className="settings-footnote">Settings for refresh interval and appearance are saved in this browser. Account, project, team, deployment, and instance records use the active API mode. A backup does not include sign-in tokens or account credentials.</p>
   </div>;
