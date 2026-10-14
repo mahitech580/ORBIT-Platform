@@ -1503,3 +1503,11 @@ textarea { min-height: 85px; resize: vertical; }
   .deployment-filters select { flex: 1 1 145px; min-width: 0; max-width: none; }
   .deployment-filters > .btn { flex: 1 1 120px; }
 }
+
+
+/* Keep project export available without squeezing search controls on mobile. */
+.project-export-button{white-space:nowrap}
+@media(max-width:560px){
+  .project-export-button{width:100%;justify-content:center}
+  .project-toolbar .result-count{width:100%;margin-left:0;text-align:left}
+}
