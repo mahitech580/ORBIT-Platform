@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { filterDeployments } from '../utils/deploymentFilters.js';
+import { buildDeploymentCsv } from '../utils/deploymentExport.js';
 
 export default function Deployments({ deployments, projects, loading, onDeploy }) {
   const [showForm, setShowForm] = useState(false);
@@ -24,6 +25,20 @@ export default function Deployments({ deployments, projects, loading, onDeploy }
     setQuery('');
     setProjectFilter('all');
     setStatusFilter('all');
+  };
+
+  const exportFilteredDeployments = () => {
+    const csv = buildDeploymentCsv(filteredDeployments, projects);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'orbit-deployments-' + new Date().toISOString().slice(0, 10) + '.csv';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const handleInputChange = event => {
@@ -140,6 +155,13 @@ export default function Deployments({ deployments, projects, loading, onDeploy }
             <option value="completed">Completed</option>
             <option value="failed">Failed</option>
           </select>
+          <button
+            type="button"
+            className="btn btn-secondary deployment-export-button"
+            onClick={exportFilteredDeployments}
+            disabled={!filteredDeployments.length}
+            title={filteredDeployments.length ? 'Export the currently filtered deployment records' : 'No deployment records to export'}
+          >↓ Export CSV</button>
           {hasActiveFilters && <button type="button" className="btn btn-secondary" onClick={clearFilters}>Clear filters</button>}
         </div>
       </div>
