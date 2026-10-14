@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { buildInstanceCsv } from '../utils/instanceExport.js';
 
 export default function Instances({ instances = [], projects = [], deployments = [], loading, onCreateInstance }) {
   const [showForm, setShowForm] = useState(false);
@@ -12,6 +13,21 @@ export default function Instances({ instances = [], projects = [], deployments =
   const availableProjects = useMemo(() => projects.filter(project => deployments.some(item => Number(item.project_id) === Number(project.id))), [projects, deployments]);
   const projectDeployments = useMemo(() => deployments.filter(item => Number(item.project_id) === Number(projectId)), [deployments, projectId]);
   const sortedInstances = useMemo(() => [...instances].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)), [instances]);
+  const exportInstancesCsv = () => {
+    if (!sortedInstances.length) return;
+    const csv = buildInstanceCsv(sortedInstances, projects);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'orbit-instances-' + new Date().toISOString().slice(0, 10) + '.csv';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
 
   const openForm = () => {
     const firstProject = availableProjects[0];
@@ -48,7 +64,7 @@ export default function Instances({ instances = [], projects = [], deployments =
       <form onSubmit={submit}><div className="form-grid"><div className="form-group"><label htmlFor="instance-project">Project</label><select id="instance-project" value={projectId} onChange={event => handleProjectChange(event.target.value)} required>{availableProjects.map(project => <option value={project.id} key={project.id}>{project.name}</option>)}</select></div><div className="form-group"><label htmlFor="instance-deployment">Deployment record</label><select id="instance-deployment" value={deploymentId} onChange={event => setDeploymentId(event.target.value)} required>{projectDeployments.map(item => <option value={item.id} key={item.id}>#{item.id} · {item.version} · {item.status}</option>)}</select></div><div className="form-group"><label htmlFor="instance-name">Record name</label><input id="instance-name" value={name} onChange={event => setName(event.target.value)} maxLength={120} required placeholder="e.g. api-worker-01" /></div><div className="form-group"><label htmlFor="instance-type">Instance type</label><select id="instance-type" value={instanceType} onChange={event => setInstanceType(event.target.value)}><option>t3.micro</option><option>t3.small</option><option>t3.medium</option><option>t3.large</option><option>custom</option></select></div></div>{error && <p className="inline-form-error" role="alert">{error}</p>}<div className="form-actions"><button className="btn btn-secondary" type="button" onClick={() => setShowForm(false)}>Cancel</button><button className="btn btn-primary" type="submit" disabled={saving || loading}>{saving ? 'Saving…' : 'Save instance record'}</button></div></form>
     </section>}
     <div className="management-summary-row"><div className="summary-counter-card"><span>Instance records</span><strong>{instances.length}</strong></div><div className="summary-counter-card"><span>Projects with a deployment</span><strong>{availableProjects.length}</strong></div><div className="summary-counter-card"><span>Resource provisioning</span><strong className="summary-text-value">Disabled</strong></div></div>
-    <section className="surface-card management-list-card"><div className="surface-card-header"><div><h2>Instance inventory</h2><p>Stored records returned by the API</p></div><span className="record-origin-label">API DATA</span></div>
+    <section className="surface-card management-list-card"><div className="surface-card-header"><div><h2>Instance inventory</h2><p>Stored records returned by the API</p></div><div className="metrics-export-actions"><button type="button" className="btn btn-secondary" onClick={exportInstancesCsv} disabled={!sortedInstances.length} title="Export instance metadata as CSV">↓ Export CSV</button><span className="record-origin-label">API DATA</span></div></div>
       {loading && !instances.length ? <div className="empty-list-state">Loading instance records…</div> : sortedInstances.length ? <div className="responsive-table-wrap"><table className="dashboard-table"><thead><tr><th>Name</th><th>Project</th><th>Type</th><th>Recorded state</th><th>Deployment</th></tr></thead><tbody>{sortedInstances.map(instance => <tr key={instance.id}><td><strong className="table-strong-text">{instance.name || 'Instance record'}</strong><small className="table-subline">Record #{instance.id}</small></td><td>{instance.project_name || projects.find(project => Number(project.id) === Number(instance.project_id))?.name || '—'}</td><td><span className="code-value">{instance.instance_type || '—'}</span></td><td><span className="status-pill blue">{instance.status || 'recorded'}</span></td><td className="muted-cell">#{instance.deployment_id || '—'}</td></tr>)}</tbody></table></div> : <div className="empty-list-state"><span className="empty-state-icon">▧</span><h3>No instance records</h3><p>Create a deployment record first, then add instance metadata associated with it.</p><button type="button" className="btn btn-secondary" onClick={openForm} disabled={!availableProjects.length}>Add instance record</button></div>}
     </section>
   </div>;
