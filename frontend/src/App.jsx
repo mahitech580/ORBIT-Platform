@@ -313,7 +313,7 @@ export default function App() {
       case 'instances':
         return <Instances instances={instances} projects={projects} deployments={deployments} loading={loading} onCreateInstance={createInstance} />;
       case 'settings':
-        return <Settings demoMode={DEMO_MODE} health={health} lastSyncedAt={lastSyncedAt} refreshSeconds={refreshSeconds} onRefreshSecondsChange={changeRefreshSeconds} lightMode={lightMode} onToggleTheme={toggleTheme} onRefresh={refreshNow} />;
+        return <Settings demoMode={DEMO_MODE} health={health} lastSyncedAt={lastSyncedAt} refreshSeconds={refreshSeconds} onRefreshSecondsChange={changeRefreshSeconds} lightMode={lightMode} onToggleTheme={toggleTheme} onRefresh={refreshNow} projects={projects} deployments={deployments} teams={teams} instances={instances} />;
       case 'dashboard':
       default:
         return <Dashboard
