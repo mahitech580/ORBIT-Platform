@@ -149,7 +149,13 @@ export function validateWorkspaceBackup(snapshot) {
     return seen;
   };
   const projectIds = validateIds(projects, 'Project');
-  validateIds(teams, 'Team');
+  const teamIds = validateIds(teams, 'Team');
+  projects.forEach((project, index) => {
+    if (!project || typeof project !== 'object' || Array.isArray(project) || project.team_id == null) return;
+    if (!teamIds.has(Number(project.team_id))) {
+      errors.push('Project record ' + (index + 1) + ' references a team missing from the backup.');
+    }
+  });
   const deploymentIds = validateIds(deployments, 'Deployment');
   validateIds(instances, 'Instance');
   deployments.forEach((deployment, index) => {
