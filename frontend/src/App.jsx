@@ -12,6 +12,7 @@ import Settings from './pages/Settings';
 import Navigation from './components/Navigation';
 import CommandPalette from './components/CommandPalette';
 import SmokeBackground from './components/SmokeBackground';
+import { serializeWorkspaceExport } from './utils/workspaceExport';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
@@ -287,6 +288,17 @@ export default function App() {
     } finally { setLoading(false); }
   };
 
+  const exportWorkspace = () => {
+    const contents = serializeWorkspaceExport({ projects, deployments, teams, instances });
+    const blob = new Blob([contents], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'orbit-workspace-' + new Date().toISOString().slice(0, 10) + '.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const changeRefreshSeconds = value => {
     const normalized = [15, 30, 60].includes(Number(value)) ? Number(value) : DEFAULT_REFRESH_SECONDS;
     localStorage.setItem('orbit.refreshSeconds', String(normalized));
@@ -313,7 +325,7 @@ export default function App() {
       case 'instances':
         return <Instances instances={instances} projects={projects} deployments={deployments} loading={loading} onCreateInstance={createInstance} />;
       case 'settings':
-        return <Settings demoMode={DEMO_MODE} health={health} lastSyncedAt={lastSyncedAt} refreshSeconds={refreshSeconds} onRefreshSecondsChange={changeRefreshSeconds} lightMode={lightMode} onToggleTheme={toggleTheme} onRefresh={refreshNow} />;
+        return <Settings demoMode={DEMO_MODE} health={health} lastSyncedAt={lastSyncedAt} refreshSeconds={refreshSeconds} onRefreshSecondsChange={changeRefreshSeconds} lightMode={lightMode} onToggleTheme={toggleTheme} onRefresh={refreshNow} onExportWorkspace={exportWorkspace} />;
       case 'dashboard':
       default:
         return <Dashboard
