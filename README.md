@@ -31,14 +31,11 @@ ORBIT 2.0 records deployment intent and status. It does **not** build source cod
 
 ## Hosted application
 
-The [ORBIT Platform frontend](https://mahitech580.github.io/ORBIT-Platform/) is published on GitHub Pages and calls the Flask API hosted separately on Render. The Pages build uses `VITE_DEMO_MODE=false`, so project, team, deployment, instance, and metrics screens use the server API rather than silently falling back to browser-local demo data.
+The [ORBIT Platform frontend](https://mahitech580.github.io/ORBIT-Platform/) is currently published on GitHub Pages in **browser-demo mode**. Project and deployment-tracking changes are stored in that browser's local storage and do not yet use a hosted PostgreSQL database.
 
-- API base: `https://orbit-platform-api-mahitech580.onrender.com/api`
-- Health: `https://orbit-platform-api-mahitech580.onrender.com/health`
-- Registration and sign-in create/use accounts in the hosted PostgreSQL database.
-- Deployment records are tracking records only. ORBIT does not build source code or provision cloud infrastructure, and sample-looking metrics are not live telemetry unless ingested from a real collector.
+A Render Blueprint is prepared in `render.yaml`, and the free Singapore PostgreSQL instance `orbit-platform-db-mahitech580` has been created. The API service still needs the Blueprint to be applied/synced in Render before the website can switch to server-backed accounts. Until that one-time setup is complete, the Pages workflow intentionally keeps `VITE_DEMO_MODE=true`.
 
-Render's free web service may spin down when idle and take time to wake. **Render Free PostgreSQL expires 30 days after creation and does not include backups**. Treat the free database as a temporary prototype environment; upgrade it or arrange exports before storing data you need to keep. See [Render's free-instance limitations](https://render.com/docs/free).
+The free PostgreSQL instance is temporary and expires on **November 13, 2026**; it has no backups. Do not use it for important long-term data unless you upgrade or arrange exports. ORBIT records deployment intent and telemetry values; it does not provision cloud resources or collect live metrics on its own.
 
 ## Local setup
 
