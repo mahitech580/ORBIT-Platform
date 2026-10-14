@@ -9,6 +9,7 @@ from decimal import Decimal
 from functools import wraps
 import hashlib
 import hmac
+import math
 import os
 import re
 
@@ -55,7 +56,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024
 allowed_origins = [origin.strip() for origin in os.getenv(
-    "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
+    "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,https://mahitech580.github.io"
 ).split(",") if origin.strip()]
 CORS(app, resources={
     r"/api/*": {"origins": allowed_origins},
@@ -281,6 +282,7 @@ def metadata():
             "project_management": True,
             "deployment_tracking": True,
             "metrics_reporting": True,
+            "telemetry_ingestion": True,
             "cloud_resource_provisioning": False,
             "build_execution": False,
         },
@@ -547,7 +549,7 @@ def get_metrics(project_id):
         abort(404, description="Project not found.")
     metrics = db_fetch_all(
         """SELECT * FROM metrics WHERE project_id = %s
-           ORDER BY timestamp DESC LIMIT 100""",
+           ORDER BY timestamp DESC, id DESC LIMIT 100""",
         (project_id,),
     )
     cpu_values = [float(row["cpu_usage"]) for row in metrics if row.get("cpu_usage") is not None]
@@ -558,6 +560,73 @@ def get_metrics(project_id):
         "total_requests": sum(int(row.get("requests_total") or 0) for row in metrics),
     }
     return jsonify({"metrics": metrics, "summary": summary})
+
+def read_metric_value(data, field, *, integer=False, minimum=0, maximum=None):
+    """Validate finite numeric telemetry before a database write."""
+    value = data.get(field)
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        abort(400, description=field.replace("_", " ").capitalize() + " must be a number.")
+    number = float(value)
+    if not math.isfinite(number):
+        abort(400, description=field.replace("_", " ").capitalize() + " must be finite.")
+    if integer and not number.is_integer():
+        abort(400, description=field.replace("_", " ").capitalize() + " must be a whole number.")
+    if number < minimum or (maximum is not None and number > maximum):
+        limit = str(minimum) + ((" to " + str(maximum)) if maximum is not None else " or greater")
+        abort(400, description=field.replace("_", " ").capitalize() + " must be " + limit + ".")
+    return int(number) if integer else number
+
+
+@app.route("/api/metrics/<int:project_id>", methods=["POST"])
+@token_required
+def ingest_metrics(project_id):
+    """Persist measurements for a project owned by the authenticated user."""
+    if not owned_project(project_id, request.user_id):
+        abort(404, description="Project not found.")
+
+    data = json_body()
+    cpu_usage = read_metric_value(data, "cpu_usage", maximum=100)
+    memory_usage = read_metric_value(data, "memory_usage", integer=True)
+    requests_total = read_metric_value(data, "requests_total", integer=True)
+    errors_total = read_metric_value(data, "errors_total", integer=True)
+    response_time_ms = read_metric_value(data, "response_time_ms", maximum=999999.99)
+    if all(value is None for value in (cpu_usage, memory_usage, requests_total, errors_total, response_time_ms)):
+        abort(400, description="Provide at least one telemetry measurement.")
+    if requests_total is not None and errors_total is not None and errors_total > requests_total:
+        abort(400, description="Errors total cannot exceed requests total.")
+
+    recorded_at = None
+    if "timestamp" in data:
+        raw_timestamp = data.get("timestamp")
+        if not isinstance(raw_timestamp, str) or not raw_timestamp.strip():
+            abort(400, description="Timestamp must be an ISO-8601 date-time string.")
+        try:
+            parsed_timestamp = datetime.fromisoformat(raw_timestamp.strip().replace("Z", "+00:00"))
+        except ValueError:
+            abort(400, description="Timestamp must be an ISO-8601 date-time string.")
+        if parsed_timestamp.tzinfo is None:
+            parsed_timestamp = parsed_timestamp.replace(tzinfo=timezone.utc)
+        recorded_at = parsed_timestamp.astimezone(timezone.utc).replace(tzinfo=None)
+
+    try:
+        rows = db_execute(
+            """INSERT INTO metrics
+                   (project_id, cpu_usage, memory_usage, requests_total, errors_total, response_time_ms, timestamp)
+               VALUES (%s, %s, %s, %s, %s, %s, COALESCE(%s::timestamp, CURRENT_TIMESTAMP))
+               RETURNING id, project_id, cpu_usage, memory_usage, requests_total,
+                         errors_total, response_time_ms, timestamp""",
+            (project_id, cpu_usage, memory_usage, requests_total, errors_total, response_time_ms, recorded_at),
+            returning=True,
+        )
+    except psycopg2.Error:
+        app.logger.exception("Telemetry insert failed for project %s.", project_id)
+        return jsonify({"error": "Telemetry could not be stored right now."}), 503
+    if not rows:
+        app.logger.error("Telemetry insert returned no row for project %s.", project_id)
+        return jsonify({"error": "Telemetry could not be stored right now."}), 503
+    return jsonify({"success": True, "metric": rows[0]}), 201
 
 
 @app.route("/api/instances", methods=["GET"])
