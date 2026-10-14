@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { filterMetricsByRange } from '../utils/metricsFilters.js';
 import { buildMetricsCsv } from '../utils/metricsExport.js';
 
 export default function Metrics({ projects, api }) {
@@ -7,6 +8,7 @@ export default function Metrics({ projects, api }) {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [timeRange, setTimeRange] = useState('all');
 
   useEffect(() => {
     if (!selectedProject && projects.length) setSelectedProject(projects[0].id);
@@ -39,11 +41,24 @@ export default function Metrics({ projects, api }) {
   useEffect(() => { fetchMetrics(); }, [fetchMetrics]);
 
   const formatNumber = (value, digits = 1) => Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: digits });
+  const visibleMetrics = useMemo(() => filterMetricsByRange(metrics, timeRange), [metrics, timeRange]);
+  const visibleSummary = useMemo(() => {
+    if (timeRange === 'all' && summary) return summary;
+    const average = field => {
+      const values = visibleMetrics.map(item => Number(item[field])).filter(Number.isFinite);
+      return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+    };
+    return {
+      avg_cpu: average('cpu_usage'),
+      avg_memory: average('memory_usage'),
+      total_requests: visibleMetrics.reduce((sum, item) => sum + Number(item.requests_total || 0), 0)
+    };
+  }, [visibleMetrics, summary, timeRange]);
   const selectedProjectName = projects.find(project => Number(project.id) === Number(selectedProject))?.name || 'Project';
   const selectedProjectRecord = projects.find(project => Number(project.id) === Number(selectedProject)) || { id: selectedProject, name: selectedProjectName };
   const exportMetricsCsv = () => {
-    if (!metrics.length || !selectedProject) return;
-    const csv = buildMetricsCsv(metrics, selectedProjectRecord);
+    if (!visibleMetrics.length || !selectedProject) return;
+    const csv = buildMetricsCsv(visibleMetrics, selectedProjectRecord);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -93,30 +108,34 @@ export default function Metrics({ projects, api }) {
       {selectedProject && summary && (
         <>
           <div className="metrics-kpi-grid">
-            <div className="metric-kpi"><span>Average CPU</span><strong>{formatNumber(summary.avg_cpu)}<small>%</small></strong><div className="metric-track"><span style={{ width: Math.min(Number(summary.avg_cpu || 0), 100) + '%' }} /></div></div>
-            <div className="metric-kpi"><span>Average memory</span><strong>{formatNumber(Number(summary.avg_memory || 0) / 1024)}<small> GB</small></strong><p>Based on recorded memory values</p></div>
-            <div className="metric-kpi"><span>Total requests</span><strong>{formatNumber(summary.total_requests, 0)}</strong><p>Sum of returned measurement records</p></div>
+            <div className="metric-kpi"><span>Average CPU</span><strong>{formatNumber(visibleSummary.avg_cpu)}<small>%</small></strong><div className="metric-track"><span style={{ width: Math.min(Number(visibleSummary.avg_cpu || 0), 100) + '%' }} /></div></div>
+            <div className="metric-kpi"><span>Average memory</span><strong>{formatNumber(Number(visibleSummary.avg_memory || 0) / 1024)}<small> GB</small></strong><p>Based on recorded memory values</p></div>
+            <div className="metric-kpi"><span>Total requests</span><strong>{formatNumber(visibleSummary.total_requests, 0)}</strong><p>Sum of returned measurement records</p></div>
           </div>
 
           <div className="section-heading-row metrics-table-heading">
-            <div><h2>Recorded measurements</h2><p>{metrics.length} measurements · {selectedProjectName}</p></div>
-            <div className="metrics-export-actions"><button type="button" className="btn btn-secondary" onClick={exportMetricsCsv} disabled={loading || metrics.length === 0} title="Export the current project's measurements as CSV">↓ Export CSV</button><span className="data-origin-label">DATABASE TELEMETRY</span></div>
+            <div><h2>Recorded measurements</h2><p>{visibleMetrics.length} measurements · {selectedProjectName}</p></div>
+            <div className="metrics-export-actions">
+              <label className="metrics-range-control"><span>TIME RANGE</span><select aria-label="Filter telemetry by time range" value={timeRange} onChange={event => setTimeRange(event.target.value)}><option value="24h">Last 24 hours</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option><option value="all">All returned</option></select></label>
+              <button type="button" className="btn btn-secondary" onClick={exportMetricsCsv} disabled={loading || visibleMetrics.length === 0} title="Export the current time-window measurements as CSV">↓ Export CSV</button>
+              <span className="data-origin-label">DATABASE TELEMETRY</span>
+            </div>
           </div>
 
           {loading && <p className="inline-loading">Loading telemetry…</p>}
-          {!loading && metrics.length === 0 && (
+          {!loading && visibleMetrics.length === 0 && (
             <div className="empty-message enhanced-empty compact-empty">
-              <h3>No telemetry recorded</h3>
-              <p>This is an empty data state, not a zero-usage reading. Add metrics records to populate the charts and table.</p>
+              <h3>{metrics.length ? 'No measurements in this time window' : 'No telemetry recorded'}</h3>
+              <p>{metrics.length ? 'Choose a wider time range to view other returned measurements.' : 'This is an empty data state, not a zero-usage reading. Add metrics records to populate the charts and table.'}</p>
             </div>
           )}
 
-          {metrics.length > 0 && (
+          {visibleMetrics.length > 0 && (
             <>
               <div className="table-container metrics-table-container">
                 <table className="table">
                   <thead><tr><th>Timestamp</th><th>CPU</th><th>Memory</th><th>Requests</th><th>Errors</th><th>Response time</th></tr></thead>
-                  <tbody>{metrics.map(metric => (
+                  <tbody>{visibleMetrics.map(metric => (
                     <tr key={metric.id || metric.timestamp}>
                       <td>{metric.timestamp ? new Date(metric.timestamp).toLocaleString() : '—'}</td>
                       <td>{metric.cpu_usage == null ? '—' : formatNumber(metric.cpu_usage) + '%'}</td>
@@ -133,7 +152,7 @@ export default function Metrics({ projects, api }) {
                 <div className="section-heading-row"><div><h2>CPU trend</h2><p>Most recent 10 measurements returned by the API</p></div><span className="chart-legend"><i /> CPU usage</span></div>
                 <div className="simple-chart improved-chart">
                   <div className="chart-bars">
-                    {[...metrics].slice(0, 10).reverse().map((metric, index) => {
+                    {[...visibleMetrics].slice(0, 10).reverse().map((metric, index) => {
                       const value = Math.max(0, Math.min(Number(metric.cpu_usage || 0), 100));
                       return <div key={metric.id || metric.timestamp || index} className="chart-column">
                         <div className="bar" style={{ height: Math.max(value, 2) + '%' }} title={formatNumber(value) + '% CPU'} />
