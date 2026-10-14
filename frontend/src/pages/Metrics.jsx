@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { buildMetricsCsv } from '../utils/metricsExport.js';
 
 export default function Metrics({ projects, api }) {
   const [selectedProject, setSelectedProject] = useState(null);
@@ -39,6 +40,21 @@ export default function Metrics({ projects, api }) {
 
   const formatNumber = (value, digits = 1) => Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: digits });
   const selectedProjectName = projects.find(project => Number(project.id) === Number(selectedProject))?.name || 'Project';
+  const selectedProjectRecord = projects.find(project => Number(project.id) === Number(selectedProject)) || { id: selectedProject, name: selectedProjectName };
+  const exportMetricsCsv = () => {
+    if (!metrics.length || !selectedProject) return;
+    const csv = buildMetricsCsv(metrics, selectedProjectRecord);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'orbit-metrics-project-' + selectedProject + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
 
   return (
     <div className="page metrics-page">
@@ -84,7 +100,7 @@ export default function Metrics({ projects, api }) {
 
           <div className="section-heading-row metrics-table-heading">
             <div><h2>Recorded measurements</h2><p>{metrics.length} measurements · {selectedProjectName}</p></div>
-            <span className="data-origin-label">DATABASE TELEMETRY</span>
+            <div className="metrics-export-actions"><button type="button" className="btn btn-secondary" onClick={exportMetricsCsv} disabled={loading || metrics.length === 0} title="Export the current project's measurements as CSV">↓ Export CSV</button><span className="data-origin-label">DATABASE TELEMETRY</span></div>
           </div>
 
           {loading && <p className="inline-loading">Loading telemetry…</p>}
