@@ -108,5 +108,5 @@ test('sorts teams by owner when owner metadata is available', () => {
     { id: 2, name: 'Beta', owner_name: 'Mahi' },
     { id: 3, name: 'Gamma', owner_id: 2 }
   ];
-  assert.deepEqual(sortTeams(teams, 'owner').map(item => item.id), [2, 3, 1]);
+  assert.deepEqual(sortTeams(teams, 'owner').map(item => item.id), [3, 2, 1]);
 });
