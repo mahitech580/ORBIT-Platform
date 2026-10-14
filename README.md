@@ -143,7 +143,7 @@ See docs/REVERSE_ENGINEERING.md for the observed 1.x behavior, issues confirmed 
 
 ## Validation
 
-The GitHub Actions workflow runs the database-free backend contract tests and builds the frontend production bundle. For local checks, install the backend dependencies, then run the following from the repository root:
+The GitHub Actions workflow compiles the backend, runs unit and contract tests, starts an isolated PostgreSQL 16 service for end-to-end API tests, and tests/builds the frontend. It verifies registration and login, SQL-backed project/deployment/instance creation, metrics insert/read, timestamp normalization, and cross-user access denial. CI only truncates its disposable PostgreSQL database; it never connects to the hosted database. For local checks, install the backend dependencies and PostgreSQL, then run the following from the repository root:
 
     python -m compileall -q backend
     cd backend
@@ -152,7 +152,7 @@ The GitHub Actions workflow runs the database-free backend contract tests and bu
     npm ci
     npm run build
 
-Database-free backend tests now cover password hashing, JSON serialization, production database TLS configuration, database-health failure behavior, and authenticated metric-ingestion validation. A real PostgreSQL integration smoke test still needs to run against the hosted database.
+Database-free contract tests cover password hashing, JSON serialization, production TLS configuration, and input validation. End-to-end tests run with ORBIT_RUN_POSTGRES_INTEGRATION=1 against an isolated test database; a separate live Render smoke test remains pending until the API web service is created and its health endpoint responds.
 
 ## Roadmap
 
