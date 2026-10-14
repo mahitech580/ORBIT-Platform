@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createWorkspaceExport, serializeWorkspaceExport } from '../src/utils/workspaceExport.js';
+import { createWorkspaceExport, serializeWorkspaceExport, serializeWorkspaceCsv } from '../src/utils/workspaceExport.js';
 
 test('exports all supported workspace collections with a stable schema', () => {
   const workspace = { projects: [{ id: 1 }], deployments: [{ id: 2 }], teams: [{ id: 3 }], instances: [{ id: 4 }] };
@@ -30,8 +30,6 @@ test('serialized export is valid pretty JSON and excludes unrelated session fiel
 });
 
 
-import { serializeWorkspaceCsv } from '../src/utils/workspaceExport.js';
-
 test('CSV export includes record types, safely quotes cells, and preserves stable headers', () => {
   const csv = serializeWorkspaceCsv({
     projects: [{
@@ -56,4 +54,19 @@ test('CSV export includes record types, safely quotes cells, and preserves stabl
 test('CSV export safely handles empty input and ignores malformed rows', () => {
   assert.equal(serializeWorkspaceCsv(null), '"record_type"\r\n');
   assert.equal(serializeWorkspaceCsv({ projects: [null, 1, 'bad', []] }), '"record_type"\r\n');
+});
+
+
+test('CSV export neutralizes spreadsheet formulas but preserves numeric negatives', () => {
+  const csv = serializeWorkspaceCsv({
+    projects: [
+      { name: '=1+1', command: '\t@SUM(1)', count: -1 },
+      { name: '+launch', command: '  -danger', count: 0 }
+    ]
+  });
+  assert.ok(csv.includes('"\'=1+1"'));
+  assert.ok(csv.includes('"\'\t@SUM(1)"'));
+  assert.ok(csv.includes('"\'  -danger"'));
+  assert.ok(csv.includes('"-1"'));
+  assert.ok(csv.includes('"0"'));
 });
