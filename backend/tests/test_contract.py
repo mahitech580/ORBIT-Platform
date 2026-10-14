@@ -36,6 +36,29 @@ class SerializationContractTests(unittest.TestCase):
         self.assertEqual(result["nested"], [2.0])
 
 
+class DatabaseConnectionContractTests(unittest.TestCase):
+    def test_render_database_url_uses_production_tls(self):
+        from unittest.mock import patch
+        with patch.object(orbit, "DATABASE_URL", "postgresql://user:pass@example.test/orbit"), \
+             patch.object(orbit, "IS_PRODUCTION", True), \
+             patch.object(orbit.psycopg2, "connect") as connect:
+            orbit.get_db()
+        connect.assert_called_once_with(
+            "postgresql://user:pass@example.test/orbit",
+            connect_timeout=orbit.DATABASE["connect_timeout"],
+            sslmode="require",
+        )
+
+    def test_explicit_sslmode_overrides_production_default(self):
+        from unittest.mock import patch
+        with patch.object(orbit, "DATABASE_URL", "postgresql://user:pass@example.test/orbit"), \
+             patch.object(orbit, "IS_PRODUCTION", True), \
+             patch.dict(orbit.os.environ, {"DB_SSLMODE": "verify-full"}), \
+             patch.object(orbit.psycopg2, "connect") as connect:
+            orbit.get_db()
+        self.assertEqual(connect.call_args.kwargs["sslmode"], "verify-full")
+
+
 class HealthContractTests(unittest.TestCase):
     def test_health_reports_database_outage(self):
         original = orbit.get_db
