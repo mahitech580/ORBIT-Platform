@@ -56,7 +56,7 @@ test('defaults to the server API mode when mode is omitted', () => {
 
 test('accepts a structurally valid version-one backup', async () => {
   const { validateWorkspaceBackup } = await import('./workspaceExport.js');
-  const snapshot = buildWorkspaceExport({ projects: [{ id: 1 }], deployments: [], teams: [], instances: [] }, 't');
+  const snapshot = buildWorkspaceExport({ projects: [{ id: 1, name: 'Atlas', runtime: 'python', status: 'active' }], deployments: [], teams: [], instances: [] }, 't');
   assert.deepEqual(validateWorkspaceBackup(snapshot), {
     valid: true, errors: [], counts: { projects: 1, deployments: 0, teams: 0, instances: 0 }
   });
