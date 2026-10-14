@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { buildTeamCsv } from '../utils/teamExport.js';
 
 export default function Teams({ teams = [], loading, onCreateTeam }) {
   const [showForm, setShowForm] = useState(false);
@@ -7,6 +8,21 @@ export default function Teams({ teams = [], loading, onCreateTeam }) {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const sortedTeams = useMemo(() => [...teams].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''))), [teams]);
+  const exportTeamsCsv = () => {
+    if (!sortedTeams.length) return;
+    const csv = buildTeamCsv(sortedTeams);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'orbit-teams-' + new Date().toISOString().slice(0, 10) + '.csv';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
 
   const submit = async event => {
     event.preventDefault();
@@ -27,7 +43,7 @@ export default function Teams({ teams = [], loading, onCreateTeam }) {
       <form onSubmit={submit}><div className="form-grid"><div className="form-group"><label htmlFor="team-name">Team name</label><input id="team-name" value={name} onChange={event => setName(event.target.value)} required maxLength={120} placeholder="e.g. Platform engineering" /></div><div className="form-group"><label htmlFor="team-description">Description</label><input id="team-description" value={description} onChange={event => setDescription(event.target.value)} maxLength={2000} placeholder="What does this team own?" /></div></div>{error && <p className="inline-form-error" role="alert">{error}</p>}<div className="form-actions"><button className="btn btn-secondary" type="button" onClick={() => setShowForm(false)}>Cancel</button><button className="btn btn-primary" type="submit" disabled={saving || loading}>{saving ? 'Saving…' : 'Create team'}</button></div></form>
     </section>}
     <div className="management-summary-row"><div className="summary-counter-card"><span>Teams</span><strong>{teams.length}</strong></div><div className="summary-counter-card"><span>Projects linked by team</span><strong>—</strong><small>Project counts are not returned by this API</small></div></div>
-    <section className="surface-card management-list-card"><div className="surface-card-header"><div><h2>Your teams</h2><p>{teams.length} team record{teams.length === 1 ? '' : 's'} in this workspace</p></div></div>
+    <section className="surface-card management-list-card"><div className="surface-card-header"><div><h2>Your teams</h2><p>{teams.length} team record{teams.length === 1 ? '' : 's'} in this workspace</p></div><button type="button" className="btn btn-secondary" onClick={exportTeamsCsv} disabled={!sortedTeams.length} title="Export team inventory as CSV">↓ Export CSV</button></div>
       {loading && !teams.length ? <div className="empty-list-state">Loading team records…</div> : sortedTeams.length ? <div className="team-list">{sortedTeams.map(team => <article className="team-list-item" key={team.id}><div className="team-avatar">{String(team.name || 'T').trim().charAt(0).toUpperCase()}</div><div className="team-list-copy"><strong>{team.name}</strong><p>{team.description || 'No description provided.'}</p><small>Team ID {team.id}{team.owner_name ? ' · Owner ' + team.owner_name : ''}</small></div><span className="status-pill blue">Workspace team</span></article>)}</div> : <div className="empty-list-state"><span className="empty-state-icon">♧</span><h3>No teams found</h3><p>Create a team to start organizing your project inventory.</p><button type="button" className="btn btn-primary" onClick={() => setShowForm(true)}>Create a team</button></div>}
     </section>
   </div>;
