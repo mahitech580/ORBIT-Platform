@@ -78,3 +78,35 @@ test('falls back to a documented default for unknown sort modes', () => {
   assert.deepEqual(sortTeams([{ id: 2, name: 'B' }, { id: 1, name: 'A' }], 'random').map(item => item.id), [1, 2]);
   assert.deepEqual(sortInstances([{ id: 1, name: 'old', created_at: '2026-01-01' }, { id: 2, name: 'new', created_at: '2026-10-01' }], 'random').map(item => item.id), [2, 1]);
 });
+
+
+test('filters instances by status project ID and instance type together', () => {
+  const instances = [
+    { id: 1, project_id: 4, instance_type: 'small', status: 'running', name: 'api-a' },
+    { id: 2, project_id: 4, instance_type: 'large', status: 'stopped', name: 'api-b' },
+    { id: 3, project_id: 5, instance_type: 'small', status: 'running', name: 'worker-c' }
+  ];
+  const filtered = filterInstances(instances, [], '', {
+    status: 'running', projectId: '4', instanceType: 'small'
+  });
+  assert.deepEqual(filtered.map(item => item.id), [1]);
+});
+
+test('combines instance filters with text search and preserves blank defaults', () => {
+  const instances = [
+    { id: 1, project_id: 4, instance_type: 'small', status: 'running', name: 'worker-a' },
+    { id: 2, project_id: 4, instance_type: 'small', status: 'stopped', name: 'worker-b' }
+  ];
+  assert.deepEqual(filterInstances(instances, [], 'worker', { status: 'stopped' }).map(item => item.id), [2]);
+  assert.deepEqual(filterInstances(instances, [], '').map(item => item.id), [1, 2]);
+  assert.deepEqual(filterInstances(instances, [], '', { status: 'missing' }), []);
+});
+
+test('sorts teams by owner when owner metadata is available', () => {
+  const teams = [
+    { id: 1, name: 'Alpha', owner_name: 'Zara' },
+    { id: 2, name: 'Beta', owner_name: 'Mahi' },
+    { id: 3, name: 'Gamma', owner_id: 2 }
+  ];
+  assert.deepEqual(sortTeams(teams, 'owner').map(item => item.id), [2, 3, 1]);
+});
