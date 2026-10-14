@@ -817,6 +817,7 @@ textarea { min-height: 85px; resize: vertical; }
 .management-page { padding-bottom: 20px; }
 .page-heading-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin-bottom: 20px; }
 .page-heading-row p { margin: 7px 0 0; color: var(--orbit-muted); font-size: 11px; line-height: 1.6; }
+.settings-heading-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 .management-form { margin-bottom: 16px; }
 .management-summary-row { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin: 0 0 15px; }
 .summary-counter-card { display: grid; gap: 7px; padding: 14px; border: 1px solid var(--orbit-line); border-radius: 10px; background: var(--orbit-panel); }
@@ -1085,6 +1086,8 @@ textarea { min-height: 85px; resize: vertical; }
   .deployment-meta-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .form-grid, .form-row { grid-template-columns: minmax(0,1fr); gap: 0; }
   .page-heading-row { align-items: flex-start; flex-direction: column; }.page-heading-row > .btn { width: 100%; }
+  .settings-heading-actions { width: 100%; justify-content: flex-start; }
+  .settings-heading-actions > .btn { flex: 1 1 auto; }
   .page-heading-row > div h1 { font-size: 26px; }
   .setting-row { align-items: flex-start; flex-direction: column; }.setting-row > select { width: 100%; }.setting-value { text-align: left; }
   .setting-row .toggle-switch { align-self: flex-start; }
