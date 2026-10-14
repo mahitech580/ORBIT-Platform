@@ -1482,3 +1482,17 @@ textarea { min-height: 85px; resize: vertical; }
 .main-content { position: relative; z-index: 1; }
 @media (max-width: 900px) { .workspace-sidebar { top: 68px; } }
 @media (max-width: 680px) { .workspace-sidebar { top: 60px; } }
+
+/* Deployment history controls support combined search and filters without overflow. */
+.deployment-list-heading { align-items: center; flex-wrap: wrap; gap: 16px; }
+.deployment-list-copy { min-width: 180px; }
+.deployment-filters { display: flex; flex: 1 1 600px; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.deployment-filters .deployment-search-field { flex: 1 1 240px; min-width: 210px; max-width: 420px; }
+.deployment-filters select { width: auto; min-width: 138px; max-width: 220px; }
+.deployment-filters .btn { white-space: nowrap; }
+@media (max-width: 680px) {
+  .deployment-filters { width: 100%; flex-basis: 100%; justify-content: stretch; }
+  .deployment-filters .deployment-search-field { flex: 1 1 100%; min-width: 0; max-width: none; }
+  .deployment-filters select { flex: 1 1 145px; min-width: 0; max-width: none; }
+  .deployment-filters > .btn { flex: 1 1 100%; }
+}
