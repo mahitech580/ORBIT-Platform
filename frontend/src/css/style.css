@@ -1501,5 +1501,5 @@ textarea { min-height: 85px; resize: vertical; }
   .deployment-filters { width: 100%; flex-basis: 100%; justify-content: stretch; }
   .deployment-filters .deployment-search-field { flex: 1 1 100%; min-width: 0; max-width: none; }
   .deployment-filters select { flex: 1 1 145px; min-width: 0; max-width: none; }
-  .deployment-filters > .btn { flex: 1 1 100%; }
+  .deployment-filters > .btn { flex: 1 1 120px; }
 }
