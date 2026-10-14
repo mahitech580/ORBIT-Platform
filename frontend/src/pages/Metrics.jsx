@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { serializeMetricsCsv } from '../utils/workspaceExport.js';
 
 export default function Metrics({ projects, api }) {
   const [selectedProject, setSelectedProject] = useState(null);
@@ -39,6 +40,24 @@ export default function Metrics({ projects, api }) {
 
   const formatNumber = (value, digits = 1) => Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: digits });
   const selectedProjectName = projects.find(project => Number(project.id) === Number(selectedProject))?.name || 'Project';
+  const exportMetricsCsv = () => {
+    if (loading || !selectedProject || metrics.length === 0) return;
+    const contents = serializeMetricsCsv(metrics, selectedProjectName);
+    const blob = new Blob(['\uFEFF', contents], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const safeProjectName = selectedProjectName.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'project';
+    link.href = url;
+    link.download = 'orbit-metrics-' + safeProjectName + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
 
   return (
     <div className="page metrics-page">
@@ -48,9 +67,14 @@ export default function Metrics({ projects, api }) {
           <h1>Metrics &amp; monitoring</h1>
           <p className="page-subtitle">Inspect the latest metrics recorded for each project.</p>
         </div>
-        <button type="button" className="btn btn-secondary" onClick={fetchMetrics} disabled={loading || !selectedProject}>
-          {loading ? 'Refreshing…' : '↻ Refresh'}
-        </button>
+        <div className="metrics-header-actions">
+          <button type="button" className="btn btn-secondary" onClick={exportMetricsCsv} disabled={loading || !selectedProject || metrics.length === 0} title={metrics.length ? 'Download the displayed measurements as CSV' : 'Load measurements before exporting'}>
+            ↓ Export CSV
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={fetchMetrics} disabled={loading || !selectedProject}>
+            {loading ? 'Refreshing…' : '↻ Refresh'}
+          </button>
+        </div>
       </div>
 
       <section className="metrics-selector">
