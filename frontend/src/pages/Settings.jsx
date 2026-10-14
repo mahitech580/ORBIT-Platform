@@ -1,4 +1,5 @@
 import React from 'react';
+import { buildWorkspaceExport } from '../utils/workspaceExport.js';
 
 const timeLabel = value => {
   if (!value) return 'Not synced in this session';
@@ -6,7 +7,26 @@ const timeLabel = value => {
   return Number.isNaN(date.getTime()) ? 'Unknown' : date.toLocaleString();
 };
 
-export default function Settings({ demoMode, health, lastSyncedAt, refreshSeconds, onRefreshSecondsChange, lightMode, onToggleTheme, onRefresh }) {
+export default function Settings({ demoMode, health, lastSyncedAt, refreshSeconds, onRefreshSecondsChange, lightMode, onToggleTheme, onRefresh, projects = [], deployments = [], teams = [], instances = [] }) {
+  const exportWorkspace = () => {
+    const backup = buildWorkspaceExport({
+      mode: demoMode ? 'browser-demo' : 'server-api',
+      projects,
+      deployments,
+      teams,
+      instances
+    });
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'orbit-workspace-' + new Date().toISOString().slice(0, 10) + '.json';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
   const apiStatus = demoMode ? 'Browser demo' : health?.status === 'ok' ? 'Connected' : health?.status === 'degraded' ? 'Degraded' : health?.status === 'unavailable' ? 'Unavailable' : 'Checking';
   const databaseStatus = demoMode ? 'Local browser storage' : health?.database || 'Unknown';
 
@@ -25,6 +45,9 @@ export default function Settings({ demoMode, health, lastSyncedAt, refreshSecond
       <div className="setting-row"><div><strong>Build execution</strong><small>This release tracks deployment records only.</small></div><span className="status-pill gray">Not configured</span></div>
       <div className="setting-row"><div><strong>Cloud resource provisioning</strong><small>No cloud provider adapter is configured in this release.</small></div><span className="status-pill gray">Not configured</span></div>
     </section>
-    <p className="settings-footnote">Settings for refresh interval and appearance are saved in this browser. Account, project, team, deployment, and instance records use the active API mode.</p>
+    <section className="surface-card settings-section"><div className="settings-section-head"><span className="settings-icon">⇩</span><div><h2>Workspace backup</h2><p>Download the records currently loaded in this workspace as a versioned JSON file.</p></div></div>
+      <div className="setting-row"><div><strong>Export workspace records</strong><small>Project, deployment, team, and instance data only. Credential-like fields are stripped; the file may still contain operational information.</small></div><button type="button" className="btn btn-secondary" onClick={exportWorkspace}>↓ Export JSON</button></div>
+    </section>
+    <p className="settings-footnote">Settings for refresh interval and appearance are saved in this browser. Account, project, team, deployment, and instance records use the active API mode. A backup does not include sign-in tokens or account credentials.</p>
   </div>;
 }
