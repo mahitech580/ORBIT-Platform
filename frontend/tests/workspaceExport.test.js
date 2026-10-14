@@ -28,3 +28,32 @@ test('serialized export is valid pretty JSON and excludes unrelated session fiel
   assert.equal('password' in parsed, false);
   assert.ok(text.endsWith('\n'));
 });
+
+
+import { serializeWorkspaceCsv } from '../src/utils/workspaceExport.js';
+
+test('CSV export includes record types, safely quotes cells, and preserves stable headers', () => {
+  const csv = serializeWorkspaceCsv({
+    projects: [{
+      id: 7,
+      name: 'App, "Production"',
+      description: 'first line\nsecond line',
+      record_type: 'forged'
+    }],
+    deployments: [{ id: 9, branch: '=SUM(1,2)' }],
+    teams: [],
+    instances: []
+  });
+  assert.ok(csv.startsWith('"record_type",'));
+  assert.ok(csv.includes('"App, ""Production"""'));
+  assert.ok(csv.includes('"first line\nsecond line"'));
+  assert.ok(csv.includes('"\x27=SUM(1,2)"'));
+  assert.ok(csv.includes('"projects"'));
+  assert.ok(!csv.includes('"forged"'));
+  assert.ok(csv.endsWith('\r\n'));
+});
+
+test('CSV export safely handles empty input and ignores malformed rows', () => {
+  assert.equal(serializeWorkspaceCsv(null), '"record_type"\r\n');
+  assert.equal(serializeWorkspaceCsv({ projects: [null, 1, 'bad', []] }), '"record_type"\r\n');
+});
