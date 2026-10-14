@@ -9,6 +9,7 @@ ORBIT is a project operations workspace built with React, Vite, Flask, and Postg
 - Create, inspect, update, archive, and delete projects.
 - Record deployments with project, version, branch, and status history.
 - View recorded CPU, memory, request, error, and response-time measurements.
+- Export a versioned JSON workspace backup for projects, deployments, teams, and instances, with credential-like fields removed.
 - Health endpoint that checks the PostgreSQL connection instead of assuming it is available.
 - Responsive operations interface with search and filtering.
 - Repeatable database bootstrap schema and a documented compatibility audit.
@@ -73,6 +74,10 @@ The seed schema includes this account and sample projects. Demo authentication i
 - VITE_API_URL: optional frontend API base; defaults to /api.
 
 The .env.example file is a starter configuration, not a production secret store.
+
+## Workspace backups
+
+Use **Settings → Workspace backup → Export JSON** to download the records currently loaded by the workspace. The versioned backup includes project, deployment, team, and instance records with a count summary. Fields whose names resemble credentials (passwords, tokens, API keys, cookies, and similar values) are omitted recursively. Authentication state is never passed to the exporter. Treat the file as operational data even after filtering, because project descriptions and execution metadata may still be sensitive.
 
 ## API overview
 
