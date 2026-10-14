@@ -13,14 +13,20 @@ export function filterTeams(teams, query = '') {
   ].some(value => searchable(value).includes(needle)));
 }
 
-export function filterInstances(instances, projects = [], query = '') {
+export function filterInstances(instances, projects = [], query = '', filters = {}) {
   const records = Array.isArray(instances)
     ? instances.filter(item => item && typeof item === 'object' && !Array.isArray(item))
     : [];
   const projectRecords = Array.isArray(projects) ? projects : [];
   const needle = String(query ?? '').trim().toLocaleLowerCase();
-  if (!needle) return records;
+  const status = String(filters.status ?? 'all');
+  const projectId = String(filters.projectId ?? 'all');
+  const instanceType = String(filters.instanceType ?? 'all');
   return records.filter(instance => {
+    if (status !== 'all' && String(instance.status ?? '') !== status) return false;
+    if (projectId !== 'all' && String(instance.project_id ?? '') !== projectId) return false;
+    if (instanceType !== 'all' && String(instance.instance_type ?? '') !== instanceType) return false;
+    if (!needle) return true;
     const project = projectRecords.find(item => item && String(item.id) === String(instance.project_id));
     const projectName = instance.project_name || project?.name || '';
     return [
@@ -53,9 +59,9 @@ export function sortTeams(teams, mode = 'name-asc') {
   const records = Array.isArray(teams)
     ? teams.filter(item => item && typeof item === 'object' && !Array.isArray(item))
     : [];
-  const supported = new Set(['name-asc', 'name-desc', 'newest', 'oldest', 'status']);
+  const supported = new Set(['name-asc', 'name-desc', 'newest', 'oldest', 'status', 'owner']);
   const sortMode = supported.has(mode) ? mode : 'name-asc';
-  return [...records].sort((left, right) => compareByMode(left, right, sortMode, 'name'));
+  return [...records].sort((left, right) => sortMode === 'owner' ? compareText(left.owner_name || left.owner_id, right.owner_name || right.owner_id) || compareText(left.id, right.id) : compareByMode(left, right, sortMode, 'name'));
 }
 
 /** Return a deterministically sorted copy of the supplied instance list. */
