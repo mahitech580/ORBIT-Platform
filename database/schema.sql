@@ -84,5 +84,6 @@ CREATE INDEX IF NOT EXISTS idx_instances_deployment_id ON instances(deployment_i
 CREATE INDEX IF NOT EXISTS idx_instances_project_id ON instances(project_id);
 CREATE INDEX IF NOT EXISTS idx_metrics_project_id ON metrics(project_id);
 CREATE INDEX IF NOT EXISTS idx_metrics_timestamp ON metrics(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_metrics_project_timestamp ON metrics(project_id, timestamp DESC, id DESC);
 CREATE INDEX IF NOT EXISTS idx_logs_project_id ON logs(project_id);
 CREATE INDEX IF NOT EXISTS idx_users_email_lower ON users(LOWER(email));
