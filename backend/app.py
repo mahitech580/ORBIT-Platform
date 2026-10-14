@@ -24,7 +24,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 load_dotenv()
 
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.1.0"
 APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
 IS_PRODUCTION = APP_ENV in {"production", "prod"}
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -49,12 +49,18 @@ DATABASE = {
 if os.getenv("DB_SSLMODE"):
     DATABASE["sslmode"] = os.getenv("DB_SSLMODE")
 
+# Render provides DATABASE_URL; local development can continue using DB_* fields.
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024
 allowed_origins = [origin.strip() for origin in os.getenv(
     "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
 ).split(",") if origin.strip()]
-CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
+CORS(app, resources={
+    r"/api/*": {"origins": allowed_origins},
+    r"/health": {"origins": allowed_origins},
+})
 
 RUNTIMES = {"node", "python", "java", "go"}
 PROJECT_STATUSES = {"active", "archived"}
@@ -76,7 +82,16 @@ def json_safe(value):
 
 
 def get_db():
-    """Open a short-lived connection. Callers always close it."""
+    """Open a short-lived PostgreSQL connection using Render's URL or local DB_* settings."""
+    if DATABASE_URL:
+        options = {"connect_timeout": DATABASE["connect_timeout"]}
+        explicit_sslmode = os.getenv("DB_SSLMODE")
+        if explicit_sslmode:
+            options["sslmode"] = explicit_sslmode
+        elif IS_PRODUCTION:
+            # Render's managed PostgreSQL endpoint requires TLS in production.
+            options["sslmode"] = "require"
+        return psycopg2.connect(DATABASE_URL, **options)
     return psycopg2.connect(**DATABASE)
 
 
@@ -234,6 +249,7 @@ def handle_unexpected_error(error):
 
 
 @app.route("/health", methods=["GET"])
+@app.route("/api/health", methods=["GET"])
 def health():
     database_status = "unavailable"
     try:
