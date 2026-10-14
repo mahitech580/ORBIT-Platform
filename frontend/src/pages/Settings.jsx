@@ -6,12 +6,12 @@ const timeLabel = value => {
   return Number.isNaN(date.getTime()) ? 'Unknown' : date.toLocaleString();
 };
 
-export default function Settings({ demoMode, health, lastSyncedAt, refreshSeconds, onRefreshSecondsChange, lightMode, onToggleTheme, onRefresh }) {
+export default function Settings({ demoMode, health, lastSyncedAt, refreshSeconds, onRefreshSecondsChange, lightMode, onToggleTheme, onRefresh, onExportWorkspace }) {
   const apiStatus = demoMode ? 'Browser demo' : health?.status === 'ok' ? 'Connected' : health?.status === 'degraded' ? 'Degraded' : health?.status === 'unavailable' ? 'Unavailable' : 'Checking';
   const databaseStatus = demoMode ? 'Local browser storage' : health?.database || 'Unknown';
 
   return <div className="page management-page settings-page">
-    <div className="page-heading-row"><div><div className="eyebrow">WORKSPACE / PREFERENCES</div><h1>Settings</h1><p>Control how this workspace refreshes and displays data.</p></div><button type="button" className="btn btn-secondary" onClick={onRefresh}>↻ Check now</button></div>
+    <div className="page-heading-row"><div><div className="eyebrow">WORKSPACE / PREFERENCES</div><h1>Settings</h1><p>Control how this workspace refreshes and displays data.</p></div><div className="settings-heading-actions"><button type="button" className="btn btn-secondary" onClick={onExportWorkspace}>↓ Export workspace JSON</button><button type="button" className="btn btn-secondary" onClick={onRefresh}>↻ Check now</button></div></div>
     <section className="surface-card settings-section"><div className="settings-section-head"><span className="settings-icon">◷</span><div><h2>Data refresh</h2><p>ORBIT re-reads workspace records on the selected interval while this tab is open and visible.</p></div></div>
       <div className="setting-row"><div><strong>Automatic refresh interval</strong><small>Applies to projects, deployments, teams, and instance records.</small></div><select aria-label="Automatic refresh interval" value={refreshSeconds} onChange={event => onRefreshSecondsChange(Number(event.target.value))}><option value={15}>Every 15 seconds</option><option value={30}>Every 30 seconds</option><option value={60}>Every 60 seconds</option></select></div>
       <div className="setting-row"><div><strong>Last workspace refresh</strong><small>Timestamp from the most recent successful workspace read.</small></div><span className="setting-value">{timeLabel(lastSyncedAt)}</span></div>
