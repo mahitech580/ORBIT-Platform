@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { filterInstances, filterTeams } from './recordFilters.js';
+import { filterInstances, filterTeams, sortInstances, sortTeams } from './recordFilters.js';
 
 test('filters teams by case-insensitive name and description', () => {
   const teams = [
@@ -50,4 +50,31 @@ test('search does not mutate source arrays or their ordering', () => {
   const before = JSON.stringify(teams);
   assert.deepEqual(filterTeams(teams, 'alpha').map(team => team.id), [1]);
   assert.equal(JSON.stringify(teams), before);
+});
+
+
+test('sorts teams by name in both directions with deterministic ID tie breaks', () => {
+  const source = [{ id: 9, name: 'alpha' }, { id: 2, name: 'Beta' }, { id: 1, name: 'ALPHA' }];
+  assert.deepEqual(sortTeams(source, 'name-asc').map(item => item.id), [1, 9, 2]);
+  assert.deepEqual(sortTeams(source, 'name-desc').map(item => item.id), [2, 1, 9]);
+  assert.deepEqual(source.map(item => item.id), [9, 2, 1]);
+});
+
+test('sorts instances by age status and name without mutating source', () => {
+  const source = [
+    { id: 1, name: 'Zulu', status: 'stopped', created_at: '2026-10-01T00:00:00Z' },
+    { id: 2, name: 'alpha', status: 'running', created_at: '2026-10-12T00:00:00Z' },
+    { id: 3, name: 'Beta', status: 'running', created_at: 'bad-date' }
+  ];
+  const before = JSON.stringify(source);
+  assert.deepEqual(sortInstances(source, 'newest').map(item => item.id), [2, 1, 3]);
+  assert.deepEqual(sortInstances(source, 'oldest').map(item => item.id), [3, 1, 2]);
+  assert.deepEqual(sortInstances(source, 'status').map(item => item.id), [2, 3, 1]);
+  assert.deepEqual(sortInstances(source, 'name-asc').map(item => item.id), [2, 3, 1]);
+  assert.equal(JSON.stringify(source), before);
+});
+
+test('falls back to a documented default for unknown sort modes', () => {
+  assert.deepEqual(sortTeams([{ id: 2, name: 'B' }, { id: 1, name: 'A' }], 'random').map(item => item.id), [1, 2]);
+  assert.deepEqual(sortInstances([{ id: 1, name: 'old', created_at: '2026-01-01' }, { id: 2, name: 'new', created_at: '2026-10-01' }], 'random').map(item => item.id), [2, 1]);
 });
