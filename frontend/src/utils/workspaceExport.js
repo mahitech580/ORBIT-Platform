@@ -82,5 +82,53 @@ export function validateWorkspaceBackup(snapshot) {
   if (snapshot.counts && collectionNames.some(name => !Object.prototype.hasOwnProperty.call(snapshot.counts, name))) {
     errors.push('The backup count summary is incomplete.');
   }
+
+  const projects = Array.isArray(snapshot.records.projects) ? snapshot.records.projects : [];
+  const teams = Array.isArray(snapshot.records.teams) ? snapshot.records.teams : [];
+  const deployments = Array.isArray(snapshot.records.deployments) ? snapshot.records.deployments : [];
+  const instances = Array.isArray(snapshot.records.instances) ? snapshot.records.instances : [];
+  const supportedRuntimes = new Set(['node', 'python', 'java', 'go']);
+  projects.forEach((project, index) => {
+    if (!project || typeof project !== 'object' || Array.isArray(project)) return;
+    if (typeof project.name !== 'string' || !project.name.trim() || project.name.length > 120) {
+      errors.push('Project record ' + (index + 1) + ' has an invalid name.');
+    }
+    if (project.description != null && (typeof project.description !== 'string' || project.description.length > 2000)) {
+      errors.push('Project record ' + (index + 1) + ' has an invalid description.');
+    }
+    if (project.runtime != null && !supportedRuntimes.has(String(project.runtime).toLowerCase())) {
+      errors.push('Project record ' + (index + 1) + ' uses an unsupported runtime.');
+    }
+    if (project.status != null && !['active', 'archived'].includes(String(project.status).toLowerCase())) {
+      errors.push('Project record ' + (index + 1) + ' has an unsupported status.');
+    }
+  });
+  teams.forEach((team, index) => {
+    if (!team || typeof team !== 'object' || Array.isArray(team)) return;
+    if (typeof team.name !== 'string' || !team.name.trim() || team.name.length > 120) {
+      errors.push('Team record ' + (index + 1) + ' has an invalid name.');
+    }
+  });
+  deployments.forEach((deployment, index) => {
+    if (!deployment || typeof deployment !== 'object' || Array.isArray(deployment)) return;
+    if (!Number.isFinite(Number(deployment.project_id))) {
+      errors.push('Deployment record ' + (index + 1) + ' has an invalid project reference.');
+    }
+    if (deployment.version != null && (typeof deployment.version !== 'string' || deployment.version.length > 80)) {
+      errors.push('Deployment record ' + (index + 1) + ' has an invalid version.');
+    }
+    if (deployment.branch != null && (typeof deployment.branch !== 'string' || deployment.branch.length > 200)) {
+      errors.push('Deployment record ' + (index + 1) + ' has an invalid branch.');
+    }
+  });
+  instances.forEach((instance, index) => {
+    if (!instance || typeof instance !== 'object' || Array.isArray(instance)) return;
+    if (!Number.isFinite(Number(instance.project_id))) {
+      errors.push('Instance record ' + (index + 1) + ' has an invalid project reference.');
+    }
+    if (typeof instance.name !== 'string' || !instance.name.trim() || instance.name.length > 120) {
+      errors.push('Instance record ' + (index + 1) + ' has an invalid name.');
+    }
+  });
   return { valid: errors.length === 0, errors, counts };
 }
