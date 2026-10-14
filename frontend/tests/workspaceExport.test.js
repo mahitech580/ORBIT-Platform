@@ -26,5 +26,5 @@ test('serialized export is valid pretty JSON and excludes unrelated session fiel
   assert.equal(parsed.collections.projects.length, 0);
   assert.equal('token' in parsed, false);
   assert.equal('password' in parsed, false);
-  assert.ok(text.endsWith('\\n'));
+  assert.ok(text.endsWith('\n'));
 });
