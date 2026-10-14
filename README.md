@@ -116,11 +116,18 @@ Bearer-token endpoints:
 - GET, PUT, DELETE /api/projects/:id — read and manage an owned project.
 - POST /api/projects/:id/deploy — record a deployment request.
 - GET /api/deployments and GET /api/deployments/:id — owned deployment history.
-- GET /api/metrics/:project_id — last 100 recorded measurements and safe summary values.
+- GET /api/metrics/:project_id — last 100 recorded measurements and summary values.
+- POST /api/metrics/:project_id — validate and store measurements from an authenticated user who owns the project.
 - GET, POST /api/instances — list or record workspace instances associated with a project.
 - GET, POST /api/teams — list or create teams owned by the signed-in user.
 
 Responses use JSON. Expected validation errors return an explanatory 4xx response; unexpected server errors return a generic message and are logged server-side.
+
+## Telemetry ingestion
+
+The API accepts an authenticated `POST /api/metrics/:project_id` request and inserts accepted measurements into the PostgreSQL `metrics` table. The Metrics page refreshes every 15, 30, or 60 seconds while visible, and when the tab regains focus. This displays fresh database records; it does not create observations by itself. Connect an app/monitoring agent to send actual readings. The GitHub Pages app calls the Render API, while browser-demo mode continues to use sample data.
+
+See [`docs/TELEMETRY_INGESTION.md`](docs/TELEMETRY_INGESTION.md) for a working curl example, field constraints, and expected HTTP responses.
 
 ## Security notes
 
@@ -148,13 +155,13 @@ The GitHub Actions workflow runs the database-free backend contract tests and bu
     npm ci
     npm run build
 
-The health-check contract test simulates a PostgreSQL outage; the other included tests cover password-hash compatibility and JSON serialization. Full route-level integration tests against PostgreSQL are still a roadmap item.
+Database-free backend tests now cover password hashing, JSON serialization, production database TLS configuration, database-health failure behavior, and authenticated metric-ingestion validation. A real PostgreSQL integration smoke test still needs to run against the hosted database.
 
 ## Roadmap
 
 1. Add a deployment runner interface with dry-run and queued-job states.
 2. Integrate a provider adapter only after credentials, permissions, and resource cleanup are defined.
-3. Add a metrics ingestion endpoint or agent with source timestamps and retention.
+3. Connect a monitoring agent to the authenticated metrics-ingestion endpoint and define retention policies.
 4. Add unit/integration tests against a disposable PostgreSQL database.
 5. Add CI checks for Python linting, frontend builds, migration validation, and API regression tests.
 
