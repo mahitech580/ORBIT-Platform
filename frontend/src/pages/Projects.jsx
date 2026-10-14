@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { buildProjectCsv } from '../utils/projectExport.js';
 
 const EMPTY_FORM = { name: '', description: '', runtime: 'node', status: 'active' };
 
@@ -71,6 +72,21 @@ export default function Projects({ projects, loading, onCreateProject, onUpdateP
     }
   };
 
+  const exportFilteredProjects = () => {
+    if (!filteredProjects.length) return;
+    const csv = buildProjectCsv(filteredProjects);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'orbit-projects-' + new Date().toISOString().slice(0, 10) + '.csv';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   const formatDate = value => value ? new Date(value).toLocaleDateString() : '—';
 
   return (
@@ -103,6 +119,7 @@ export default function Projects({ projects, loading, onCreateProject, onUpdateP
           <option value="java">Java</option>
           <option value="go">Go</option>
         </select>
+        <button type="button" className="btn btn-secondary project-export-button" onClick={exportFilteredProjects} disabled={!filteredProjects.length} title="Export the filtered project list as CSV">↓ Export CSV</button>
         <span className="result-count">{filteredProjects.length} of {projects.length} projects</span>
       </div>
 
