@@ -13,7 +13,7 @@ ORBIT is a project operations workspace built with React, Vite, Flask, and Postg
 - Export the currently filtered project inventory or deployment history as spreadsheet-safe UTF-8 CSV, with formula-leading cells neutralized.
 - Export selected-project telemetry measurements to CSV with explicit units and spreadsheet formula protection.
 - Export teams and instance metadata to CSV with spreadsheet formula protection.
-- Search teams by name, description, or owner and search instances by name, project, type, status, or deployment ID; CSV exports follow the current filtered list. Both inventories support deterministic sorting by name, creation time, or status. The Metrics view supports 24-hour, 7-day, 30-day, and all-returned time-window filters; CSV downloads match the visible range.
+- Search teams by name, description, or owner and search instances by name, project, type, status, or deployment ID; CSV exports follow the current filtered list. Team sorting supports name, creation time, or owner; instance sorting supports name, creation time, or status. Instance records can additionally be filtered by status, project, and type. The Metrics view supports 24-hour, 7-day, 30-day, and all-returned time-window filters; CSV downloads match the visible range.
 - Health endpoint that checks the PostgreSQL connection instead of assuming it is available.
 - Responsive operations interface with search and filtering.
 - Repeatable database bootstrap schema and a documented compatibility audit.
