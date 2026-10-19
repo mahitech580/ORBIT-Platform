@@ -1,5 +1,8 @@
 const SENSITIVE_FIELD = /(?:password|secret|token|authorization|api[_-]?key|private[_-]?key|cookie|credential)/i;
 
+// Browser restore is intended for workspace snapshots, not unbounded bulk imports.
+const MAX_BACKUP_RECORDS = 10000;
+
 function redactSensitiveFields(value) {
   if (Array.isArray(value)) return value.map(redactSensitiveFields);
   if (!value || typeof value !== 'object') return value;
@@ -83,6 +86,12 @@ export function validateWorkspaceBackup(snapshot) {
     errors.push('The backup count summary is missing or invalid.');
   } else if (collectionNames.some(name => !Object.prototype.hasOwnProperty.call(snapshot.counts, name))) {
     errors.push('The backup count summary is incomplete.');
+  }
+
+  const totalRecords = collectionNames.reduce((sum, name) => sum + (counts[name] || 0), 0);
+  if (totalRecords > MAX_BACKUP_RECORDS) {
+    errors.push('The backup exceeds the maximum of ' + MAX_BACKUP_RECORDS + ' records.');
+    return { valid: false, errors, counts };
   }
 
   const projects = Array.isArray(snapshot.records.projects) ? snapshot.records.projects : [];
