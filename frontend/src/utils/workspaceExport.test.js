@@ -65,6 +65,20 @@ test('redacts credential patterns embedded in free-text backup fields', () => {
   assert.match(snapshot.records.projects[0].description, /REDACTED: private-key block/);
 });
 
+test('redacts credential assignments embedded in operational descriptions', () => {
+  const rawValues = [
+    'DATABASE_PASSWORD=hunter2-private',
+    'client_secret:very-private-value',
+    'api_key = another-private-value'
+  ];
+  const snapshot = buildWorkspaceExport({
+    projects: [{ id: 2, name: 'Connector setup', description: rawValues.join('; ') }]
+  }, 't');
+  const description = snapshot.records.projects[0].description;
+  for (const raw of rawValues) assert.equal(description.includes(raw), false);
+  assert.equal((description.match(/REDACTED: credential assignment/g) || []).length, 3);
+});
+
 test('normalizes unexpected record collections to empty arrays', () => {
   const snapshot = buildWorkspaceExport({ projects: null, deployments: 'not-an-array' }, 'fixed-time');
   assert.deepEqual(snapshot.counts, { projects: 0, deployments: 0, teams: 0, instances: 0 });
