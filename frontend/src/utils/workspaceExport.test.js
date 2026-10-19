@@ -41,6 +41,30 @@ test('removes credential-like fields recursively without mutating source records
   assert.equal(project.configuration.nested[0].password, 'secret');
 });
 
+test('redacts credential patterns embedded in free-text backup fields', () => {
+  const providerKey = 'sk-' + 'abcdefghijklmnopqrstuvwxyz123456';
+  const githubToken = 'ghp_' + 'A'.repeat(30);
+  const bearerToken = 'Bearer ' + 'abcDEF1234567890_tokenValue987654321';
+  const awsKey = 'AKIA' + '1234567890ABCDEF';
+  const truncatedPem = '-----BEGIN PRIVATE KEY-----\\nprivate-material-that-must-not-escape';
+  const snapshot = buildWorkspaceExport({
+    projects: [{
+      id: 1,
+      name: 'Sensitive text review',
+      description: [providerKey, githubToken, bearerToken, awsKey, truncatedPem].join('\\n')
+    }]
+  }, 't');
+  const exported = JSON.stringify(snapshot);
+  for (const secret of [providerKey, githubToken, bearerToken, awsKey, 'private-material-that-must-not-escape']) {
+    assert.equal(exported.includes(secret), false);
+  }
+  assert.match(snapshot.records.projects[0].description, /REDACTED: provider key/);
+  assert.match(snapshot.records.projects[0].description, /REDACTED: GitHub token/);
+  assert.match(snapshot.records.projects[0].description, /REDACTED: bearer token/);
+  assert.match(snapshot.records.projects[0].description, /REDACTED: AWS access key/);
+  assert.match(snapshot.records.projects[0].description, /REDACTED: private-key block/);
+});
+
 test('normalizes unexpected record collections to empty arrays', () => {
   const snapshot = buildWorkspaceExport({ projects: null, deployments: 'not-an-array' }, 'fixed-time');
   assert.deepEqual(snapshot.counts, { projects: 0, deployments: 0, teams: 0, instances: 0 });
