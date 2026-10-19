@@ -4,6 +4,7 @@ const SENSITIVE_FIELD = /(?:password|secret|token|authorization|api[_-]?key|priv
 const MAX_BACKUP_RECORDS = 10000;
 
 const SENSITIVE_TEXT_PATTERNS = [
+  [/\\b(?:password|passwd|secret|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret)\\s*[:=]\\s*["']?[^\\s,;"']{4,}/gi, '[REDACTED: credential assignment]'],
   [/-----BEGIN (?:RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----[\\s\\S]*?(?:-----END (?:RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----|$)/g, '[REDACTED: private-key block]'],
   [/\\bBearer\\s+[A-Za-z0-9._~+\\/-]{16,}={0,2}/gi, '[REDACTED: bearer token]'],
   [/\\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{30,})\\b/g, '[REDACTED: GitHub token]'],
