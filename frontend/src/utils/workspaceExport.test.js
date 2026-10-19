@@ -84,6 +84,19 @@ test('rejects inconsistent backup count summaries', async () => {
   assert.ok(validateWorkspaceBackup(corrupted).errors.some(error => error.includes('count does not match')));
 });
 
+test('rejects oversized backups before inspecting individual records', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const projects = Array.from({ length: 10001 }, (_, index) => ({
+    id: index + 1,
+    name: 'Project ' + (index + 1)
+  }));
+  const oversized = buildWorkspaceExport({ projects }, 't');
+  const result = validateWorkspaceBackup(oversized);
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(error => error.includes('maximum of 10000 records')));
+  assert.equal(result.counts.projects, 10001);
+});
+
 test('returns a stable validation error for primitive input', async () => {
   const { validateWorkspaceBackup } = await import('./workspaceExport.js');
   assert.deepEqual(validateWorkspaceBackup(null), {
