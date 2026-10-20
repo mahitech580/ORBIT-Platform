@@ -167,6 +167,10 @@ def verify_password(password, stored_hash):
     if re.fullmatch(r"[a-fA-F0-9]{64}", stored_hash):
         digest = hashlib.sha256(password.encode("utf-8")).hexdigest()
         return hmac.compare_digest(digest, stored_hash.lower())
+    # Avoid passing arbitrary database text to Werkzeug's parser: unknown hash
+    # prefixes can emit deprecation warnings and can never authenticate here.
+    if not stored_hash.startswith(("pbkdf2:", "scrypt:")):
+        return False
     try:
         return check_password_hash(stored_hash, password)
     except (ValueError, TypeError):

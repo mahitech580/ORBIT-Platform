@@ -1,5 +1,6 @@
 """Fast, database-free contract tests for ORBIT's security and JSON primitives."""
 import unittest
+import warnings
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -41,7 +42,10 @@ class PasswordContractTests(unittest.TestCase):
         self.assertFalse(orbit.verify_password("wrong-password", digest))
 
     def test_invalid_hash_does_not_authenticate(self):
-        self.assertFalse(orbit.verify_password("anything", "$2b$10$not-a-real-hash"))
+        with warnings.catch_warnings(record=True) as captured:
+            warnings.simplefilter("always")
+            self.assertFalse(orbit.verify_password("anything", "$2b$10$not-a-real-hash"))
+        self.assertEqual(captured, [])
 
 
 class SerializationContractTests(unittest.TestCase):
