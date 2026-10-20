@@ -53,6 +53,22 @@ if os.getenv("DB_SSLMODE"):
 # Render provides DATABASE_URL; local development can continue using DB_* fields.
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
+
+def validate_database_configuration(is_production, database_url, environment):
+    """Prevent production from silently falling back to local development DB defaults."""
+    if not is_production or (isinstance(database_url, str) and database_url.strip()):
+        return
+    required = ("DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD")
+    missing = [name for name in required if not str(environment.get(name, "")).strip()]
+    if missing:
+        raise RuntimeError(
+            "Production database configuration is incomplete. Set DATABASE_URL or "
+            "explicitly provide DB_HOST, DB_NAME, DB_USER, and DB_PASSWORD."
+        )
+
+
+validate_database_configuration(IS_PRODUCTION, DATABASE_URL, os.environ)
+
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024
 allowed_origins = [origin.strip() for origin in os.getenv(

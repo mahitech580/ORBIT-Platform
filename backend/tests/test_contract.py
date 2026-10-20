@@ -58,6 +58,22 @@ class SerializationContractTests(unittest.TestCase):
 
 
 class DatabaseConnectionContractTests(unittest.TestCase):
+    def test_production_requires_explicit_database_configuration(self):
+        with self.assertRaisesRegex(RuntimeError, "DATABASE_URL"):
+            orbit.validate_database_configuration(True, "", {})
+
+    def test_production_accepts_database_url_or_complete_db_environment(self):
+        orbit.validate_database_configuration(True, "postgresql://example.test/orbit", {})
+        orbit.validate_database_configuration(True, "", {
+            "DB_HOST": "db.example.test",
+            "DB_NAME": "orbit",
+            "DB_USER": "orbit_app",
+            "DB_PASSWORD": "test-only-password",
+        })
+
+    def test_non_production_can_use_local_database_defaults(self):
+        orbit.validate_database_configuration(False, "", {})
+
     def test_render_database_url_uses_production_tls(self):
         from unittest.mock import patch
         with patch.object(orbit, "DATABASE_URL", "postgresql://user:pass@example.test/orbit"), \
