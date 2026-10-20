@@ -82,6 +82,17 @@ CORS(app, resources={
     r"/health": {"origins": allowed_origins},
 })
 
+
+@app.after_request
+def add_browser_security_headers(response):
+    """Set defensive headers on API/error responses without changing CORS policy."""
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    return response
+
+
 RUNTIMES = {"node", "python", "java", "go"}
 PROJECT_STATUSES = {"active", "archived"}
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_.-]{3,50}$")

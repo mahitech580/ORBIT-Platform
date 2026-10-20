@@ -57,6 +57,19 @@ class SerializationContractTests(unittest.TestCase):
         self.assertEqual(result["nested"], [2.0])
 
 
+class SecurityHeadersContractTests(unittest.TestCase):
+    def test_api_responses_include_baseline_browser_security_headers(self):
+        response = orbit.app.test_client().get("/api/meta")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("X-Content-Type-Options"), "nosniff")
+        self.assertEqual(response.headers.get("X-Frame-Options"), "DENY")
+        self.assertEqual(response.headers.get("Referrer-Policy"), "no-referrer")
+        self.assertEqual(
+            response.headers.get("Permissions-Policy"),
+            "camera=(), microphone=(), geolocation=()",
+        )
+
+
 class DatabaseConnectionContractTests(unittest.TestCase):
     def test_production_requires_explicit_database_configuration(self):
         with self.assertRaisesRegex(RuntimeError, "DATABASE_URL"):
