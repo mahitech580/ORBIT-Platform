@@ -192,6 +192,37 @@ class RealPostgresWorkflowTests(unittest.TestCase):
         finally:
             connection.close()
 
+    def test_instance_api_rejects_deployment_from_another_project(self):
+        user = self.register("instance-api-link@example.test", "instance_api_link_user")
+        headers = self.auth(user["token"])
+        first_project = self.client.post("/api/projects", headers=headers, json={
+            "name": "API source project", "runtime": "python"
+        })
+        second_project = self.client.post("/api/projects", headers=headers, json={
+            "name": "API target project", "runtime": "python"
+        })
+        self.assertEqual(first_project.status_code, 201, first_project.get_json())
+        self.assertEqual(second_project.status_code, 201, second_project.get_json())
+        first_id = first_project.get_json()["project"]["id"]
+        second_id = second_project.get_json()["project"]["id"]
+        deployment = self.client.post(
+            f"/api/projects/{first_id}/deploy",
+            headers=headers,
+            json={"version": "1.0.0", "branch": "main"},
+        )
+        self.assertEqual(deployment.status_code, 201, deployment.get_json())
+
+        response = self.client.post("/api/instances", headers=headers, json={
+            "project_id": second_id,
+            "deployment_id": deployment.get_json()["deployment"]["id"],
+            "name": "invalid-cross-project-worker",
+            "instance_type": "test-small",
+        })
+        self.assertEqual(response.status_code, 400, response.get_json())
+        instances = self.client.get("/api/instances", headers=headers)
+        self.assertEqual(instances.status_code, 200, instances.get_json())
+        self.assertEqual(instances.get_json()["instances"], [])
+
     def test_database_rejects_instance_linked_to_another_projects_deployment(self):
         user = self.register("instance-link@example.test", "instance_link_user")
         headers = self.auth(user["token"])
