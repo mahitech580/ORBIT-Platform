@@ -35,9 +35,9 @@ CREATE TABLE IF NOT EXISTS projects (
 CREATE TABLE IF NOT EXISTS deployments (
     id SERIAL PRIMARY KEY,
     project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    version VARCHAR(50) NOT NULL,
+    version VARCHAR(80) NOT NULL,
     status VARCHAR(20) DEFAULT 'pending',
-    branch VARCHAR(100) DEFAULT 'main',
+    branch VARCHAR(200) DEFAULT 'main',
     deployed_by INTEGER REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS instances (
     deployment_id INTEGER NOT NULL REFERENCES deployments(id) ON DELETE CASCADE,
     project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
-    instance_type VARCHAR(50) DEFAULT 't3.medium',
+    instance_type VARCHAR(80) DEFAULT 't3.medium',
     status VARCHAR(20) DEFAULT 'running',
     ip_address VARCHAR(50),
     cpu_percent DECIMAL(5,2),
@@ -78,6 +78,32 @@ BEGIN
         REFERENCES deployments(project_id, id) ON DELETE CASCADE NOT VALID;
     END IF;
 END $orbit_instance_match$;
+
+-- Widen columns to match the API and UI's accepted field lengths on older installs.
+DO $orbit_column_limits$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = current_schema() AND table_name = 'deployments'
+          AND column_name = 'version' AND character_maximum_length < 80
+    ) THEN
+        ALTER TABLE deployments ALTER COLUMN version TYPE VARCHAR(80);
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = current_schema() AND table_name = 'deployments'
+          AND column_name = 'branch' AND character_maximum_length < 200
+    ) THEN
+        ALTER TABLE deployments ALTER COLUMN branch TYPE VARCHAR(200);
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = current_schema() AND table_name = 'instances'
+          AND column_name = 'instance_type' AND character_maximum_length < 80
+    ) THEN
+        ALTER TABLE instances ALTER COLUMN instance_type TYPE VARCHAR(80);
+    END IF;
+END $orbit_column_limits$;
 
 CREATE TABLE IF NOT EXISTS metrics (
     id SERIAL PRIMARY KEY,

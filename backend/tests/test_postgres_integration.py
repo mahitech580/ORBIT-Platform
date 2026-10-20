@@ -79,6 +79,38 @@ class RealPostgresWorkflowTests(unittest.TestCase):
     def auth(token):
         return {"Authorization": "Bearer " + token}
 
+    def test_api_field_max_lengths_round_trip_without_database_truncation(self):
+        user = self.register("long-fields@example.test", "long_fields_user")
+        headers = self.auth(user["token"])
+        project_response = self.client.post("/api/projects", headers=headers, json={
+            "name": "Long field limits project",
+            "runtime": "python"
+        })
+        self.assertEqual(project_response.status_code, 201, project_response.get_json())
+        project_id = project_response.get_json()["project"]["id"]
+
+        version = "v" * 80
+        branch = "b" * 200
+        deployment_response = self.client.post(
+            f"/api/projects/{project_id}/deploy",
+            headers=headers,
+            json={"version": version, "branch": branch},
+        )
+        self.assertEqual(deployment_response.status_code, 201, deployment_response.get_json())
+        deployment = deployment_response.get_json()["deployment"]
+        self.assertEqual(deployment["version"], version)
+        self.assertEqual(deployment["branch"], branch)
+
+        instance_type = "i" * 80
+        instance_response = self.client.post("/api/instances", headers=headers, json={
+            "project_id": project_id,
+            "deployment_id": deployment["id"],
+            "name": "max-supported-instance",
+            "instance_type": instance_type,
+        })
+        self.assertEqual(instance_response.status_code, 201, instance_response.get_json())
+        self.assertEqual(instance_response.get_json()["instance"]["instance_type"], instance_type)
+
     def test_register_project_deployment_instance_and_metric_round_trip(self):
         registered = self.register("integration@example.test", "integration_user")
         token = registered["token"]
