@@ -1,7 +1,7 @@
 """Fast, database-free contract tests for ORBIT's security and JSON primitives."""
 import unittest
 import warnings
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 import app as orbit
@@ -70,6 +70,20 @@ class SerializationContractTests(unittest.TestCase):
         self.assertEqual(result["cpu"], 12.5)
         self.assertEqual(result["timestamp"], "2026-10-12T12:00:00+00:00")
         self.assertEqual(result["nested"], [2.0])
+
+    def test_naive_database_datetimes_are_explicitly_serialized_as_utc(self):
+        value = datetime(2026, 10, 14, 6, 30)
+        self.assertEqual(
+            orbit.json_safe(value),
+            "2026-10-14T06:30:00+00:00",
+        )
+
+    def test_aware_datetimes_are_normalized_to_utc(self):
+        value = datetime(2026, 10, 14, 12, 0, tzinfo=timezone(timedelta(hours=5, minutes=30)))
+        self.assertEqual(
+            orbit.json_safe(value),
+            "2026-10-14T06:30:00+00:00",
+        )
 
 
 class SecurityHeadersContractTests(unittest.TestCase):

@@ -107,7 +107,12 @@ def json_safe(value):
         return [json_safe(item) for item in value]
     if isinstance(value, Decimal):
         return float(value)
-    if isinstance(value, (datetime, date)):
+    if isinstance(value, datetime):
+        # PostgreSQL TIMESTAMP columns are stored as UTC-naive by the API.
+        # Emit an explicit UTC offset so browsers never reinterpret them as local time.
+        normalized = value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+        return normalized.isoformat()
+    if isinstance(value, date):
         return value.isoformat()
     return value
 

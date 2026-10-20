@@ -169,7 +169,7 @@ class RealPostgresWorkflowTests(unittest.TestCase):
         stored_metric = metric_response.get_json()["metric"]
         self.assertEqual(stored_metric["project_id"], project_id)
         self.assertEqual(stored_metric["cpu_usage"], 23.75)
-        self.assertEqual(stored_metric["timestamp"], "2026-10-14T06:30:00")
+        self.assertEqual(stored_metric["timestamp"], "2026-10-14T06:30:00+00:00")
 
         metrics_response = self.client.get(f"/api/metrics/{project_id}", headers=self.auth(token))
         self.assertEqual(metrics_response.status_code, 200, metrics_response.get_json())
