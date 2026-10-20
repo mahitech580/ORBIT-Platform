@@ -165,3 +165,45 @@ test('accepts consistent numeric string references in backup records', async () 
   }, 't');
   assert.equal(validateWorkspaceBackup(snapshot).valid, true);
 });
+
+test('rejects an instance whose deployment belongs to a different project', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({
+    teams: [{ id: 1, name: 'Team One' }],
+    projects: [
+      { id: 10, team_id: 1, name: 'Project A', runtime: 'node', status: 'active' },
+      { id: 11, team_id: 1, name: 'Project B', runtime: 'python', status: 'active' }
+    ],
+    deployments: [
+      { id: 20, project_id: 10, version: '1.0.0', branch: 'main' },
+      { id: 21, project_id: 11, version: '1.0.0', branch: 'main' }
+    ],
+    instances: [{ id: 30, project_id: 10, deployment_id: 21, name: 'mismatched-instance' }]
+  }, 't');
+  const result = validateWorkspaceBackup(snapshot);
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(error => error.includes('deployment belonging to another project')));
+});
+
+test('rejects an instance with a missing deployment reference before restore', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({
+    teams: [{ id: 1, name: 'Team One' }],
+    projects: [{ id: 10, team_id: 1, name: 'Project A', runtime: 'node', status: 'active' }],
+    instances: [{ id: 30, project_id: 10, name: 'orphan-instance' }]
+  }, 't');
+  const result = validateWorkspaceBackup(snapshot);
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(error => error.includes('missing a deployment reference')));
+});
+
+test('accepts an instance with matching project and deployment references', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({
+    teams: [{ id: 1, name: 'Team One' }],
+    projects: [{ id: 10, team_id: 1, name: 'Project A', runtime: 'node', status: 'active' }],
+    deployments: [{ id: 20, project_id: 10, version: '1.0.0', branch: 'main' }],
+    instances: [{ id: 30, project_id: 10, deployment_id: 20, name: 'valid-instance' }]
+  }, 't');
+  assert.equal(validateWorkspaceBackup(snapshot).valid, true);
+});
