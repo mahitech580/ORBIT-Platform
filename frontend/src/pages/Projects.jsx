@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { getDialogFocusWrapIndex } from '../utils/dialogFocus.js';
 import { buildProjectCsv } from '../utils/projectExport.js';
 
 const EMPTY_FORM = { name: '', description: '', runtime: 'node', status: 'active' };
@@ -11,6 +12,40 @@ export default function Projects({ projects, loading, onCreateProject, onUpdateP
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [runtimeFilter, setRuntimeFilter] = useState('all');
+  const detailsDialogRef = useRef(null);
+
+  useEffect(() => {
+    if (!selectedProject) return undefined;
+    const previouslyFocused = document.activeElement;
+    const dialog = detailsDialogRef.current;
+    const focusableElements = () => Array.from(dialog?.querySelectorAll(
+      'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    ) || []);
+    focusableElements()[0]?.focus();
+
+    const handleDialogKeyDown = event => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setSelectedProject(null);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = focusableElements();
+      const currentIndex = focusable.indexOf(document.activeElement);
+      const wrappedIndex = getDialogFocusWrapIndex(currentIndex, focusable.length, event.shiftKey);
+      if (wrappedIndex !== -1) {
+        event.preventDefault();
+        focusable[wrappedIndex].focus();
+      }
+    };
+    dialog?.addEventListener('keydown', handleDialogKeyDown);
+    return () => {
+      dialog?.removeEventListener('keydown', handleDialogKeyDown);
+      if (previouslyFocused?.isConnected && typeof previouslyFocused.focus === 'function') {
+        previouslyFocused.focus();
+      }
+    };
+  }, [selectedProject]);
 
   const filteredProjects = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -215,7 +250,7 @@ export default function Projects({ projects, loading, onCreateProject, onUpdateP
 
       {selectedProject && (
         <div className="modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedProject(null); }}>
-          <section className="details-modal" role="dialog" aria-modal="true" aria-labelledby="project-details-title">
+          <section ref={detailsDialogRef} className="details-modal" role="dialog" aria-modal="true" aria-labelledby="project-details-title">
             <div className="section-heading-row">
               <div className="project-card-top">
                 <div className="project-app-icon">{(selectedProject.name || 'P').trim().charAt(0).toUpperCase()}</div>
