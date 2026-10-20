@@ -34,6 +34,22 @@ class RealPostgresWorkflowTests(unittest.TestCase):
     def tearDownClass(cls):
         orbit.app.config["TESTING"] = cls.original_testing
 
+    def test_schema_bootstrap_can_run_twice_without_duplicate_constraints(self):
+        schema_sql = SCHEMA_PATH.read_text(encoding="utf-8")
+        connection = orbit.get_db()
+        try:
+            with connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(schema_sql)
+                    cursor.execute(
+                        "SELECT COUNT(*) FROM pg_constraint "
+                        "WHERE conname = %s AND conrelid = 'metrics'::regclass",
+                        ("metrics_measurements_valid",),
+                    )
+                    self.assertEqual(cursor.fetchone()[0], 1)
+        finally:
+            connection.close()
+
     def setUp(self):
         self.client = orbit.app.test_client()
         connection = orbit.get_db()
