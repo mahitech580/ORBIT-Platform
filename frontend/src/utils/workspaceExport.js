@@ -4,16 +4,16 @@ const SENSITIVE_FIELD = /(?:password|secret|token|authorization|api[_-]?key|priv
 const MAX_BACKUP_RECORDS = 10000;
 
 const SENSITIVE_TEXT_PATTERNS = [
-  [/\\b(?:password|passwd|secret|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret)\\s*[:=]\\s*["']?[^\\s,;"']{4,}/gi, '[REDACTED: credential assignment]'],
-  [/-----BEGIN (?:RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----[\\s\\S]*?(?:-----END (?:RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----|$)/g, '[REDACTED: private-key block]'],
-  [/\\bBearer\\s+[A-Za-z0-9._~+\\/-]{16,}={0,2}/gi, '[REDACTED: bearer token]'],
-  [/\\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{30,})\\b/g, '[REDACTED: GitHub token]'],
-  [/\\bAKIA[0-9A-Z]{16}\\b/g, '[REDACTED: AWS access key]'],
-  [/\\bAIza[0-9A-Za-z_-]{35}\\b/g, '[REDACTED: Google API key]'],
-  [/\\bxox[baprs]-[A-Za-z0-9-]{20,}\\b/g, '[REDACTED: Slack token]'],
-  [/\\beyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\b/g, '[REDACTED: JWT]'],
-  [/\\bsk-[A-Za-z0-9_-]{20,}\\b/g, '[REDACTED: provider key]']
-];
+  [/\b[A-Z0-9_-]*(?:password|passwd|secret|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret)\b\s*[:=]\s*["']?[^\s,;"']{4,}/gi, '[REDACTED: credential assignment]'],
+  [/-----BEGIN (?:RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----[\s\S]*?(?:-----END (?:RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----|$)/g, '[REDACTED: private-key block]'],
+  [/Bearer\s+[A-Za-z0-9._~+\/-]{16,}={0,2}/gi, '[REDACTED: bearer token]'],
+  [/(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{30,})/g, '[REDACTED: GitHub token]'],
+  [/AKIA[0-9A-Z]{16}/g, '[REDACTED: AWS access key]'],
+  [/AIza[0-9A-Za-z_-]{35}/g, '[REDACTED: Google API key]'],
+  [/xox[baprs]-[A-Za-z0-9-]{20,}/g, '[REDACTED: Slack token]'],
+  [/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g, '[REDACTED: JWT]'],
+  [/sk-[A-Za-z0-9_-]{20,}/g, '[REDACTED: provider key]']
+];;
 
 function redactSensitiveText(value) {
   if (typeof value === 'string') {
