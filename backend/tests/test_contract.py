@@ -28,6 +28,17 @@ class PositiveIntegerValidationTests(unittest.TestCase):
                     orbit.positive_int(value, "Project ID")
 
 
+class RegistrationContractTests(unittest.TestCase):
+    def test_builtin_demo_email_is_reserved_before_database_write(self):
+        response = orbit.app.test_client().post("/api/auth/register", json={
+            "email": "demo@orbit.local",
+            "username": "new_demo_account",
+            "password": "valid-password-123",
+        })
+        self.assertEqual(response.status_code, 400, response.get_json())
+        self.assertIn("reserved", response.get_json()["error"].lower())
+
+
 class PasswordContractTests(unittest.TestCase):
     def test_new_password_hash_round_trip(self):
         value = orbit.hash_password("a-unique-test-password")

@@ -350,6 +350,7 @@ export function createDemoApi() {
         const password = String(payload.password || '');
         const firstName = String(payload.first_name || '').trim();
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fail('Enter a valid email address.');
+        if (email === DEMO_EMAIL) fail('This email address is reserved for the built-in demo account.');
         if (!/^[A-Za-z0-9_.-]{3,50}$/.test(username)) fail('Username must be 3–50 valid characters.');
         if (password.length < 8) fail('Password must contain at least 8 characters.');
         if (state.accounts.some(item => item.email === email || item.username.toLowerCase() === username.toLowerCase())) {

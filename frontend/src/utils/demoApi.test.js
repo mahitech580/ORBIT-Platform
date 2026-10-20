@@ -88,6 +88,19 @@ test('demo sign-in accepts the documented credentials and rejects bad passwords'
   await assert.rejects(() => api.post('/auth/login', { email: 'demo@orbit.local', password: 'wrong' }), error => error.response.status === 401);
 });
 
+test('registration cannot claim the reserved built-in demo email', async () => {
+  await assert.rejects(() => api.post('/auth/register', {
+    email: 'DEMO@ORBIT.LOCAL',
+    username: 'another_demo',
+    password: 'valid-password-123'
+  }), error => error.response.status === 400);
+  const login = await api.post('/auth/login', {
+    email: 'demo@orbit.local',
+    password: 'demo123'
+  });
+  assert.equal(login.data.user.id, 1);
+});
+
 
 test('restores a validated backup while remapping project and deployment references', async () => {
   const backup = buildWorkspaceExport({

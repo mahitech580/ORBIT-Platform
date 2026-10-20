@@ -347,6 +347,8 @@ def register():
     first_name = read_string(data, "first_name", default="", max_length=100)
     if not EMAIL_RE.fullmatch(email):
         abort(400, description="Enter a valid email address.")
+    if email == DEMO_EMAIL:
+        abort(400, description="This email address is reserved for the built-in demo account.")
     if not USERNAME_RE.fullmatch(username):
         abort(400, description="Username must be 3–50 characters and use letters, numbers, dots, underscores, or hyphens.")
     if len(password) < 8:
