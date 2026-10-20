@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { resolveDeploymentProjectId } from '../utils/deploymentProjectSelection.js';
 import { filterDeployments } from '../utils/deploymentFilters.js';
 import { buildDeploymentCsv } from '../utils/deploymentExport.js';
 
@@ -12,6 +13,13 @@ export default function Deployments({ deployments, projects, loading, onDeploy }
     version: '1.0.0',
     branch: 'main'
   });
+
+  useEffect(() => {
+    setFormData(previous => {
+      const projectId = resolveDeploymentProjectId(previous.project_id, projects);
+      return previous.project_id === projectId ? previous : { ...previous, project_id: projectId };
+    });
+  }, [projects]);
 
   const filteredDeployments = useMemo(() => filterDeployments(deployments, {
     query,
