@@ -29,8 +29,29 @@ CREATE TABLE IF NOT EXISTS projects (
     runtime VARCHAR(50) DEFAULT 'node',
     status VARCHAR(20) DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT projects_domain_valid CHECK (
+        (runtime IS NULL OR runtime IN ('node', 'python', 'java', 'go'))
+        AND (status IS NULL OR status IN ('active', 'archived'))
+    )
 );
+
+-- Preserve API-supported project values at the database boundary for older installs.
+DO $orbit_project_domains$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'projects_domain_valid'
+          AND conrelid = 'projects'::regclass
+    ) THEN
+        ALTER TABLE projects
+        ADD CONSTRAINT projects_domain_valid
+        CHECK (
+            (runtime IS NULL OR runtime IN ('node', 'python', 'java', 'go'))
+            AND (status IS NULL OR status IN ('active', 'archived'))
+        ) NOT VALID;
+    END IF;
+END $orbit_project_domains$;
 
 CREATE TABLE IF NOT EXISTS deployments (
     id SERIAL PRIMARY KEY,

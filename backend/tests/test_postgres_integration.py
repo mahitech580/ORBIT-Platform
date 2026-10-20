@@ -188,6 +188,35 @@ class RealPostgresWorkflowTests(unittest.TestCase):
         self.assertEqual(instances.status_code, 200, instances.get_json())
         self.assertEqual(instances.get_json()["instances"][0]["name"], "integration-instance")
 
+    def test_postgres_rejects_project_runtime_and_status_outside_api_domains(self):
+        user = self.register("project-domain@example.test", "project_domain_user")
+        connection = orbit.get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT id FROM teams WHERE owner_id = %s ORDER BY id LIMIT 1", (user["id"],))
+                team_row = cursor.fetchone()
+            self.assertIsNotNone(team_row)
+            team_id = team_row[0]
+
+            invalid_rows = [
+                ("unsupported runtime", "fortran", "active"),
+                ("unsupported status", "python", "deleted"),
+            ]
+            for label, runtime, status in invalid_rows:
+                with self.subTest(label=label):
+                    try:
+                        with connection.cursor() as cursor:
+                            with self.assertRaises(orbit.psycopg2.errors.CheckViolation):
+                                cursor.execute(
+                                    "INSERT INTO projects (team_id, name, runtime, status) "
+                                    "VALUES (%s, %s, %s, %s)",
+                                    (team_id, label, runtime, status),
+                                )
+                    finally:
+                        connection.rollback()
+        finally:
+            connection.close()
+
     def test_postgres_rejects_invalid_metric_values_outside_the_api(self):
         registered = self.register("constraints@example.test", "constraints_user")
         created = self.client.post("/api/projects", headers=self.auth(registered["token"]), json={
