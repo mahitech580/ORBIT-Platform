@@ -43,6 +43,10 @@ CREATE TABLE IF NOT EXISTS deployments (
     completed_at TIMESTAMP
 );
 
+-- Required as the referenced key for instances' composite project/deployment FK.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_deployments_project_id_id
+    ON deployments(project_id, id);
+
 CREATE TABLE IF NOT EXISTS instances (
     id SERIAL PRIMARY KEY,
     deployment_id INTEGER NOT NULL REFERENCES deployments(id) ON DELETE CASCADE,
@@ -53,8 +57,27 @@ CREATE TABLE IF NOT EXISTS instances (
     ip_address VARCHAR(50),
     cpu_percent DECIMAL(5,2),
     memory_mb INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT instances_project_deployment_match
+        FOREIGN KEY (project_id, deployment_id)
+        REFERENCES deployments(project_id, id) ON DELETE CASCADE
 );
+
+
+-- Add the relationship check to databases that already had an instances table.
+DO $orbit_instance_match$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'instances_project_deployment_match'
+          AND conrelid = 'instances'::regclass
+    ) THEN
+        ALTER TABLE instances
+        ADD CONSTRAINT instances_project_deployment_match
+        FOREIGN KEY (project_id, deployment_id)
+        REFERENCES deployments(project_id, id) ON DELETE CASCADE NOT VALID;
+    END IF;
+END $orbit_instance_match$;
 
 CREATE TABLE IF NOT EXISTS metrics (
     id SERIAL PRIMARY KEY,

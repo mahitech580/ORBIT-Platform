@@ -192,6 +192,41 @@ class RealPostgresWorkflowTests(unittest.TestCase):
         finally:
             connection.close()
 
+    def test_database_rejects_instance_linked_to_another_projects_deployment(self):
+        user = self.register("instance-link@example.test", "instance_link_user")
+        headers = self.auth(user["token"])
+        first_project = self.client.post("/api/projects", headers=headers, json={
+            "name": "First project", "runtime": "python"
+        })
+        second_project = self.client.post("/api/projects", headers=headers, json={
+            "name": "Second project", "runtime": "python"
+        })
+        self.assertEqual(first_project.status_code, 201, first_project.get_json())
+        self.assertEqual(second_project.status_code, 201, second_project.get_json())
+        first_id = first_project.get_json()["project"]["id"]
+        second_id = second_project.get_json()["project"]["id"]
+
+        deployment = self.client.post(
+            f"/api/projects/{first_id}/deploy",
+            headers=headers,
+            json={"version": "1.0.0", "branch": "main"},
+        )
+        self.assertEqual(deployment.status_code, 201, deployment.get_json())
+        deployment_id = deployment.get_json()["deployment"]["id"]
+
+        connection = orbit.get_db()
+        try:
+            with connection.cursor() as cursor:
+                with self.assertRaises(orbit.psycopg2.errors.ForeignKeyViolation):
+                    cursor.execute(
+                        "INSERT INTO instances (deployment_id, project_id, name, instance_type) "
+                        "VALUES (%s, %s, %s, %s)",
+                        (deployment_id, second_id, "cross-project-worker", "test-small"),
+                    )
+            connection.rollback()
+        finally:
+            connection.close()
+
     def test_a_different_user_cannot_read_or_write_another_users_project_metrics(self):
         owner = self.register("owner@example.test", "integration_owner")
         stranger = self.register("stranger@example.test", "integration_stranger")
