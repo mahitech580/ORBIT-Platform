@@ -4,6 +4,27 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 import app as orbit
+from werkzeug.exceptions import BadRequest
+
+
+
+class PositiveIntegerValidationTests(unittest.TestCase):
+    def test_accepts_integer_ids_and_numeric_strings(self):
+        self.assertEqual(orbit.positive_int(7, "Project ID"), 7)
+        self.assertEqual(orbit.positive_int(" 007 ", "Project ID"), 7)
+
+    def test_rejects_booleans_floats_and_non_decimal_strings(self):
+        invalid_values = (True, False, 1.0, 1.5, Decimal("2.5"), "1.0", "1e2", "", None)
+        for value in invalid_values:
+            with self.subTest(value=repr(value)):
+                with self.assertRaises(BadRequest):
+                    orbit.positive_int(value, "Project ID")
+
+    def test_rejects_non_positive_and_out_of_range_ids(self):
+        for value in (0, -1, "0", "-1", 2147483648, "2147483648"):
+            with self.subTest(value=value):
+                with self.assertRaises(BadRequest):
+                    orbit.positive_int(value, "Project ID")
 
 
 class PasswordContractTests(unittest.TestCase):

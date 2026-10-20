@@ -199,12 +199,24 @@ def read_password(data):
 
 
 def positive_int(value, label):
-    try:
-        number = int(value)
-    except (TypeError, ValueError):
-        abort(400, description=label + " must be a positive integer.")
-    if number < 1:
-        abort(400, description=label + " must be a positive integer.")
+    """Parse IDs without silently truncating non-integers or exceeding SERIAL range."""
+    message = label + " must be a positive integer."
+    if isinstance(value, bool):
+        abort(400, description=message)
+    if isinstance(value, int):
+        number = value
+    elif isinstance(value, str):
+        normalized = value.strip()
+        if not normalized or not normalized.isascii() or not normalized.isdecimal():
+            abort(400, description=message)
+        try:
+            number = int(normalized)
+        except (ValueError, OverflowError):
+            abort(400, description=message)
+    else:
+        abort(400, description=message)
+    if not 1 <= number <= 2147483647:
+        abort(400, description=message)
     return number
 
 
