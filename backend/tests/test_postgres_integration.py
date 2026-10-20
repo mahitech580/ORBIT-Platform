@@ -140,6 +140,42 @@ class RealPostgresWorkflowTests(unittest.TestCase):
         self.assertEqual(instances.status_code, 200, instances.get_json())
         self.assertEqual(instances.get_json()["instances"][0]["name"], "integration-instance")
 
+    def test_postgres_rejects_invalid_metric_values_outside_the_api(self):
+        registered = self.register("constraints@example.test", "constraints_user")
+        created = self.client.post("/api/projects", headers=self.auth(registered["token"]), json={
+            "name": "Constraint test project",
+            "runtime": "python"
+        })
+        self.assertEqual(created.status_code, 201, created.get_json())
+        project_id = created.get_json()["project"]["id"]
+
+        invalid_rows = [
+            ("cpu above 100", project_id, 101, 0, 0, 0, 0),
+            ("negative memory", project_id, 0, -1, 0, 0, 0),
+            ("negative requests", project_id, 0, 0, -1, 0, 0),
+            ("negative errors", project_id, 0, 0, 0, -1, 0),
+            ("negative response time", project_id, 0, 0, 0, 0, -1),
+            ("errors greater than requests", project_id, 0, 0, 2, 3, 0),
+        ]
+        connection = orbit.get_db()
+        try:
+            for label, project_id, cpu, memory, requests, errors, response_time in invalid_rows:
+                with self.subTest(label=label):
+                    try:
+                        with connection.cursor() as cursor:
+                            with self.assertRaises(orbit.psycopg2.errors.CheckViolation):
+                                cursor.execute(
+                                    "INSERT INTO metrics "
+                                    "(project_id, cpu_usage, memory_usage, requests_total, "
+                                    "errors_total, response_time_ms) "
+                                    "VALUES (%s, %s, %s, %s, %s, %s)",
+                                    (project_id, cpu, memory, requests, errors, response_time),
+                                )
+                    finally:
+                        connection.rollback()
+        finally:
+            connection.close()
+
     def test_a_different_user_cannot_read_or_write_another_users_project_metrics(self):
         owner = self.register("owner@example.test", "integration_owner")
         stranger = self.register("stranger@example.test", "integration_stranger")

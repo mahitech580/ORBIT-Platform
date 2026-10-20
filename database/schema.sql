@@ -64,8 +64,40 @@ CREATE TABLE IF NOT EXISTS metrics (
     requests_total INTEGER,
     errors_total INTEGER,
     response_time_ms DECIMAL(8,2),
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT metrics_measurements_valid CHECK (
+        (cpu_usage IS NULL OR cpu_usage BETWEEN 0 AND 100)
+        AND (memory_usage IS NULL OR memory_usage >= 0)
+        AND (requests_total IS NULL OR requests_total >= 0)
+        AND (errors_total IS NULL OR errors_total >= 0)
+        AND (response_time_ms IS NULL OR response_time_ms >= 0)
+        AND (requests_total IS NULL OR errors_total IS NULL OR errors_total <= requests_total)
+    )
 );
+
+
+-- Idempotent additive migration for installations created before the checks
+-- were introduced. NOT VALID avoids scanning legacy rows during deployment,
+-- while PostgreSQL still enforces the constraint on every new or changed row.
+DO $
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'metrics_measurements_valid'
+          AND conrelid = 'metrics'::regclass
+    ) THEN
+        ALTER TABLE metrics
+        ADD CONSTRAINT metrics_measurements_valid
+        CHECK (
+            (cpu_usage IS NULL OR cpu_usage BETWEEN 0 AND 100)
+            AND (memory_usage IS NULL OR memory_usage >= 0)
+            AND (requests_total IS NULL OR requests_total >= 0)
+            AND (errors_total IS NULL OR errors_total >= 0)
+            AND (response_time_ms IS NULL OR response_time_ms >= 0)
+            AND (requests_total IS NULL OR errors_total IS NULL OR errors_total <= requests_total)
+        ) NOT VALID;
+    END IF;
+END $;
 
 CREATE TABLE IF NOT EXISTS logs (
     id SERIAL PRIMARY KEY,
