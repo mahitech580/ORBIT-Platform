@@ -190,10 +190,11 @@ class RealPostgresWorkflowTests(unittest.TestCase):
 
     def test_postgres_rejects_project_runtime_and_status_outside_api_domains(self):
         user = self.register("project-domain@example.test", "project_domain_user")
+        user_id = user["user"]["id"]
         connection = orbit.get_db()
         try:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT id FROM teams WHERE owner_id = %s ORDER BY id LIMIT 1", (user["id"],))
+                cursor.execute("SELECT id FROM teams WHERE owner_id = %s ORDER BY id LIMIT 1", (user_id,))
                 team_row = cursor.fetchone()
             self.assertIsNotNone(team_row)
             team_id = team_row[0]
