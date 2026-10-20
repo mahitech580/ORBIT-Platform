@@ -159,10 +159,22 @@ class MetricsIngestionContractTests(unittest.TestCase):
         self.assertTrue(returning)
         self.assertEqual(params[:6], (12, 28.5, 768, 1200, 4, 125.5))
 
+    def test_accepts_postgres_integer_maximum_without_float_rounding(self):
+        maximum = 2147483647
+        response = self.post_metric({
+            "memory_usage": maximum,
+            "requests_total": maximum,
+            "errors_total": maximum,
+        })
+        self.assertEqual(response.status_code, 201, response.get_json())
+        self.assertEqual(self.calls[0][1][2:5], (maximum, maximum, maximum))
+
     def test_rejects_invalid_measurements_without_writing(self):
         invalid_payloads = [
             {"cpu_usage": 101}, {"cpu_usage": -1}, {"cpu_usage": float("nan")},
             {"memory_usage": 1.2}, {"requests_total": -1},
+            {"memory_usage": 2147483648}, {"requests_total": 2147483648},
+            {"errors_total": 2147483648}, {"memory_usage": 10**400},
             {"requests_total": 1, "errors_total": 2}, {},
             {"cpu_usage": 12, "timestamp": "not-a-timestamp"}
         ]

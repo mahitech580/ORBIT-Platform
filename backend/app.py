@@ -198,6 +198,9 @@ def read_password(data):
     return password
 
 
+POSTGRES_INTEGER_MAX = 2147483647
+
+
 def positive_int(value, label):
     """Parse IDs without silently truncating non-integers or exceeding SERIAL range."""
     message = label + " must be a positive integer."
@@ -215,7 +218,7 @@ def positive_int(value, label):
             abort(400, description=message)
     else:
         abort(400, description=message)
-    if not 1 <= number <= 2147483647:
+    if not 1 <= number <= POSTGRES_INTEGER_MAX:
         abort(400, description=message)
     return number
 
@@ -577,21 +580,34 @@ def get_metrics(project_id):
     return jsonify({"metrics": metrics, "summary": summary})
 
 def read_metric_value(data, field, *, integer=False, minimum=0, maximum=None):
-    """Validate finite numeric telemetry before a database write."""
+    """Validate finite telemetry while preserving exact integer inputs."""
     value = data.get(field)
+    label = field.replace("_", " ").capitalize()
     if value is None:
         return None
     if isinstance(value, bool) or not isinstance(value, (int, float)):
-        abort(400, description=field.replace("_", " ").capitalize() + " must be a number.")
-    number = float(value)
-    if not math.isfinite(number):
-        abort(400, description=field.replace("_", " ").capitalize() + " must be finite.")
-    if integer and not number.is_integer():
-        abort(400, description=field.replace("_", " ").capitalize() + " must be a whole number.")
+        abort(400, description=label + " must be a number.")
+
+    # Avoid converting large Python integers to float: that conversion can
+    # overflow or round a valid integer before its database bounds are checked.
+    if integer and isinstance(value, int):
+        number = value
+    else:
+        try:
+            number = float(value)
+        except (OverflowError, ValueError):
+            abort(400, description=label + " must be finite.")
+        if not math.isfinite(number):
+            abort(400, description=label + " must be finite.")
+        if integer:
+            if not number.is_integer():
+                abort(400, description=label + " must be a whole number.")
+            number = int(number)
+
     if number < minimum or (maximum is not None and number > maximum):
         limit = str(minimum) + ((" to " + str(maximum)) if maximum is not None else " or greater")
-        abort(400, description=field.replace("_", " ").capitalize() + " must be " + limit + ".")
-    return int(number) if integer else number
+        abort(400, description=label + " must be " + limit + ".")
+    return number
 
 
 @app.route("/api/metrics/<int:project_id>", methods=["POST"])
@@ -603,9 +619,9 @@ def ingest_metrics(project_id):
 
     data = json_body()
     cpu_usage = read_metric_value(data, "cpu_usage", maximum=100)
-    memory_usage = read_metric_value(data, "memory_usage", integer=True)
-    requests_total = read_metric_value(data, "requests_total", integer=True)
-    errors_total = read_metric_value(data, "errors_total", integer=True)
+    memory_usage = read_metric_value(data, "memory_usage", integer=True, maximum=POSTGRES_INTEGER_MAX)
+    requests_total = read_metric_value(data, "requests_total", integer=True, maximum=POSTGRES_INTEGER_MAX)
+    errors_total = read_metric_value(data, "errors_total", integer=True, maximum=POSTGRES_INTEGER_MAX)
     response_time_ms = read_metric_value(data, "response_time_ms", maximum=999999.99)
     if all(value is None for value in (cpu_usage, memory_usage, requests_total, errors_total, response_time_ms)):
         abort(400, description="Provide at least one telemetry measurement.")
