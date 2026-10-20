@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS metrics (
 -- Idempotent additive migration for installations created before the checks
 -- were introduced. NOT VALID avoids scanning legacy rows during deployment,
 -- while PostgreSQL still enforces the constraint on every new or changed row.
-DO $
+DO $orbit_migration$
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM pg_constraint
@@ -97,7 +97,7 @@ BEGIN
             AND (requests_total IS NULL OR errors_total IS NULL OR errors_total <= requests_total)
         ) NOT VALID;
     END IF;
-END $;
+END $orbit_migration$;
 
 CREATE TABLE IF NOT EXISTS logs (
     id SERIAL PRIMARY KEY,
