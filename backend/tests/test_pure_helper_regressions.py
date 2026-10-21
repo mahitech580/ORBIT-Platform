@@ -192,3 +192,6 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
         response = orbit.add_browser_security_headers(orbit.app.response_class("ok"))
         self.assertIn("camera=()", response.headers["Permissions-Policy"])
         self.assertEqual(response.headers["Referrer-Policy"], "no-referrer")
+
+    def test_nonproduction_database_validation_allows_local_defaults(self):
+        self.assertIsNone(orbit.validate_database_configuration(False, "", {}))
