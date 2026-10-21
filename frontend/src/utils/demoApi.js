@@ -512,10 +512,9 @@ export function createDemoApi() {
       if (route === '/instances') {
         const project = ownedProject(state, payload.project_id);
         if (!project) fail('Project not found.', 404);
-        const name = String(payload.name || '').trim();
-        const instanceType = String(payload.instance_type || 't3.medium').trim();
-        if (!name) fail('Instance name is required.');
-        if (name.length > 120 || instanceType.length > 80) fail('Instance fields exceed their maximum length.');
+        const name = readDemoString(payload, 'name', { required: true, maxLength: 120 });
+        const instanceTypeValue = payload.instance_type == null ? 't3.medium' : payload.instance_type;
+        const instanceType = readDemoString({ instance_type: instanceTypeValue }, 'instance_type', { maxLength: 80 });
         const allDeployments = visibleDeployments(state);
         const deployment = allDeployments.find(item =>
           Number(item.id) === Number(payload.deployment_id) &&
