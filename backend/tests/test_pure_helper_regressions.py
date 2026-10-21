@@ -79,3 +79,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
 
     def test_positive_int_accepts_trimmed_ascii_integer_string(self):
         self.assertEqual(self.run_in_request(orbit.positive_int, " 42 ", "ID"), 42)
+
+    def test_positive_int_rejects_boolean_true(self):
+        with self.assertRaises(BadRequest):
+            self.run_in_request(orbit.positive_int, True, "ID")
