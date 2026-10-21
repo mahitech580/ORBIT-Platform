@@ -30,3 +30,13 @@ test('redacts bearer values in authorization assignments and passphrase fields',
   assert.equal(exported.includes('words that must not escape'), false);
   assert.equal(exported.includes('field-secret'), false);
 });
+
+
+test('redacts Basic authorization assignments without keeping encoded credentials', () => {
+  const encoded = 'dXNlcjpwYXNzd29yZC0xMjM0NTY=';
+  const backup = buildWorkspaceExport({
+    projects: [{ id: 1, name: 'Legacy connector', description: 'AUTHORIZATION: Basic ' + encoded }]
+  }, 'fixed-time');
+  assert.equal(JSON.stringify(backup).includes(encoded), false);
+  assert.match(backup.records.projects[0].description, /REDACTED: credential assignment/);
+});
