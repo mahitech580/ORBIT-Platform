@@ -445,10 +445,12 @@ export function createDemoApi() {
       }
 
       if (route === '/auth/register') {
-        const email = String(payload.email || '').trim().toLowerCase();
-        const username = String(payload.username || '').trim();
-        const password = String(payload.password || '');
-        const firstName = String(payload.first_name || '').trim();
+        const email = readDemoString(payload, 'email', { required: true, maxLength: 255 }).toLowerCase();
+        const username = readDemoString(payload, 'username', { required: true, maxLength: 50 });
+        const password = payload.password;
+        if (typeof password !== 'string' || !password.trim()) fail('Password is required.');
+        if (password.length > 1024) fail('Password must be at most 1024 characters.');
+        const firstName = readDemoString(payload, 'first_name', { maxLength: 100 });
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fail('Enter a valid email address.');
         if (email === DEMO_EMAIL) fail('This email address is reserved for the built-in demo account.');
         if (!/^[A-Za-z0-9_.-]{3,50}$/.test(username)) fail('Username must be 3–50 valid characters.');
