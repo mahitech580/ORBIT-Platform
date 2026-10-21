@@ -187,3 +187,8 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
         response = orbit.add_browser_security_headers(orbit.app.response_class("ok"))
         self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
         self.assertEqual(response.headers["X-Frame-Options"], "DENY")
+
+    def test_security_headers_restrict_sensitive_browser_capabilities(self):
+        response = orbit.add_browser_security_headers(orbit.app.response_class("ok"))
+        self.assertIn("camera=()", response.headers["Permissions-Policy"])
+        self.assertEqual(response.headers["Referrer-Policy"], "no-referrer")
