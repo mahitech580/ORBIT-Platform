@@ -285,3 +285,9 @@ test('accepts a supported runtime regardless of letter case', async () => {
   const snapshot = buildWorkspaceExport({ projects: [{ id: 1, name: 'Atlas', runtime: 'PYTHON', status: 'active' }] }, 't');
   assert.equal(validateWorkspaceBackup(snapshot).valid, true);
 });
+
+test('rejects unsupported project runtimes', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ projects: [{ id: 1, name: 'Atlas', runtime: 'fortran' }] }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('unsupported runtime')));
+});
