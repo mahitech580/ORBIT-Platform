@@ -40,3 +40,26 @@ test('repairs malformed optional collections and next-ID counters in saved brows
   const state = JSON.parse(storage.getItem(demoStorageKey));
   assert.ok(state.nextProjectId > created.data.project.id);
 });
+
+
+test('keeps demo workflows usable when browser storage throws on every access', async () => {
+  globalThis.localStorage = {
+    getItem() { throw new Error('Storage is blocked'); },
+    setItem() { throw new Error('Storage quota is unavailable'); },
+    removeItem() { throw new Error('Storage is blocked'); }
+  };
+
+  const api = createDemoApi();
+  const before = await api.get('/projects');
+  assert.ok(before.data.projects.length >= 1);
+
+  const created = await api.post('/projects', {
+    name: 'Private-window project',
+    description: 'Saved in memory for this tab only',
+    runtime: 'python'
+  });
+  assert.equal(created.status, 201);
+
+  const after = await api.get('/projects');
+  assert.ok(after.data.projects.some(project => project.name === 'Private-window project'));
+});
