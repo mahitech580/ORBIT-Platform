@@ -222,3 +222,16 @@ test('registration rejects passwords shorter than eight characters', async () =>
     password: 'short'
   }), error => error.response.status === 400);
 });
+
+test('registration treats existing usernames case-insensitively', async () => {
+  await api.post('/auth/register', {
+    email: 'original-member@example.com',
+    username: 'UniqueMember',
+    password: 'member-password-123'
+  });
+  await assert.rejects(() => api.post('/auth/register', {
+    email: 'other-member@example.com',
+    username: 'uniquemember',
+    password: 'member-password-456'
+  }), error => error.response.status === 409);
+});
