@@ -282,3 +282,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_parse_metric_timestamp_normalizes_z_suffix(self):
         parsed = self.run_in_request(orbit.parse_metric_timestamp, "2026-10-21T12:00:00Z")
         self.assertEqual(parsed, datetime(2026, 10, 21, 12, 0, 0))
+
+    def test_parse_metric_timestamp_converts_positive_timezone_offset_to_utc(self):
+        parsed = self.run_in_request(orbit.parse_metric_timestamp, "2026-10-21T17:30:00+05:30")
+        self.assertEqual(parsed, datetime(2026, 10, 21, 12, 0, 0))
