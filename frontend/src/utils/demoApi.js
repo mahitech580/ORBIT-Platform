@@ -490,10 +490,10 @@ export function createDemoApi() {
       if (deployMatch) {
         const project = ownedProject(state, deployMatch[1]);
         if (!project) fail('Project not found.', 404);
-        const version = String(payload.version || '1.0.0').trim();
-        const branch = String(payload.branch || 'main').trim();
-        if (!version || !branch) fail('Version and branch are required.');
-        if (version.length > 80 || branch.length > 200) fail('Deployment fields exceed their maximum length.');
+        const versionValue = payload.version == null ? '1.0.0' : payload.version;
+        const branchValue = payload.branch == null ? 'main' : payload.branch;
+        const version = readDemoString({ version: versionValue }, 'version', { required: true, maxLength: 80 });
+        const branch = readDemoString({ branch: branchValue }, 'branch', { required: true, maxLength: 200 });
         const id = nextId(state, 'nextDeploymentId', state.deployments);
         const deployment = {
           id, project_id: project.id, project_name: project.name, version, branch,
