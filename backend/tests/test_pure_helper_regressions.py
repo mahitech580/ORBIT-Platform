@@ -264,3 +264,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_integer_metric_rejects_value_above_postgres_bound(self):
         with self.assertRaises(BadRequest):
             self.run_in_request(orbit.read_metric_value, {"memory_usage": 2147483648}, "memory_usage", integer=True, maximum=orbit.POSTGRES_INTEGER_MAX)
+
+    def test_float_metric_rejects_integer_too_large_to_convert(self):
+        with self.assertRaises(BadRequest):
+            self.run_in_request(orbit.read_metric_value, {"cpu_usage": 10 ** 10000}, "cpu_usage", maximum=100)
