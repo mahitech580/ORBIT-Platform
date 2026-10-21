@@ -43,3 +43,10 @@ test('accepts the canonical uppercase request-ID header spelling', () => {
     'Rejected (Reference: ' + REQUEST_ID + ')'
   );
 });
+
+test('trims whitespace from server error messages', () => {
+  assert.equal(
+    getApiErrorMessage({ response: { data: { error: '  Invalid input  ' } } }),
+    'Invalid input'
+  );
+});
