@@ -36,3 +36,10 @@ test('uses a fallback for an empty API error message', () => {
 test('handles absent response objects without throwing', () => {
   assert.equal(getApiErrorMessage(new Error('offline'), 'Try again'), 'Try again');
 });
+
+test('accepts the canonical uppercase request-ID header spelling', () => {
+  assert.equal(
+    getApiErrorMessage({ response: { data: { error: 'Rejected' }, headers: { 'X-Request-ID': REQUEST_ID } } }),
+    'Rejected (Reference: ' + REQUEST_ID + ')'
+  );
+});
