@@ -73,3 +73,10 @@ test('time-window filter includes a Unix-seconds measurement', () => {
     { id: 2, timestamp: Math.floor(NOW / 1000) - 90000 }
   ], '24h', NOW).map(item => item.id), [1]);
 });
+
+
+test('invalid range clock values produce no telemetry matches', () => {
+  const metrics = [{ id: 1, timestamp: '2026-10-14T11:00:00.000Z' }];
+  assert.deepEqual(filterMetricsByRange(metrics, '24h', Number.NaN), []);
+  assert.deepEqual(filterMetricsByRange(metrics, '24h', Number.POSITIVE_INFINITY), []);
+});
