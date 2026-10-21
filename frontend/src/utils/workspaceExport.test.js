@@ -253,3 +253,11 @@ test('rejects a count summary missing a collection key', async () => {
   assert.equal(result.valid, false);
   assert.ok(result.errors.some(error => error.includes('count summary is incomplete')));
 });
+
+test('rejects whitespace-only project names in imported backups', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ projects: [{ id: 1, name: '   ', runtime: 'node', status: 'active' }] }, 't');
+  const result = validateWorkspaceBackup(snapshot);
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(error => error.includes('invalid name')));
+});
