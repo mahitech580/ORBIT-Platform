@@ -91,6 +91,10 @@ function writeStateStorage(state) {
   }
 }
 
+function isRecord(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
 function readState() {
   try {
     const raw = readStateStorage();
@@ -107,11 +111,21 @@ function readState() {
 
     // Old or partially edited browser snapshots can contain malformed optional
     // collections. Normalize them before any route calls array/object methods.
+    state.projects = state.projects.filter(isRecord);
+    state.deployments = state.deployments.filter(isRecord);
     if (!Array.isArray(state.accounts)) state.accounts = [];
+    else state.accounts = state.accounts.filter(isRecord);
     if (!Array.isArray(state.teams)) state.teams = [];
+    else state.teams = state.teams.filter(isRecord);
     if (!Array.isArray(state.instances)) state.instances = [];
+    else state.instances = state.instances.filter(isRecord);
     if (!state.metrics || typeof state.metrics !== 'object' || Array.isArray(state.metrics)) {
       state.metrics = {};
+    } else {
+      state.metrics = Object.fromEntries(Object.entries(state.metrics).map(([projectId, rows]) => [
+        projectId,
+        Array.isArray(rows) ? rows.filter(isRecord) : []
+      ]));
     }
 
     const nextIdAbove = (candidate, records) => {
