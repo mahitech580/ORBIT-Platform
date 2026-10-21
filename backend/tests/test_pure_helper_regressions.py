@@ -53,3 +53,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_read_string_preserves_internal_whitespace(self):
         value = self.run_in_request(orbit.read_string, {"name": "Orbit   Platform"}, "name")
         self.assertEqual(value, "Orbit   Platform")
+
+    def test_read_password_rejects_missing_value(self):
+        with self.assertRaises(BadRequest):
+            self.run_in_request(orbit.read_password, {})
