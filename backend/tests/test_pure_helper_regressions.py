@@ -290,3 +290,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_parse_metric_timestamp_converts_negative_timezone_offset_to_utc(self):
         parsed = self.run_in_request(orbit.parse_metric_timestamp, "2026-10-21T07:00:00-05:00")
         self.assertEqual(parsed, datetime(2026, 10, 21, 12, 0, 0))
+
+    def test_parse_metric_timestamp_rejects_invalid_text(self):
+        with self.assertRaises(BadRequest):
+            self.run_in_request(orbit.parse_metric_timestamp, "not-a-timestamp")
