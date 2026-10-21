@@ -152,3 +152,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_modern_password_hash_rejects_wrong_password(self):
         hashed = orbit.hash_password("strong-password-123")
         self.assertFalse(orbit.verify_password("wrong-password-123", hashed))
+
+    def test_legacy_sha256_password_hash_is_still_verifiable(self):
+        digest = hashlib.sha256(b"legacy-password").hexdigest()
+        self.assertTrue(orbit.verify_password("legacy-password", digest))
