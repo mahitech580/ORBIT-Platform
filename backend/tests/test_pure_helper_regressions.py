@@ -76,3 +76,6 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
 
     def test_positive_int_accepts_smallest_positive_integer(self):
         self.assertEqual(self.run_in_request(orbit.positive_int, 1, "ID"), 1)
+
+    def test_positive_int_accepts_trimmed_ascii_integer_string(self):
+        self.assertEqual(self.run_in_request(orbit.positive_int, " 42 ", "ID"), 42)
