@@ -273,3 +273,9 @@ test('rejects a non-string project description', async () => {
   const snapshot = buildWorkspaceExport({ projects: [{ id: 1, name: 'Atlas', description: 99 }] }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid description')));
 });
+
+test('rejects project descriptions over the documented limit', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ projects: [{ id: 1, name: 'Atlas', description: 'x'.repeat(2001) }] }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid description')));
+});
