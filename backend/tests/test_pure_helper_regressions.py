@@ -274,3 +274,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
         self.assertIsNone(orbit.json_safe(Decimal("NaN")))
         self.assertIsNone(orbit.json_safe(Decimal("Infinity")))
         self.assertIsNone(orbit.json_safe(Decimal("-Infinity")))
+
+    def test_parse_metric_timestamp_treats_naive_input_as_utc(self):
+        parsed = self.run_in_request(orbit.parse_metric_timestamp, "2026-10-21T12:00:00")
+        self.assertEqual(parsed, datetime(2026, 10, 21, 12, 0, 0))
