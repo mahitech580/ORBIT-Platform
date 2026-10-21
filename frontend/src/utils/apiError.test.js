@@ -50,3 +50,10 @@ test('trims whitespace from server error messages', () => {
     'Invalid input'
   );
 });
+
+test('uses fallback text for non-string server error payloads', () => {
+  assert.equal(
+    getApiErrorMessage({ response: { data: { error: { message: 'internal' } } } }, 'Request failed'),
+    'Request failed'
+  );
+});
