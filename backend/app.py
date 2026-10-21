@@ -227,7 +227,7 @@ def read_string(data, key, default="", required=False, max_length=255):
 
 def read_password(data):
     password = data.get("password")
-    if not isinstance(password, str) or not password:
+    if not isinstance(password, str) or not password.strip():
         abort(400, description="Password is required.")
     if len(password) > 1024:
         abort(400, description="Password must be at most 1024 characters.")
