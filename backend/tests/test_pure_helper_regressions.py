@@ -156,3 +156,6 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_legacy_sha256_password_hash_is_still_verifiable(self):
         digest = hashlib.sha256(b"legacy-password").hexdigest()
         self.assertTrue(orbit.verify_password("legacy-password", digest))
+
+    def test_password_verification_rejects_unknown_hash_scheme(self):
+        self.assertFalse(orbit.verify_password("anything", "unknown$scheme$hash"))
