@@ -13,7 +13,7 @@ const SENSITIVE_TEXT_PATTERNS = [
   [/xox[baprs]-[A-Za-z0-9-]{20,}/g, '[REDACTED: Slack token]'],
   [/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g, '[REDACTED: JWT]'],
   [/sk-[A-Za-z0-9_-]{20,}/g, '[REDACTED: provider key]']
-];;
+];
 
 function redactSensitiveText(value) {
   if (typeof value === 'string') {
@@ -100,9 +100,6 @@ export function validateWorkspaceBackup(snapshot) {
       continue;
     }
     counts[name] = collection.length;
-    if (collection.some(item => !item || typeof item !== 'object' || Array.isArray(item))) {
-      errors.push('The "' + name + '" collection may contain only record objects.');
-    }
     if (snapshot.counts && snapshot.counts[name] !== collection.length) {
       errors.push('The "' + name + '" count does not match the backup records.');
     }
@@ -118,6 +115,14 @@ export function validateWorkspaceBackup(snapshot) {
   if (totalRecords > MAX_BACKUP_RECORDS) {
     errors.push('The backup exceeds the maximum of ' + MAX_BACKUP_RECORDS + ' records.');
     return { valid: false, errors, counts };
+  }
+
+  // Enforce the size limit before scanning individual objects in a potentially huge import.
+  for (const name of collectionNames) {
+    const collection = snapshot.records[name];
+    if (Array.isArray(collection) && collection.some(item => !item || typeof item !== 'object' || Array.isArray(item))) {
+      errors.push('The "' + name + '" collection may contain only record objects.');
+    }
   }
 
   const projects = Array.isArray(snapshot.records.projects) ? snapshot.records.projects : [];
