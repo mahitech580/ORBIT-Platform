@@ -198,3 +198,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
 
     def test_production_database_validation_accepts_connection_url(self):
         self.assertIsNone(orbit.validate_database_configuration(True, "postgresql://db.example/orbit", {}))
+
+    def test_production_database_validation_rejects_missing_configuration(self):
+        with self.assertRaises(RuntimeError):
+            orbit.validate_database_configuration(True, "", {})
