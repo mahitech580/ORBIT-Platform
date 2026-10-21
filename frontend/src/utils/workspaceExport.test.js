@@ -225,3 +225,9 @@ test('rejects a backup without its records member', async () => {
   assert.equal(result.valid, false);
   assert.ok(result.errors.some(error => error.includes('records object')));
 });
+
+test('rejects an array used as the records container', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const base = buildWorkspaceExport({}, 't');
+  assert.equal(validateWorkspaceBackup({ ...base, records: [] }).valid, false);
+});
