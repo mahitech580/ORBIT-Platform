@@ -46,7 +46,13 @@ export default function Metrics({ projects, api, refreshSeconds = 30 }) {
     }
   }, [api, selectedProject]);
 
-  useEffect(() => { fetchMetrics(); }, [fetchMetrics]);
+  useEffect(() => {
+    fetchMetrics();
+    return () => {
+      // Ignore requests that complete after a project switch or this page unmounts.
+      requestSequence.current += 1;
+    };
+  }, [fetchMetrics]);
 
   useEffect(() => {
     if (!selectedProject) return undefined;
