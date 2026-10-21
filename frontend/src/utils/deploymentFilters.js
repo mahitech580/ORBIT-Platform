@@ -10,7 +10,7 @@ export function filterDeployments(deployments, {
 } = {}) {
   const records = Array.isArray(deployments) ? deployments : [];
   const projectRecords = Array.isArray(projects) ? projects : [];
-  const needle = String(query ?? '').trim().toLocaleLowerCase();
+  const needle = String(query ?? '').trim().toLowerCase();
 
   return records.filter(deployment => {
     if (!deployment || typeof deployment !== 'object' || Array.isArray(deployment)) return false;
@@ -33,7 +33,7 @@ export function filterDeployments(deployments, {
       deployment.version,
       deployment.branch,
       deployment.status
-    ].map(value => String(value ?? '')).join(' ').toLocaleLowerCase();
+    ].map(value => String(value ?? '')).join(' ').toLowerCase();
 
     return searchable.includes(needle);
   });
