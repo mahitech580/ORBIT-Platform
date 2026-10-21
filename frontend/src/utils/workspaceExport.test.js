@@ -245,3 +245,11 @@ test('rejects a missing count summary', async () => {
   const base = buildWorkspaceExport({}, 't');
   assert.equal(validateWorkspaceBackup({ ...base, counts: undefined }).valid, false);
 });
+
+test('rejects a count summary missing a collection key', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const base = buildWorkspaceExport({}, 't');
+  const result = validateWorkspaceBackup({ ...base, counts: { projects: 0 } });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(error => error.includes('count summary is incomplete')));
+});
