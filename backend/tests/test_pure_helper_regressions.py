@@ -49,3 +49,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_read_string_rejects_value_over_maximum_length(self):
         with self.assertRaises(BadRequest):
             self.run_in_request(orbit.read_string, {"name": "abcde"}, "name", max_length=4)
+
+    def test_read_string_preserves_internal_whitespace(self):
+        value = self.run_in_request(orbit.read_string, {"name": "Orbit   Platform"}, "name")
+        self.assertEqual(value, "Orbit   Platform")
