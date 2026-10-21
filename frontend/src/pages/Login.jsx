@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getApiErrorMessage } from '../utils/apiError.js';
 
 export default function Login({ onLogin, api }) {
   const [mode, setMode] = useState('login');
@@ -25,7 +26,7 @@ export default function Login({ onLogin, api }) {
       const response = await api.post(isRegister ? '/auth/register' : '/auth/login', payload);
       onLogin(response.data.token, response.data.user);
     } catch (requestError) {
-      setError(requestError.response?.data?.error || (isRegister
+      setError(getApiErrorMessage(requestError, isRegister
         ? 'Registration failed. Check the API connection and try again.'
         : 'Sign-in failed. Check your credentials and API connection.'));
     } finally {
