@@ -47,12 +47,47 @@ function initialState() {
   };
 }
 
+// Keep browser-demo records usable in private windows or when storage quota is
+// exhausted. This fallback is intentionally in-memory and does not imply durable saves.
+let volatileStateRaw = null;
+
+function getStateStorage() {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    return localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function readStateStorage() {
+  const storage = getStateStorage();
+  if (!storage) return volatileStateRaw;
+  try {
+    return storage.getItem(STORAGE_KEY);
+  } catch {
+    return volatileStateRaw;
+  }
+}
+
+function writeStateStorage(state) {
+  const serialized = JSON.stringify(state);
+  volatileStateRaw = serialized;
+  const storage = getStateStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(STORAGE_KEY, serialized);
+  } catch {
+    // The current tab can continue working with the in-memory copy.
+  }
+}
+
 function readState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = readStateStorage();
     if (!raw) {
       const state = initialState();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      writeStateStorage(state);
       return state;
     }
     const state = JSON.parse(raw);
@@ -85,13 +120,13 @@ function readState() {
     return state;
   } catch {
     const state = initialState();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    writeStateStorage(state);
     return state;
   }
 }
 
 function writeState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  writeStateStorage(state);
 }
 
 function response(data, status = 200) {
