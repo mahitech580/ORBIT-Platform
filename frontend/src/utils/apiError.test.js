@@ -64,3 +64,10 @@ test('ignores request references containing line breaks', () => {
     'Failure'
   );
 });
+
+test('keeps normal API messages unchanged when no request ID exists', () => {
+  assert.equal(
+    getApiErrorMessage({ response: { data: { error: 'Project not found.' }, headers: {} } }),
+    'Project not found.'
+  );
+});
