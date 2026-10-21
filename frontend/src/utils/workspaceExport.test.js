@@ -309,3 +309,9 @@ test('rejects whitespace-only team names', async () => {
   const snapshot = buildWorkspaceExport({ teams: [{ id: 1, name: '   ' }] }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('Team record 1 has an invalid name')));
 });
+
+test('rejects team names longer than the documented limit', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ teams: [{ id: 1, name: 'T'.repeat(121) }] }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('Team record 1 has an invalid name')));
+});
