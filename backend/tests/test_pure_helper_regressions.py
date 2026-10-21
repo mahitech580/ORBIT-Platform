@@ -22,3 +22,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_read_string_trims_outer_whitespace(self):
         value = self.run_in_request(orbit.read_string, {"name": "  Atlas  "}, "name", required=True)
         self.assertEqual(value, "Atlas")
+
+    def test_read_string_uses_default_for_missing_key(self):
+        value = self.run_in_request(orbit.read_string, {}, "description", default="notes")
+        self.assertEqual(value, "notes")
