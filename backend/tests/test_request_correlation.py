@@ -29,3 +29,9 @@ class RequestCorrelationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response.headers.get("X-Request-ID"), "caller-controlled")
         self.assertRegex(response.headers.get("X-Request-ID", ""), r"^[0-9a-f]{32}$")
+
+
+    def test_api_responses_are_not_cached_by_browsers_or_shared_proxies(self):
+        response = self.client.get("/api/meta")
+        self.assertEqual(response.headers.get("Cache-Control"), "no-store")
+        self.assertEqual(response.headers.get("Pragma"), "no-cache")
