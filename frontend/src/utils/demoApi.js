@@ -148,9 +148,13 @@ function currentUserId() {
 }
 
 function activeUserId() {
-  const token = localStorage.getItem('token') || '';
-  const prefix = 'orbit-pages-demo-';
-  if (token.startsWith(prefix)) return Number(token.slice(prefix.length).split('-')[0]) || 1;
+  try {
+    const token = localStorage.getItem('token') || '';
+    const prefix = 'orbit-pages-demo-';
+    if (token.startsWith(prefix)) return Number(token.slice(prefix.length).split('-')[0]) || 1;
+  } catch {
+    // Storage may be blocked; use the current demo-user fallback.
+  }
   return currentUserId();
 }
 
