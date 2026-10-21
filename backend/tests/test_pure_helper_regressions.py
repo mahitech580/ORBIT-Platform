@@ -215,3 +215,8 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
         with orbit.app.test_request_context("/", method="POST", json=["not", "an", "object"]):
             with self.assertRaises(BadRequest):
                 orbit.json_body()
+
+    def test_json_body_rejects_malformed_json(self):
+        with orbit.app.test_request_context("/", method="POST", data="{", content_type="application/json"):
+            with self.assertRaises(BadRequest):
+                orbit.json_body()
