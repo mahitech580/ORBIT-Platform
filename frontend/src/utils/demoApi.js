@@ -469,11 +469,10 @@ export function createDemoApi() {
       }
 
       if (route === '/projects') {
-        const name = String(payload.name || '').trim();
-        const description = String(payload.description || '').trim();
-        const runtime = String(payload.runtime || 'node').toLowerCase();
-        if (!name) fail('Project name is required.');
-        if (name.length > 120 || description.length > 2000) fail('Project fields exceed their maximum length.');
+        const name = readDemoString(payload, 'name', { required: true, maxLength: 120 });
+        const description = readDemoString(payload, 'description', { maxLength: 2000 });
+        const runtimeValue = payload.runtime == null ? 'node' : payload.runtime;
+        const runtime = readDemoString({ runtime: runtimeValue }, 'runtime', { required: true, maxLength: 30 }).toLowerCase();
         if (!['node', 'python', 'java', 'go'].includes(runtime)) fail('Unsupported runtime.');
         const team = state.teams.find(item => Number(item.owner_id) === currentUserId());
         const projectId = nextId(state, 'nextProjectId', state.projects);
