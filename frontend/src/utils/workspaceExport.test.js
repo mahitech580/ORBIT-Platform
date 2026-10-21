@@ -261,3 +261,9 @@ test('rejects whitespace-only project names in imported backups', async () => {
   assert.equal(result.valid, false);
   assert.ok(result.errors.some(error => error.includes('invalid name')));
 });
+
+test('rejects project names longer than the API contract', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ projects: [{ id: 1, name: 'P'.repeat(121) }] }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid name')));
+});
