@@ -291,3 +291,9 @@ test('rejects unsupported project runtimes', async () => {
   const snapshot = buildWorkspaceExport({ projects: [{ id: 1, name: 'Atlas', runtime: 'fortran' }] }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('unsupported runtime')));
 });
+
+test('rejects unsupported project status values', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ projects: [{ id: 1, name: 'Atlas', status: 'deleted' }] }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('unsupported status')));
+});
