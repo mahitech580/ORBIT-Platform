@@ -242,3 +242,8 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_read_metric_value_rejects_infinity(self):
         with self.assertRaises(BadRequest):
             self.run_in_request(orbit.read_metric_value, {"cpu_usage": float("inf")}, "cpu_usage", maximum=100)
+
+    def test_integer_metric_preserves_exact_integer_input(self):
+        value = self.run_in_request(orbit.read_metric_value, {"requests_total": 2147483647}, "requests_total", integer=True, maximum=orbit.POSTGRES_INTEGER_MAX)
+        self.assertIsInstance(value, int)
+        self.assertEqual(value, 2147483647)
