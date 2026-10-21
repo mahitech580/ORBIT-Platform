@@ -125,3 +125,6 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
 
     def test_json_safe_converts_decimal_to_json_number(self):
         self.assertEqual(orbit.json_safe(Decimal("12.50")), 12.5)
+
+    def test_json_safe_converts_date_to_iso_format(self):
+        self.assertEqual(orbit.json_safe(date(2026, 10, 21)), "2026-10-21")
