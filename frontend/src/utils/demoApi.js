@@ -56,11 +56,32 @@ function readState() {
       return state;
     }
     const state = JSON.parse(raw);
-    if (!state || !Array.isArray(state.projects) || !Array.isArray(state.deployments)) throw new Error('Invalid demo data');
-    state.accounts ||= [];
-    state.teams ||= [];
-    state.metrics ||= {};
-    state.instances ||= [];
+    if (!state || typeof state !== 'object' || Array.isArray(state) ||
+        !Array.isArray(state.projects) || !Array.isArray(state.deployments)) {
+      throw new Error('Invalid demo data');
+    }
+
+    // Old or partially edited browser snapshots can contain malformed optional
+    // collections. Normalize them before any route calls array/object methods.
+    if (!Array.isArray(state.accounts)) state.accounts = [];
+    if (!Array.isArray(state.teams)) state.teams = [];
+    if (!Array.isArray(state.instances)) state.instances = [];
+    if (!state.metrics || typeof state.metrics !== 'object' || Array.isArray(state.metrics)) {
+      state.metrics = {};
+    }
+
+    const nextIdAbove = (candidate, records) => {
+      const highestId = records.reduce((highest, record) => {
+        const id = Number(record?.id);
+        return Number.isSafeInteger(id) && id > highest ? id : highest;
+      }, 0);
+      const minimum = highestId + 1;
+      return Number.isSafeInteger(candidate) && candidate >= minimum ? candidate : minimum;
+    };
+    state.nextProjectId = nextIdAbove(state.nextProjectId, state.projects);
+    state.nextDeploymentId = nextIdAbove(state.nextDeploymentId, state.deployments);
+    state.nextTeamId = nextIdAbove(state.nextTeamId, state.teams);
+    state.nextInstanceId = nextIdAbove(state.nextInstanceId, state.instances);
     return state;
   } catch {
     const state = initialState();
