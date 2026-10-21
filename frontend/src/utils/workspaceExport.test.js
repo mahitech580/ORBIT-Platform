@@ -207,3 +207,8 @@ test('accepts an instance with matching project and deployment references', asyn
   }, 't');
   assert.equal(validateWorkspaceBackup(snapshot).valid, true);
 });
+
+test('rejects an array as the entire backup document', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  assert.equal(validateWorkspaceBackup([]).valid, false);
+});
