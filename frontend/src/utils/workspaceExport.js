@@ -1,10 +1,10 @@
-const SENSITIVE_FIELD = /(?:password|secret|token|authorization|api[_-]?key|private[_-]?key|cookie|credential)/i;
+const SENSITIVE_FIELD = /(?:password|passphrase|secret|token|authorization|api[_-]?key|private[_-]?key|cookie|credential)/i;
 
 // Browser restore is intended for workspace snapshots, not unbounded bulk imports.
 const MAX_BACKUP_RECORDS = 10000;
 
 const SENSITIVE_TEXT_PATTERNS = [
-  [/\b[A-Z0-9_-]*(?:password|passwd|secret|token|authorization|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret)\b\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi, '[REDACTED: credential assignment'],
+  [/\b[A-Z0-9_-]*(?:password|passwd|passphrase|secret|token|authorization|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret)\b\s*[:=]\s*(?:Bearer\s+[^\s,;]+|Basic\s+[^\s,;]+|"[^"]*"|'[^']*'|[^\s,;]+)/gi, '[REDACTED: credential assignment'],
   [/-----BEGIN (?:RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----[\s\S]*?(?:-----END (?:RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----|$)/g, '[REDACTED: private-key block]'],
   [/Bearer\s+[A-Za-z0-9._~+\/-]{16,}={0,2}/gi, '[REDACTED: bearer token]'],
   [/(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{30,})/g, '[REDACTED: GitHub token]'],
