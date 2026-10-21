@@ -69,3 +69,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_read_password_accepts_exact_length_limit(self):
         value = "x" * 1024
         self.assertEqual(self.run_in_request(orbit.read_password, {"password": value}), value)
+
+    def test_read_password_rejects_over_length_limit(self):
+        with self.assertRaises(BadRequest):
+            self.run_in_request(orbit.read_password, {"password": "x" * 1025})
