@@ -57,3 +57,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_read_password_rejects_missing_value(self):
         with self.assertRaises(BadRequest):
             self.run_in_request(orbit.read_password, {})
+
+    def test_read_password_rejects_empty_value(self):
+        with self.assertRaises(BadRequest):
+            self.run_in_request(orbit.read_password, {"password": ""})
