@@ -167,3 +167,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_public_user_combines_first_and_last_name(self):
         user = {"id": 7, "email": "a@example.com", "username": "atlas", "first_name": "Ada ", "last_name": "Lovelace "}
         self.assertEqual(orbit.public_user(user)["name"], "Ada Lovelace")
+
+    def test_public_user_falls_back_to_username_when_names_are_blank(self):
+        user = {"id": 8, "email": "a@example.com", "username": "atlas", "first_name": " ", "last_name": ""}
+        self.assertEqual(orbit.public_user(user)["name"], "atlas")
