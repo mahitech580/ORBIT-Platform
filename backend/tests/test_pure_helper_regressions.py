@@ -87,3 +87,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_positive_int_rejects_boolean_false(self):
         with self.assertRaises(BadRequest):
             self.run_in_request(orbit.positive_int, False, "ID")
+
+    def test_positive_int_rejects_zero(self):
+        with self.assertRaises(BadRequest):
+            self.run_in_request(orbit.positive_int, 0, "ID")
