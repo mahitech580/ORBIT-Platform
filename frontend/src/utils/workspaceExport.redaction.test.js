@@ -13,3 +13,20 @@ test('redacts the complete value of quoted credential assignments', () => {
   assert.equal(exported.includes('another phrase stays private'), false);
   assert.equal((backup.records.projects[0].description.match(/REDACTED: credential assignment/g) || []).length, 2);
 });
+
+
+test('redacts bearer values in authorization assignments and passphrase fields', () => {
+  const bearer = 'Bearer ' + 'long-token-value-12345678901234567890';
+  const backup = buildWorkspaceExport({
+    projects: [{
+      id: 1,
+      name: 'Service connection',
+      description: 'AUTHORIZATION: ' + bearer + '; PASSPHRASE="words that must not escape"',
+      passphrase: 'field-secret'
+    }]
+  }, 'fixed-time');
+  const exported = JSON.stringify(backup);
+  assert.equal(exported.includes('long-token-value-12345678901234567890'), false);
+  assert.equal(exported.includes('words that must not escape'), false);
+  assert.equal(exported.includes('field-secret'), false);
+});
