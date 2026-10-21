@@ -111,14 +111,20 @@ function readState() {
 
     // Old or partially edited browser snapshots can contain malformed optional
     // collections. Normalize them before any route calls array/object methods.
-    state.projects = state.projects.filter(isRecord);
-    state.deployments = state.deployments.filter(isRecord);
+    const hasValidId = value => Number.isSafeInteger(Number(value)) && Number(value) > 0;
+    state.projects = state.projects.filter(item => isRecord(item) && hasValidId(item.id) && typeof item.name === 'string');
+    state.deployments = state.deployments.filter(item => isRecord(item) && hasValidId(item.id) && hasValidId(item.project_id));
     if (!Array.isArray(state.accounts)) state.accounts = [];
-    else state.accounts = state.accounts.filter(isRecord);
+    else state.accounts = state.accounts.filter(item => isRecord(item) &&
+      hasValidId(item.id) && typeof item.email === 'string' &&
+      typeof item.username === 'string' && typeof item.password_hash === 'string');
     if (!Array.isArray(state.teams)) state.teams = [];
-    else state.teams = state.teams.filter(isRecord);
+    else state.teams = state.teams.filter(item => isRecord(item) &&
+      hasValidId(item.id) && hasValidId(item.owner_id) && typeof item.name === 'string');
     if (!Array.isArray(state.instances)) state.instances = [];
-    else state.instances = state.instances.filter(isRecord);
+    else state.instances = state.instances.filter(item => isRecord(item) &&
+      hasValidId(item.id) && hasValidId(item.project_id) &&
+      hasValidId(item.deployment_id) && typeof item.name === 'string');
     if (!state.metrics || typeof state.metrics !== 'object' || Array.isArray(state.metrics)) {
       state.metrics = {};
     } else {
