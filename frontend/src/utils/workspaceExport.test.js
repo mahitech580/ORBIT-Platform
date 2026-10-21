@@ -217,3 +217,11 @@ test('rejects a numeric backup document', async () => {
   const { validateWorkspaceBackup } = await import('./workspaceExport.js');
   assert.equal(validateWorkspaceBackup(42).valid, false);
 });
+
+test('rejects a backup without its records member', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const base = buildWorkspaceExport({}, 't');
+  const result = validateWorkspaceBackup({ ...base, records: undefined });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(error => error.includes('records object')));
+});
