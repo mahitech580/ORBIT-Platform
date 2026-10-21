@@ -34,3 +34,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_read_string_rejects_integer_payload(self):
         with self.assertRaises(BadRequest):
             self.run_in_request(orbit.read_string, {"name": 123}, "name")
+
+    def test_read_string_rejects_boolean_payload(self):
+        with self.assertRaises(BadRequest):
+            self.run_in_request(orbit.read_string, {"name": True}, "name")
