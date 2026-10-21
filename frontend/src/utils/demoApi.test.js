@@ -196,3 +196,13 @@ test('keeps a registered browser account separate from the built-in demo workspa
   assert.ok(demoProjects.some(item => item.name === 'Sample App'));
   assert.ok(!demoProjects.some(item => item.name === 'Private account project'));
 });
+
+test('registration rejects malformed email addresses before saving an account', async () => {
+  await assert.rejects(() => api.post('/auth/register', {
+    email: 'not-an-email',
+    username: 'valid_member',
+    password: 'valid-password-123'
+  }), error => error.response.status === 400);
+  const state = JSON.parse(storage.getItem(demoStorageKey));
+  assert.equal(state.accounts.some(account => account.username === 'valid_member'), false);
+});
