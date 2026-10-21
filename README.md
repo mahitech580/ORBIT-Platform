@@ -92,11 +92,11 @@ The .env.example file is a starter configuration, not a production secret store.
 
 ## Workspace backups
 
-Use **Settings → Workspace backup → Export JSON** to download the records currently loaded by the workspace. The versioned backup includes project, deployment, team, and instance records with a count summary. Fields whose names resemble credentials (passwords, tokens, API keys, cookies, and similar values) are omitted recursively. Authentication state is never passed to the exporter. Treat the file as operational data even after filtering, because project descriptions and execution metadata may still be sensitive.
+Use **Settings → Workspace backup → Export JSON** to download the project, deployment, team, and instance records currently loaded by the workspace. Credential-like fields are omitted recursively, but descriptions and operational metadata may still be sensitive.
 
-## Workspace backups
+In browser-demo mode, **Restore browser demo → Choose JSON file** validates the schema, count summary, IDs, and project/team/deployment relationships before requesting confirmation. Restore replaces the current demo user's workspace records and remaps IDs to keep references consistent. Metrics and authentication state are not exported; restore is deliberately unavailable for server-backed accounts and never writes imported data into the production database.
 
-Use **Settings → Workspace backup → Export JSON** to download the currently loaded project, deployment, team and instance records. In browser-demo mode, **Restore browser demo → Choose JSON file** validates the format and record relationships before asking for confirmation. Restore replaces the current demo user's workspace records and remaps IDs so references remain consistent. Metrics are not included, and restore is intentionally unavailable for server-backed accounts; the feature does not write imported data into a production database. Credential-like fields are omitted recursively, but operational descriptions and generated metadata may still be sensitive.
+The importer limits snapshots to 10,000 records and rejects unsupported schema versions. Treat backups as operational data even after redaction. See [the testing guide](docs/TESTING.md) for validation coverage and local test commands.
 
 ## API overview
 
@@ -159,8 +159,8 @@ Database-free contract tests cover password hashing, JSON serialization, product
 1. Add a deployment runner interface with dry-run and queued-job states.
 2. Integrate a provider adapter only after credentials, permissions, and resource cleanup are defined.
 3. Connect a monitoring agent to the authenticated metrics-ingestion endpoint and define retention policies.
-4. Add unit/integration tests against a disposable PostgreSQL database.
-5. Add CI checks for Python linting, frontend builds, migration validation, and API regression tests.
+4. Add browser-based accessibility and visual regression checks.
+5. Define backup retention, recovery drills, and a production database maintenance schedule.
 
 ## License
 
