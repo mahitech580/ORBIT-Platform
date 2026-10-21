@@ -539,10 +539,10 @@ export function createDemoApi() {
       }
 
       if (route === '/teams') {
-        const name = String(payload.name || '').trim();
-        if (!name) fail('Team name is required.');
+        const name = readDemoString(payload, 'name', { required: true, maxLength: 120 });
+        const description = readDemoString(payload, 'description', { maxLength: 2000 });
         const id = nextId(state, 'nextTeamId', state.teams);
-        const team = { id, name, owner_id: activeUserId(), description: String(payload.description || '') };
+        const team = { id, name, owner_id: activeUserId(), description };
         state.teams.push(team);
         writeState(state);
         return response({ success: true, team }, 201);
