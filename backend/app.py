@@ -269,7 +269,7 @@ def token_required(view):
         try:
             claims = jwt.decode(token.strip(), SECRET_KEY, algorithms=["HS256"])
             request.user_id = positive_int(claims.get("user_id"), "Token user ID")
-        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TypeError, ValueError):
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TypeError, ValueError, HTTPException):
             return jsonify({"error": "Your session is invalid or expired. Please sign in again."}), 401
         return view(*args, **kwargs)
     return decorated
