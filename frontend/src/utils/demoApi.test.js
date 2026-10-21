@@ -214,3 +214,11 @@ test('registration rejects usernames outside the supported grammar', async () =>
     password: 'valid-password-123'
   }), error => error.response.status === 400);
 });
+
+test('registration rejects passwords shorter than eight characters', async () => {
+  await assert.rejects(() => api.post('/auth/register', {
+    email: 'short-password@example.com',
+    username: 'short_password',
+    password: 'short'
+  }), error => error.response.status === 400);
+});
