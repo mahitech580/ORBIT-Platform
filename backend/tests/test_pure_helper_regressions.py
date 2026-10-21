@@ -30,3 +30,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_read_string_uses_default_for_null_value(self):
         value = self.run_in_request(orbit.read_string, {"description": None}, "description", default="notes")
         self.assertEqual(value, "notes")
+
+    def test_read_string_rejects_integer_payload(self):
+        with self.assertRaises(BadRequest):
+            self.run_in_request(orbit.read_string, {"name": 123}, "name")
