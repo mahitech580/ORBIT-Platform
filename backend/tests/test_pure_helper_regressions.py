@@ -260,3 +260,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_read_metric_value_rejects_negative_measurements(self):
         with self.assertRaises(BadRequest):
             self.run_in_request(orbit.read_metric_value, {"response_time_ms": -0.01}, "response_time_ms")
+
+    def test_integer_metric_rejects_value_above_postgres_bound(self):
+        with self.assertRaises(BadRequest):
+            self.run_in_request(orbit.read_metric_value, {"memory_usage": 2147483648}, "memory_usage", integer=True, maximum=orbit.POSTGRES_INTEGER_MAX)
