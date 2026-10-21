@@ -557,12 +557,12 @@ export function createDemoApi() {
       const state = readState();
       const project = ownedProject(state, match[1]);
       if (!project) fail('Project not found.', 404);
-      const name = payload.name == null ? project.name : String(payload.name).trim();
-      const description = payload.description == null ? (project.description || '') : String(payload.description).trim();
-      const runtime = String(payload.runtime || project.runtime).toLowerCase();
-      const status = String(payload.status || project.status).toLowerCase();
-      if (!name) fail('Project name is required.');
-      if (name.length > 120 || description.length > 2000) fail('Project fields exceed their maximum length.');
+      const name = readDemoString({ name: payload.name == null ? project.name : payload.name }, 'name', { required: true, maxLength: 120 });
+      const description = readDemoString({ description: payload.description == null ? (project.description || '') : payload.description }, 'description', { maxLength: 2000 });
+      const runtimeValue = payload.runtime == null ? project.runtime : payload.runtime;
+      const statusValue = payload.status == null ? project.status : payload.status;
+      const runtime = readDemoString({ runtime: runtimeValue }, 'runtime', { required: true, maxLength: 30 }).toLowerCase();
+      const status = readDemoString({ status: statusValue }, 'status', { required: true, maxLength: 30 }).toLowerCase();
       if (!['node', 'python', 'java', 'go'].includes(runtime)) fail('Unsupported runtime.');
       if (!['active', 'archived'].includes(status)) fail('Status must be active or archived.');
       Object.assign(project, { name, description, runtime, status, updated_at: new Date().toISOString() });
