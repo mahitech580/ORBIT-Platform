@@ -294,3 +294,9 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_parse_metric_timestamp_rejects_invalid_text(self):
         with self.assertRaises(BadRequest):
             self.run_in_request(orbit.parse_metric_timestamp, "not-a-timestamp")
+
+    def test_parse_metric_timestamp_rejects_empty_and_non_string_inputs(self):
+        for value in ("", "   ", None, 123):
+            with self.subTest(value=value):
+                with self.assertRaises(BadRequest):
+                    self.run_in_request(orbit.parse_metric_timestamp, value)
