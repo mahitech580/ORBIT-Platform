@@ -103,3 +103,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_positive_int_rejects_decimal_notation_string(self):
         with self.assertRaises(BadRequest):
             self.run_in_request(orbit.positive_int, "2.0", "ID")
+
+    def test_positive_int_rejects_non_ascii_decimal_digits(self):
+        with self.assertRaises(BadRequest):
+            self.run_in_request(orbit.positive_int, "١٢", "ID")
