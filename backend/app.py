@@ -94,6 +94,8 @@ def assign_request_id():
 def add_browser_security_headers(response):
     """Set defensive headers and a request correlation ID on every response."""
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Cache-Control", "no-store")
+    response.headers.setdefault("Pragma", "no-cache")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
