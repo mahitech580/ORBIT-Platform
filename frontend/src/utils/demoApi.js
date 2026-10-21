@@ -50,6 +50,7 @@ function initialState() {
 // Keep browser-demo records usable in private windows or when storage quota is
 // exhausted. This fallback is intentionally in-memory and does not imply durable saves.
 let volatileStateRaw = null;
+let volatileStorageOnly = false;
 
 function getStateStorage() {
   try {
@@ -62,10 +63,14 @@ function getStateStorage() {
 
 function readStateStorage() {
   const storage = getStateStorage();
-  if (!storage) return volatileStateRaw;
+  if (!storage || volatileStorageOnly) {
+    volatileStorageOnly = true;
+    return volatileStateRaw;
+  }
   try {
     return storage.getItem(STORAGE_KEY);
   } catch {
+    volatileStorageOnly = true;
     return volatileStateRaw;
   }
 }
@@ -74,11 +79,15 @@ function writeStateStorage(state) {
   const serialized = JSON.stringify(state);
   volatileStateRaw = serialized;
   const storage = getStateStorage();
-  if (!storage) return;
+  if (!storage || volatileStorageOnly) {
+    volatileStorageOnly = true;
+    return;
+  }
   try {
     storage.setItem(STORAGE_KEY, serialized);
   } catch {
-    // The current tab can continue working with the in-memory copy.
+    // Avoid reading a stale durable copy after a failed/quota-limited write.
+    volatileStorageOnly = true;
   }
 }
 
