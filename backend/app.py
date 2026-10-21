@@ -667,6 +667,8 @@ def parse_metric_timestamp(value):
     if not isinstance(value, str) or not value.strip():
         abort(400, description=message)
     normalized = value.strip()
+    if not re.match(r"^\d{4}-\d{2}-\d{2}[Tt ]\d{2}:\d{2}", normalized):
+        abort(400, description=message)
     if normalized.endswith("Z"):
         normalized = normalized[:-1] + "+00:00"
     try:
