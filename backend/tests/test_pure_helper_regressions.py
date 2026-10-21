@@ -175,3 +175,10 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_public_user_falls_back_to_email_when_username_is_absent(self):
         user = {"id": 9, "email": "a@example.com", "first_name": "", "last_name": ""}
         self.assertEqual(orbit.public_user(user)["name"], "a@example.com")
+
+    def test_issued_token_has_user_id_and_expiry_claims(self):
+        token = orbit.issue_token({"id": 13, "email": "member@example.com"})
+        claims = jwt.decode(token, orbit.SECRET_KEY, algorithms=["HS256"])
+        self.assertEqual(claims["user_id"], 13)
+        self.assertEqual(claims["email"], "member@example.com")
+        self.assertGreater(claims["exp"], claims["iat"])
