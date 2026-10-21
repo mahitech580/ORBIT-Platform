@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { filterMetricsByRange } from '../utils/metricsFilters.js';
 import { summarizeMetrics } from '../utils/metricsSummary.js';
 import { buildMetricsCsv } from '../utils/metricsExport.js';
+import { getApiErrorMessage } from '../utils/apiError.js';
 
 export default function Metrics({ projects, api, refreshSeconds = 30 }) {
   const requestSequence = useRef(0);
@@ -37,7 +38,7 @@ export default function Metrics({ projects, api, refreshSeconds = 30 }) {
       setSummary(response.data.summary || { avg_cpu: 0, avg_memory: 0, total_requests: 0 });
     } catch (requestError) {
       if (requestId !== requestSequence.current) return;
-      setError(requestError.response?.data?.error || 'Could not load project telemetry.');
+      setError(getApiErrorMessage(requestError, 'Could not load project telemetry.'));
       setMetrics([]);
       setSummary(null);
     } finally {
