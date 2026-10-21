@@ -45,3 +45,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
 
     def test_read_string_accepts_exact_maximum_length(self):
         self.assertEqual(self.run_in_request(orbit.read_string, {"name": "abcd"}, "name", max_length=4), "abcd")
+
+    def test_read_string_rejects_value_over_maximum_length(self):
+        with self.assertRaises(BadRequest):
+            self.run_in_request(orbit.read_string, {"name": "abcde"}, "name", max_length=4)
