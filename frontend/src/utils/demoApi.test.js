@@ -206,3 +206,11 @@ test('registration rejects malformed email addresses before saving an account', 
   const state = JSON.parse(storage.getItem(demoStorageKey));
   assert.equal(state.accounts.some(account => account.username === 'valid_member'), false);
 });
+
+test('registration rejects usernames outside the supported grammar', async () => {
+  await assert.rejects(() => api.post('/auth/register', {
+    email: 'valid-email@example.com',
+    username: 'ab',
+    password: 'valid-password-123'
+  }), error => error.response.status === 400);
+});
