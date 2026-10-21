@@ -35,3 +35,14 @@ test('does not mutate the source telemetry rows', () => {
   summarizeMetrics(source);
   assert.equal(JSON.stringify(source), before);
 });
+
+
+test('ignores malformed rows and non-finite measurements without producing NaN totals', () => {
+  const summary = summarizeMetrics([
+    null,
+    [],
+    { cpu_usage: 'NaN', memory_usage: 'Infinity', requests_total: 'not-a-number' },
+    { cpu_usage: 30, memory_usage: 512, requests_total: 10 }
+  ]);
+  assert.deepEqual(summary, { avg_cpu: 30, avg_memory: 512, total_requests: 10 });
+});
