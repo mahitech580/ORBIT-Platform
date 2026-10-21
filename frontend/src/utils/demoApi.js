@@ -168,6 +168,17 @@ function fail(message, status = 400) {
   throw error;
 }
 
+function readDemoString(payload, key, { defaultValue = "", required = false, maxLength = 255 } = {}) {
+  const label = key.replace(/_/g, " ").replace(/^./, character => character.toUpperCase());
+  let value = payload?.[key];
+  if (value == null) value = defaultValue;
+  if (typeof value !== 'string') fail(label + " must be text.");
+  value = value.trim();
+  if (required && !value) fail(label + " is required.");
+  if (value.length > maxLength) fail(label + " must be at most " + maxLength + " characters.");
+  return value;
+}
+
 function currentUserId() {
   try {
     return Number(JSON.parse(localStorage.getItem('orbit.user') || 'null')?.id || 1);
