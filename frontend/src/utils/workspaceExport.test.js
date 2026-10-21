@@ -297,3 +297,9 @@ test('rejects unsupported project status values', async () => {
   const snapshot = buildWorkspaceExport({ projects: [{ id: 1, name: 'Atlas', status: 'deleted' }] }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('unsupported status')));
 });
+
+test('accepts supported project status regardless of letter case', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ projects: [{ id: 1, name: 'Atlas', status: 'ARCHIVED' }] }, 't');
+  assert.equal(validateWorkspaceBackup(snapshot).valid, true);
+});
