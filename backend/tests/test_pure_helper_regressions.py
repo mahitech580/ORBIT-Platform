@@ -17,7 +17,6 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
         with orbit.app.test_request_context("/", method="POST", json={}):
             return callback(*args, **kwargs)
 
-    pass
 
     def test_read_string_trims_outer_whitespace(self):
         value = self.run_in_request(orbit.read_string, {"name": "  Atlas  "}, "name", required=True)
