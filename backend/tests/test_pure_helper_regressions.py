@@ -252,3 +252,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
         value = self.run_in_request(orbit.read_metric_value, {"requests_total": 2.0}, "requests_total", integer=True, maximum=orbit.POSTGRES_INTEGER_MAX)
         self.assertEqual(value, 2)
         self.assertIsInstance(value, int)
+
+    def test_integer_metric_rejects_fractional_values(self):
+        with self.assertRaises(BadRequest):
+            self.run_in_request(orbit.read_metric_value, {"requests_total": 2.5}, "requests_total", integer=True)
