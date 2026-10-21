@@ -169,3 +169,30 @@ test('registration creates a browser account and its default team', async () => 
   assert.ok(state.accounts.some(account => account.email === 'fresh-member@example.com'));
   assert.ok(state.teams.some(team => team.owner_id === result.data.user.id && team.name === 'Default Team'));
 });
+
+
+test('keeps a registered browser account separate from the built-in demo workspace', async () => {
+  const registered = await api.post('/auth/register', {
+    email: 'workspace-owner@example.com',
+    username: 'workspace_owner',
+    password: 'owner-password-987',
+    first_name: 'Workspace'
+  });
+  storage.setItem('token', registered.data.token);
+  storage.setItem('orbit.user', JSON.stringify(registered.data.user));
+
+  assert.deepEqual((await api.get('/projects')).data.projects, []);
+  const privateProject = await api.post('/projects', {
+    name: 'Private account project',
+    description: 'Owned by the registered browser account',
+    runtime: 'python'
+  });
+  assert.equal(privateProject.data.project.owner_id, registered.data.user.id);
+  assert.deepEqual((await api.get('/projects')).data.projects.map(item => item.name), ['Private account project']);
+
+  storage.setItem('token', 'orbit-pages-demo-1-test');
+  storage.setItem('orbit.user', JSON.stringify({ id: 1, email: 'demo@orbit.local', username: 'demo' }));
+  const demoProjects = (await api.get('/projects')).data.projects;
+  assert.ok(demoProjects.some(item => item.name === 'Sample App'));
+  assert.ok(!demoProjects.some(item => item.name === 'Private account project'));
+});
