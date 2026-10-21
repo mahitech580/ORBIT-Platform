@@ -279,3 +279,9 @@ test('rejects project descriptions over the documented limit', async () => {
   const snapshot = buildWorkspaceExport({ projects: [{ id: 1, name: 'Atlas', description: 'x'.repeat(2001) }] }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid description')));
 });
+
+test('accepts a supported runtime regardless of letter case', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ projects: [{ id: 1, name: 'Atlas', runtime: 'PYTHON', status: 'active' }] }, 't');
+  assert.equal(validateWorkspaceBackup(snapshot).valid, true);
+});
