@@ -159,3 +159,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
 
     def test_password_verification_rejects_unknown_hash_scheme(self):
         self.assertFalse(orbit.verify_password("anything", "unknown$scheme$hash"))
+
+    def test_password_verification_rejects_non_string_arguments(self):
+        self.assertFalse(orbit.verify_password(None, "pbkdf2:sha256:600000$salt$hash"))
+        self.assertFalse(orbit.verify_password("password", None))
