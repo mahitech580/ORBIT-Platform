@@ -268,3 +268,9 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_float_metric_rejects_integer_too_large_to_convert(self):
         with self.assertRaises(BadRequest):
             self.run_in_request(orbit.read_metric_value, {"cpu_usage": 10 ** 10000}, "cpu_usage", maximum=100)
+
+
+    def test_json_safe_converts_non_finite_decimals_to_null(self):
+        self.assertIsNone(orbit.json_safe(Decimal("NaN")))
+        self.assertIsNone(orbit.json_safe(Decimal("Infinity")))
+        self.assertIsNone(orbit.json_safe(Decimal("-Infinity")))
