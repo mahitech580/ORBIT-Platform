@@ -114,3 +114,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
 
     def test_positive_int_accepts_postgres_integer_maximum(self):
         self.assertEqual(self.run_in_request(orbit.positive_int, orbit.POSTGRES_INTEGER_MAX, "ID"), 2147483647)
+
+    def test_positive_int_rejects_value_above_postgres_integer_maximum(self):
+        with self.assertRaises(BadRequest):
+            self.run_in_request(orbit.positive_int, 2147483648, "ID")
