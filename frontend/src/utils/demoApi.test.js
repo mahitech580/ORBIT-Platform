@@ -153,3 +153,19 @@ test("restoring an empty backup clears the current demo user records", async () 
   assert.deepEqual((await api.get('/deployments')).data.deployments, []);
   assert.deepEqual((await api.get('/instances')).data.instances, []);
 });
+
+
+test('registration creates a browser account and its default team', async () => {
+  const result = await api.post('/auth/register', {
+    email: 'fresh-member@example.com',
+    username: 'fresh_member',
+    password: 'membership-password-123',
+    first_name: 'Fresh'
+  });
+  assert.equal(result.status, 201);
+  assert.equal(result.data.user.email, 'fresh-member@example.com');
+  assert.equal(result.data.user.name, 'Fresh');
+  const state = JSON.parse(storage.getItem(demoStorageKey));
+  assert.ok(state.accounts.some(account => account.email === 'fresh-member@example.com'));
+  assert.ok(state.teams.some(team => team.owner_id === result.data.user.id && team.name === 'Default Team'));
+});
