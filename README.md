@@ -162,6 +162,15 @@ Database-free contract tests cover password hashing, JSON serialization, product
 4. Add browser-based accessibility and visual regression checks.
 5. Define backup retention, recovery drills, and a production database maintenance schedule.
 
+## Project documentation
+
+- [API contracts](docs/API_CONTRACTS.md) — endpoints, request validation, response headers, and capability boundaries.
+- [Security boundaries](docs/SECURITY_BOUNDARIES.md) — current protections, limitations, and release checklist.
+- [Testing guide](docs/TESTING.md) — repeatable frontend, backend, and PostgreSQL checks.
+- [Contributing](CONTRIBUTING.md) — development workflow and contribution checks.
+- [Security policy](SECURITY.md) — responsible vulnerability reporting.
+- [Changelog](CHANGELOG.md) — current reliability and security improvements.
+
 ## License
 
 No license file was present in the inspected repository at the time of this release. Add a license before redistributing ORBIT if you intend to grant reuse rights.
