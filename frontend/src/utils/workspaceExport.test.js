@@ -231,3 +231,11 @@ test('rejects an array used as the records container', async () => {
   const base = buildWorkspaceExport({}, 't');
   assert.equal(validateWorkspaceBackup({ ...base, records: [] }).valid, false);
 });
+
+test('rejects a project collection that is not an array', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const base = buildWorkspaceExport({}, 't');
+  const result = validateWorkspaceBackup({ ...base, records: { ...base.records, projects: {} } });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(error => error.includes('"projects" collection must be an array')));
+});
