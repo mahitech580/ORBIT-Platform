@@ -659,6 +659,23 @@ def read_metric_value(data, field, *, integer=False, minimum=0, maximum=None):
     return number
 
 
+def parse_metric_timestamp(value):
+    """Parse an ISO-8601 value into the UTC-naive timestamp used by the schema."""
+    message = "Timestamp must be an ISO-8601 date-time string."
+    if not isinstance(value, str) or not value.strip():
+        abort(400, description=message)
+    normalized = value.strip()
+    if normalized.endswith("Z"):
+        normalized = normalized[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        abort(400, description=message)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+
+
 @app.route("/api/metrics/<int:project_id>", methods=["POST"])
 @token_required
 def ingest_metrics(project_id):
@@ -677,18 +694,7 @@ def ingest_metrics(project_id):
     if requests_total is not None and errors_total is not None and errors_total > requests_total:
         abort(400, description="Errors total cannot exceed requests total.")
 
-    recorded_at = None
-    if "timestamp" in data:
-        raw_timestamp = data.get("timestamp")
-        if not isinstance(raw_timestamp, str) or not raw_timestamp.strip():
-            abort(400, description="Timestamp must be an ISO-8601 date-time string.")
-        try:
-            parsed_timestamp = datetime.fromisoformat(raw_timestamp.strip().replace("Z", "+00:00"))
-        except ValueError:
-            abort(400, description="Timestamp must be an ISO-8601 date-time string.")
-        if parsed_timestamp.tzinfo is None:
-            parsed_timestamp = parsed_timestamp.replace(tzinfo=timezone.utc)
-        recorded_at = parsed_timestamp.astimezone(timezone.utc).replace(tzinfo=None)
+    recorded_at = parse_metric_timestamp(data.get("timestamp")) if "timestamp" in data else None
 
     try:
         rows = db_execute(
