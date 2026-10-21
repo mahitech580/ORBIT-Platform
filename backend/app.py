@@ -106,7 +106,9 @@ def json_safe(value):
     if isinstance(value, (list, tuple)):
         return [json_safe(item) for item in value]
     if isinstance(value, Decimal):
-        return float(value)
+        # PostgreSQL NUMERIC can represent NaN and infinities; JSON cannot
+        # portably represent those values, so expose them as null.
+        return float(value) if value.is_finite() else None
     if isinstance(value, datetime):
         # PostgreSQL TIMESTAMP columns are stored as UTC-naive by the API.
         # Emit an explicit UTC offset so browsers never reinterpret them as local time.
