@@ -1,0 +1,41 @@
+# ORBIT API contracts
+
+This document summarizes the current Flask API in backend/app.py. It is a source-level contract, not a claim that the hosted API is deployed or reachable.
+
+## Public endpoints
+
+| Method and path | Purpose |
+| --- | --- |
+| GET /health or /api/health | Reports application version and PostgreSQL connectivity; returns 503 when the database cannot be reached. |
+| GET /api/meta | Returns application name, version, and declared capabilities. |
+| POST /api/auth/register | Creates an account and its default team; returns a signed token on success. |
+| POST /api/auth/login | Verifies credentials and issues a signed token. |
+
+## Bearer-token endpoints
+
+| Method and path | Purpose |
+| --- | --- |
+| GET /api/auth/me | Returns the authenticated public user profile. |
+| GET, POST /api/projects | Lists owned projects or creates a project in an owned team. |
+| GET, PUT, DELETE /api/projects/{id} | Reads, updates, or removes an owned project. |
+| POST /api/projects/{id}/deploy | Records deployment intent and release metadata. It does not execute a build or deploy cloud resources. |
+| GET /api/deployments | Lists deployment history scoped to owned projects. |
+| GET /api/deployments/{id} | Reads one owned deployment record. |
+| GET, POST /api/metrics/{project_id} | Reads the latest returned measurements or ingests validated telemetry for an owned project. |
+| GET, POST /api/instances | Lists or records instance metadata linked to a project and deployment. |
+| GET, POST /api/teams | Lists or creates teams owned by the authenticated account. |
+
+## Request and response rules
+
+- JSON write endpoints expect a JSON object; arrays, primitives, and malformed JSON receive a 400 response.
+- Text fields are trimmed and validated against per-field maximum lengths.
+- IDs must be positive ASCII integers within PostgreSQL SERIAL range; booleans, floats, malformed strings, and out-of-range values are rejected.
+- API failures return JSON with an error message. Invalid/expired bearer tokens return 401; unknown or unowned project records are not exposed as another user's data.
+- Authentication tokens are signed with HS256 and expire after 12 hours.
+- Database datetime values are serialized using an explicit UTC offset so clients do not reinterpret timestamps in their local timezone.
+- Telemetry rejects non-finite values, negative measurements, out-of-range CPU, non-integer counters, and error counts greater than request counts when both are provided.
+- CSV exports are client-side exports of records already returned to the browser; formula-leading cells are neutralized before download.
+
+## Operational boundaries
+
+ORBIT stores project metadata, deployment status records, instance metadata, and submitted telemetry. It does not contain a deployment runner, provider credential adapter, cloud resource provisioner, or metrics agent. Those features require separate services and deliberate authorization/retention design.
