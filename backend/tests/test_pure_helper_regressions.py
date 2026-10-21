@@ -206,3 +206,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_production_database_validation_accepts_explicit_db_fields(self):
         env = {"DB_HOST": "db", "DB_NAME": "orbit", "DB_USER": "orbit_user", "DB_PASSWORD": "configured"}
         self.assertIsNone(orbit.validate_database_configuration(True, "", env))
+
+    def test_json_body_returns_json_object(self):
+        with orbit.app.test_request_context("/", method="POST", json={"name": "Orbit"}):
+            self.assertEqual(orbit.json_body(), {"name": "Orbit"})
