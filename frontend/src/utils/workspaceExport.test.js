@@ -212,3 +212,8 @@ test('rejects an array as the entire backup document', async () => {
   const { validateWorkspaceBackup } = await import('./workspaceExport.js');
   assert.equal(validateWorkspaceBackup([]).valid, false);
 });
+
+test('rejects a numeric backup document', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  assert.equal(validateWorkspaceBackup(42).valid, false);
+});
