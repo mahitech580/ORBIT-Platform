@@ -220,3 +220,6 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
         with orbit.app.test_request_context("/", method="POST", data="{", content_type="application/json"):
             with self.assertRaises(BadRequest):
                 orbit.json_body()
+
+    def test_read_metric_value_returns_none_for_missing_measurement(self):
+        self.assertIsNone(self.run_in_request(orbit.read_metric_value, {}, "cpu_usage", maximum=100))
