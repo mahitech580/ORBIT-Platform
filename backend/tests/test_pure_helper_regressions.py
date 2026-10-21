@@ -300,3 +300,8 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
             with self.subTest(value=value):
                 with self.assertRaises(BadRequest):
                     self.run_in_request(orbit.parse_metric_timestamp, value)
+
+
+    def test_parse_metric_timestamp_rejects_date_without_time(self):
+        with self.assertRaises(BadRequest):
+            self.run_in_request(orbit.parse_metric_timestamp, "2026-10-21")
