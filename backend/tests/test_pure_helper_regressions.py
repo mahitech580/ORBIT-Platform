@@ -132,3 +132,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_json_safe_marks_naive_datetime_as_utc(self):
         value = datetime(2026, 10, 21, 12, 30, 0)
         self.assertEqual(orbit.json_safe(value), "2026-10-21T12:30:00+00:00")
+
+    def test_json_safe_normalizes_offset_datetime_to_utc(self):
+        value = datetime(2026, 10, 21, 18, 0, tzinfo=timezone(timedelta(hours=5, minutes=30)))
+        self.assertEqual(orbit.json_safe(value), "2026-10-21T12:30:00+00:00")
