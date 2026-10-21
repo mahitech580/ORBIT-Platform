@@ -267,3 +267,9 @@ test('rejects project names longer than the API contract', async () => {
   const snapshot = buildWorkspaceExport({ projects: [{ id: 1, name: 'P'.repeat(121) }] }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid name')));
 });
+
+test('rejects a non-string project description', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ projects: [{ id: 1, name: 'Atlas', description: 99 }] }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid description')));
+});
