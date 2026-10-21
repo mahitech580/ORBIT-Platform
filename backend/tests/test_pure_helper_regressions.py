@@ -226,3 +226,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
 
     def test_read_metric_value_accepts_cpu_at_upper_boundary(self):
         self.assertEqual(self.run_in_request(orbit.read_metric_value, {"cpu_usage": 100}, "cpu_usage", maximum=100), 100.0)
+
+    def test_read_metric_value_rejects_boolean_measurements(self):
+        with self.assertRaises(BadRequest):
+            self.run_in_request(orbit.read_metric_value, {"cpu_usage": True}, "cpu_usage", maximum=100)
