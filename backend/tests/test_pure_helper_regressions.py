@@ -73,3 +73,6 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_read_password_rejects_over_length_limit(self):
         with self.assertRaises(BadRequest):
             self.run_in_request(orbit.read_password, {"password": "x" * 1025})
+
+    def test_positive_int_accepts_smallest_positive_integer(self):
+        self.assertEqual(self.run_in_request(orbit.positive_int, 1, "ID"), 1)
