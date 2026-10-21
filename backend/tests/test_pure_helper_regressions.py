@@ -140,3 +140,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_json_safe_recurses_through_nested_containers(self):
         value = {"items": (Decimal("2.25"), [date(2026, 1, 2)])}
         self.assertEqual(orbit.json_safe(value), {"items": [2.25, ["2026-01-02"]]})
+
+    def test_json_safe_preserves_ordinary_scalars(self):
+        value = {"name": "Orbit", "active": True, "none": None, "count": 3}
+        self.assertEqual(orbit.json_safe(value), value)
