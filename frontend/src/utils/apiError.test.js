@@ -57,3 +57,10 @@ test('uses fallback text for non-string server error payloads', () => {
     'Request failed'
   );
 });
+
+test('ignores request references containing line breaks', () => {
+  assert.equal(
+    getApiErrorMessage({ response: { data: { error: 'Failure' }, headers: { 'x-request-id': REQUEST_ID + '\\nforged' } } }),
+    'Failure'
+  );
+});
