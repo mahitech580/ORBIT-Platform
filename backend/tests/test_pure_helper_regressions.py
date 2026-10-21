@@ -182,3 +182,8 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
         self.assertEqual(claims["user_id"], 13)
         self.assertEqual(claims["email"], "member@example.com")
         self.assertGreater(claims["exp"], claims["iat"])
+
+    def test_security_headers_are_added_to_response(self):
+        response = orbit.add_browser_security_headers(orbit.app.response_class("ok"))
+        self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(response.headers["X-Frame-Options"], "DENY")
