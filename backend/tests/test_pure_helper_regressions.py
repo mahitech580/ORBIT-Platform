@@ -163,3 +163,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_password_verification_rejects_non_string_arguments(self):
         self.assertFalse(orbit.verify_password(None, "pbkdf2:sha256:600000$salt$hash"))
         self.assertFalse(orbit.verify_password("password", None))
+
+    def test_public_user_combines_first_and_last_name(self):
+        user = {"id": 7, "email": "a@example.com", "username": "atlas", "first_name": "Ada ", "last_name": "Lovelace "}
+        self.assertEqual(orbit.public_user(user)["name"], "Ada Lovelace")
