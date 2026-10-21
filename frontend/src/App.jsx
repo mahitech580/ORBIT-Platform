@@ -13,6 +13,7 @@ import Navigation from './components/Navigation';
 import CommandPalette from './components/CommandPalette';
 import SmokeBackground from './components/SmokeBackground';
 import { AnimatePresence, motion } from 'framer-motion';
+import { getApiErrorMessage } from './utils/apiError.js';
 
 const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 const HEALTH_URL = import.meta.env.VITE_HEALTH_URL || API_URL.replace(/\/api\/?$/, '') + '/health';
@@ -119,7 +120,7 @@ export default function App() {
       updateHealth();
       return true;
     } catch (requestError) {
-      setError(requestError.response?.data?.error || 'Could not refresh the workspace. Your last loaded data is still visible.');
+      setError(getApiErrorMessage(requestError, 'Could not refresh the workspace. Your last loaded data is still visible.'));
       updateHealth();
       return false;
     } finally {
@@ -222,7 +223,7 @@ export default function App() {
       await loadWorkspace();
       return true;
     } catch (requestError) {
-      setError(requestError.response?.data?.error || 'Could not create the project.');
+      setError(getApiErrorMessage(requestError, 'Could not create the project.'));
       return false;
     } finally { setLoading(false); }
   };
@@ -234,7 +235,7 @@ export default function App() {
       await loadWorkspace();
       return true;
     } catch (requestError) {
-      setError(requestError.response?.data?.error || 'Could not update the project.');
+      setError(getApiErrorMessage(requestError, 'Could not update the project.'));
       return false;
     } finally { setLoading(false); }
   };
@@ -246,7 +247,7 @@ export default function App() {
       await loadWorkspace();
       return true;
     } catch (requestError) {
-      setError(requestError.response?.data?.error || 'Could not delete the project.');
+      setError(getApiErrorMessage(requestError, 'Could not delete the project.'));
       return false;
     } finally { setLoading(false); }
   };
@@ -258,7 +259,7 @@ export default function App() {
       await loadWorkspace();
       return true;
     } catch (requestError) {
-      setError(requestError.response?.data?.error || 'Could not record the deployment.');
+      setError(getApiErrorMessage(requestError, 'Could not record the deployment.'));
       return false;
     } finally { setLoading(false); }
   };
@@ -270,7 +271,7 @@ export default function App() {
       await loadWorkspace();
       return true;
     } catch (requestError) {
-      setError(requestError.response?.data?.error || 'Could not create the team.');
+      setError(getApiErrorMessage(requestError, 'Could not create the team.'));
       return false;
     } finally { setLoading(false); }
   };
@@ -282,7 +283,7 @@ export default function App() {
       await loadWorkspace();
       return true;
     } catch (requestError) {
-      setError(requestError.response?.data?.error || 'Could not create the instance record.');
+      setError(getApiErrorMessage(requestError, 'Could not create the instance record.'));
       return false;
     } finally { setLoading(false); }
   };
