@@ -12,11 +12,12 @@ import hmac
 import math
 import os
 import re
+import uuid
 
 import jwt
 import psycopg2
 from dotenv import load_dotenv
-from flask import Flask, abort, jsonify, request
+from flask import Flask, abort, has_request_context, jsonify, request
 from werkzeug.exceptions import HTTPException
 from flask_cors import CORS
 from psycopg2 import IntegrityError
@@ -83,13 +84,21 @@ CORS(app, resources={
 })
 
 
+@app.before_request
+def assign_request_id():
+    """Attach a server-generated correlation ID to each incoming request."""
+    request.orbit_request_id = uuid.uuid4().hex
+
+
 @app.after_request
 def add_browser_security_headers(response):
-    """Set defensive headers on API/error responses without changing CORS policy."""
+    """Set defensive headers and a request correlation ID on every response."""
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    request_id = getattr(request, "orbit_request_id", None) if has_request_context() else None
+    response.headers.setdefault("X-Request-ID", request_id or uuid.uuid4().hex)
     return response
 
 
@@ -301,7 +310,7 @@ def handle_http_error(error):
 
 @app.errorhandler(Exception)
 def handle_unexpected_error(error):
-    app.logger.exception("Unhandled API error")
+    app.logger.exception("Unhandled API error (request_id=%s)", getattr(request, "orbit_request_id", "unknown"))
     return jsonify({"error": "An unexpected server error occurred."}), 500
 
 
