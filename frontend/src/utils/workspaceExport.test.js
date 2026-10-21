@@ -303,3 +303,9 @@ test('accepts supported project status regardless of letter case', async () => {
   const snapshot = buildWorkspaceExport({ projects: [{ id: 1, name: 'Atlas', status: 'ARCHIVED' }] }, 't');
   assert.equal(validateWorkspaceBackup(snapshot).valid, true);
 });
+
+test('rejects whitespace-only team names', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ teams: [{ id: 1, name: '   ' }] }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('Team record 1 has an invalid name')));
+});
