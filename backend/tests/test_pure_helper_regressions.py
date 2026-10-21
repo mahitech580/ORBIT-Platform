@@ -247,3 +247,8 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
         value = self.run_in_request(orbit.read_metric_value, {"requests_total": 2147483647}, "requests_total", integer=True, maximum=orbit.POSTGRES_INTEGER_MAX)
         self.assertIsInstance(value, int)
         self.assertEqual(value, 2147483647)
+
+    def test_integer_metric_normalizes_integral_float(self):
+        value = self.run_in_request(orbit.read_metric_value, {"requests_total": 2.0}, "requests_total", integer=True, maximum=orbit.POSTGRES_INTEGER_MAX)
+        self.assertEqual(value, 2)
+        self.assertIsInstance(value, int)
