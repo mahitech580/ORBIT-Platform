@@ -305,3 +305,8 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_parse_metric_timestamp_rejects_date_without_time(self):
         with self.assertRaises(BadRequest):
             self.run_in_request(orbit.parse_metric_timestamp, "2026-10-21")
+
+
+    def test_parse_metric_timestamp_accepts_lowercase_utc_suffix(self):
+        parsed = self.run_in_request(orbit.parse_metric_timestamp, "2026-10-21T12:00:00z")
+        self.assertEqual(parsed, datetime(2026, 10, 21, 12, 0, 0))
