@@ -144,3 +144,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_json_safe_preserves_ordinary_scalars(self):
         value = {"name": "Orbit", "active": True, "none": None, "count": 3}
         self.assertEqual(orbit.json_safe(value), value)
+
+    def test_modern_password_hash_verifies_correct_password(self):
+        hashed = orbit.hash_password("strong-password-123")
+        self.assertTrue(orbit.verify_password("strong-password-123", hashed))
