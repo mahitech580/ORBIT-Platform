@@ -256,3 +256,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_integer_metric_rejects_fractional_values(self):
         with self.assertRaises(BadRequest):
             self.run_in_request(orbit.read_metric_value, {"requests_total": 2.5}, "requests_total", integer=True)
+
+    def test_read_metric_value_rejects_negative_measurements(self):
+        with self.assertRaises(BadRequest):
+            self.run_in_request(orbit.read_metric_value, {"response_time_ms": -0.01}, "response_time_ms")
