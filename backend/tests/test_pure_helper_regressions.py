@@ -210,3 +210,8 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_json_body_returns_json_object(self):
         with orbit.app.test_request_context("/", method="POST", json={"name": "Orbit"}):
             self.assertEqual(orbit.json_body(), {"name": "Orbit"})
+
+    def test_json_body_rejects_json_array(self):
+        with orbit.app.test_request_context("/", method="POST", json=["not", "an", "object"]):
+            with self.assertRaises(BadRequest):
+                orbit.json_body()
