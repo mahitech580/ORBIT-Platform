@@ -171,3 +171,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_public_user_falls_back_to_username_when_names_are_blank(self):
         user = {"id": 8, "email": "a@example.com", "username": "atlas", "first_name": " ", "last_name": ""}
         self.assertEqual(orbit.public_user(user)["name"], "atlas")
+
+    def test_public_user_falls_back_to_email_when_username_is_absent(self):
+        user = {"id": 9, "email": "a@example.com", "first_name": "", "last_name": ""}
+        self.assertEqual(orbit.public_user(user)["name"], "a@example.com")
