@@ -129,7 +129,9 @@ def json_safe(value):
             number = float(value)
         except (OverflowError, ValueError):
             return None
-        return number if math.isfinite(number) else None
+        if not math.isfinite(number) or (number == 0.0 and not value.is_zero()):
+            return None
+        return number
     if isinstance(value, datetime):
         # PostgreSQL TIMESTAMP columns are stored as UTC-naive by the API.
         # Emit an explicit UTC offset so browsers never reinterpret them as local time.
