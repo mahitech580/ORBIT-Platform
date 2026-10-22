@@ -180,3 +180,6 @@ class InputValidationMatrixTests(unittest.TestCase):
         value = self.run_helper(orbit.read_metric_value, {"requests_total": 12.0}, "requests_total", integer=True, maximum=orbit.POSTGRES_INTEGER_MAX)
         self.assertEqual(value, 12)
         self.assertIsInstance(value, int)
+
+    def test_integer_metric_rejects_fractional_float(self):
+        self.assert_bad_request(orbit.read_metric_value, {"requests_total": 12.5}, "requests_total", integer=True, maximum=orbit.POSTGRES_INTEGER_MAX)
