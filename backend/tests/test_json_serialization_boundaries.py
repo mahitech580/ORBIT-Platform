@@ -24,3 +24,6 @@ class JsonSerializationBoundaryTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_tiny_positive_decimal_underflow_becomes_null(self):
+        self.assertIsNone(orbit.json_safe(Decimal("1e-10000")))
