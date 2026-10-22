@@ -100,3 +100,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_positive_int_rejects_none(self):
         self.assert_bad_request(orbit.positive_int, None, "ID")
+
+    def test_positive_int_rejects_list_values(self):
+        self.assert_bad_request(orbit.positive_int, [1], "ID")
