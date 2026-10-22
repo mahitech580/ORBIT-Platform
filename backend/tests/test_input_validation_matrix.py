@@ -91,3 +91,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_positive_int_rejects_numeric_text_with_trailing_suffix(self):
         self.assert_bad_request(orbit.positive_int, "23items", "ID")
+
+    def test_positive_int_rejects_empty_text(self):
+        self.assert_bad_request(orbit.positive_int, "", "ID")
