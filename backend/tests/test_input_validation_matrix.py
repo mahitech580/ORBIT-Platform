@@ -49,3 +49,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_read_string_trims_carriage_return_and_newline(self):
         self.assertEqual(self.run_helper(orbit.read_string, {"label": "\r\n Orbit \t"}, "label"), "Orbit")
+
+    def test_read_string_accepts_empty_text_with_zero_length_limit(self):
+        self.assertEqual(self.run_helper(orbit.read_string, {"label": ""}, "label", max_length=0), "")
