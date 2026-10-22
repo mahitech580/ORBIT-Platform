@@ -202,3 +202,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_metric_validation_rejects_nan(self):
         self.assert_bad_request(orbit.read_metric_value, {"cpu_usage": float("nan")}, "cpu_usage", maximum=100)
+
+    def test_metric_validation_rejects_negative_infinity(self):
+        self.assert_bad_request(orbit.read_metric_value, {"response_time_ms": float("-inf")}, "response_time_ms", maximum=999999.99)
