@@ -145,3 +145,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_metric_timestamp_rejects_unknown_timezone_text(self):
         self.assert_bad_request(orbit.parse_metric_timestamp, "2026-10-22T12:00:00UTC")
+
+    def test_metric_timestamp_rejects_trailing_garbage(self):
+        self.assert_bad_request(orbit.parse_metric_timestamp, "2026-10-22T12:00:00Zjunk")
