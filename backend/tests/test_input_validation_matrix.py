@@ -31,3 +31,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_read_string_rejects_tuple_values(self):
         self.assert_bad_request(orbit.read_string, {"label": ("a", "b")}, "label")
+
+    def test_read_string_rejects_dictionary_values(self):
+        self.assert_bad_request(orbit.read_string, {"label": {"nested": "value"}}, "label")
