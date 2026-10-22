@@ -190,3 +190,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_integer_metric_rejects_value_above_postgres_serial_maximum(self):
         self.assert_bad_request(orbit.read_metric_value, {"memory_usage": 2147483648}, "memory_usage", integer=True, maximum=orbit.POSTGRES_INTEGER_MAX)
+
+    def test_metric_validation_rejects_boolean_numbers(self):
+        self.assert_bad_request(orbit.read_metric_value, {"cpu_usage": True}, "cpu_usage", maximum=100)
