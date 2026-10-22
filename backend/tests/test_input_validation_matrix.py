@@ -103,3 +103,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_positive_int_rejects_list_values(self):
         self.assert_bad_request(orbit.positive_int, [1], "ID")
+
+    def test_positive_int_rejects_identifier_above_serial_maximum(self):
+        self.assert_bad_request(orbit.positive_int, 2147483648, "ID")
