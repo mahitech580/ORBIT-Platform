@@ -170,3 +170,8 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_cpu_measurement_rejects_negative_value(self):
         self.assert_bad_request(orbit.read_metric_value, {"cpu_usage": -0.01}, "cpu_usage", maximum=100)
+
+    def test_production_database_validator_rejects_none_for_required_settings(self):
+        environment = {"DB_HOST": None, "DB_NAME": None, "DB_USER": None, "DB_PASSWORD": None}
+        with self.assertRaises(RuntimeError):
+            orbit.validate_database_configuration(True, "", environment)
