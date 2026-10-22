@@ -398,3 +398,8 @@ class InputValidationMatrixTests(unittest.TestCase):
     def test_api_response_restricts_unused_browser_capabilities(self):
         response = orbit.app.test_client().get("/api/meta")
         self.assertEqual(response.headers.get("Permissions-Policy"), "camera=(), microphone=(), geolocation=()")
+
+    def test_registration_rejects_missing_username_before_database_access(self):
+        response = orbit.app.test_client().post("/api/auth/register", json={"email": "valid@example.test", "password": "correct-horse"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get_json()["error"], "Username is required.")
