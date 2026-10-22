@@ -106,3 +106,7 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_positive_int_rejects_identifier_above_serial_maximum(self):
         self.assert_bad_request(orbit.positive_int, 2147483648, "ID")
+
+    def test_read_password_preserves_nonblank_outer_whitespace(self):
+        value = self.run_helper(orbit.read_password, {"password": "  keep spaces  "})
+        self.assertEqual(value, "  keep spaces  ")
