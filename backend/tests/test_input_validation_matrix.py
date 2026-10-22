@@ -275,3 +275,8 @@ class InputValidationMatrixTests(unittest.TestCase):
         response = orbit.app.test_client().post("/api/auth/register", json={"email": orbit.DEMO_EMAIL, "username": "valid_user", "password": "correct-horse"})
         self.assertEqual(response.status_code, 400)
         self.assertIn("reserved", response.get_json()["error"])
+
+    def test_registration_rejects_username_outside_allowed_pattern(self):
+        response = orbit.app.test_client().post("/api/auth/register", json={"email": "valid@example.test", "username": "bad name", "password": "correct-horse"})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Username must be", response.get_json()["error"])
