@@ -368,3 +368,10 @@ class InputValidationMatrixTests(unittest.TestCase):
         with orbit.app.test_request_context("/", headers={"Authorization": "Bearer " + token + "  "}):
             result = guarded()
         self.assertEqual(result, "protected")
+
+    def test_token_guard_rejects_decimal_string_user_id_claim(self):
+        token = orbit.jwt.encode({"user_id": "7.0"}, orbit.SECRET_KEY, algorithm="HS256")
+        guarded = orbit.token_required(lambda: "protected")
+        with orbit.app.test_request_context("/", headers={"Authorization": "Bearer " + token}):
+            result = guarded()
+        self.assertEqual(result[1], 401)
