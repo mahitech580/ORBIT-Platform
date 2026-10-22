@@ -73,3 +73,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_positive_int_rejects_negative_decimal_text(self):
         self.assert_bad_request(orbit.positive_int, "-1", "ID")
+
+    def test_positive_int_rejects_integral_float(self):
+        self.assert_bad_request(orbit.positive_int, 7.0, "ID")
