@@ -403,3 +403,8 @@ class InputValidationMatrixTests(unittest.TestCase):
         response = orbit.app.test_client().post("/api/auth/register", json={"email": "valid@example.test", "password": "correct-horse"})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get_json()["error"], "Username is required.")
+
+    def test_registration_rejects_overlong_password_before_database_access(self):
+        response = orbit.app.test_client().post("/api/auth/register", json={"email": "valid@example.test", "username": "valid_user", "password": "p" * 1025})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("at most 1024 characters", response.get_json()["error"])
