@@ -280,3 +280,8 @@ class InputValidationMatrixTests(unittest.TestCase):
         response = orbit.app.test_client().post("/api/auth/register", json={"email": "valid@example.test", "username": "bad name", "password": "correct-horse"})
         self.assertEqual(response.status_code, 400)
         self.assertIn("Username must be", response.get_json()["error"])
+
+    def test_registration_rejects_password_below_eight_characters(self):
+        response = orbit.app.test_client().post("/api/auth/register", json={"email": "valid@example.test", "username": "valid_user", "password": "short7"})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("at least 8 characters", response.get_json()["error"])
