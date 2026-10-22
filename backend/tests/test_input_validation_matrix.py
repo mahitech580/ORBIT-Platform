@@ -413,3 +413,8 @@ class InputValidationMatrixTests(unittest.TestCase):
         environment = {"DB_HOST": " ", "DB_NAME": "orbit", "DB_USER": "orbit_user", "DB_PASSWORD": "test-only"}
         with self.assertRaises(RuntimeError):
             orbit.validate_database_configuration(True, "", environment)
+
+    def test_register_rejects_missing_password_before_database_access(self):
+        response = orbit.app.test_client().post("/api/auth/register", json={"email": "valid@example.test", "username": "valid_user"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get_json()["error"], "Password is required.")
