@@ -354,3 +354,10 @@ class InputValidationMatrixTests(unittest.TestCase):
         with orbit.app.test_request_context("/", headers={"Authorization": "Bearer " + token}):
             result = guarded()
         self.assertEqual(result[1], 401)
+
+    def test_token_guard_accepts_case_insensitive_bearer_scheme(self):
+        token = orbit.issue_token({"id": 7, "email": "user@example.test"})
+        guarded = orbit.token_required(lambda: "protected")
+        with orbit.app.test_request_context("/", headers={"Authorization": "bearer " + token}):
+            result = guarded()
+        self.assertEqual(result, "protected")
