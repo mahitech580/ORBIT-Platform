@@ -37,3 +37,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_read_string_rejects_set_values(self):
         self.assert_bad_request(orbit.read_string, {"label": {"a"}}, "label")
+
+    def test_read_string_rejects_byte_values(self):
+        self.assert_bad_request(orbit.read_string, {"label": b"binary"}, "label")
