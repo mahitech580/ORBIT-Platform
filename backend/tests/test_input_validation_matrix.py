@@ -123,3 +123,7 @@ class InputValidationMatrixTests(unittest.TestCase):
     def test_read_password_accepts_exact_unicode_character_limit(self):
         value = "界" * 1024
         self.assertEqual(self.run_helper(orbit.read_password, {"password": value}), value)
+
+    def test_metric_timestamp_accepts_space_separator(self):
+        value = self.run_helper(orbit.parse_metric_timestamp, "2026-10-22 12:34:56")
+        self.assertEqual(value, datetime(2026, 10, 22, 12, 34, 56))
