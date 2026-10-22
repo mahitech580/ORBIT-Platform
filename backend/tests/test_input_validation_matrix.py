@@ -116,3 +116,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_read_password_rejects_list_content(self):
         self.assert_bad_request(orbit.read_password, {"password": ["not", "text"]})
+
+    def test_read_password_accepts_single_character_at_helper_boundary(self):
+        self.assertEqual(self.run_helper(orbit.read_password, {"password": "x"}), "x")
