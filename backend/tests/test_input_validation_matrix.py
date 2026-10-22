@@ -255,3 +255,8 @@ class InputValidationMatrixTests(unittest.TestCase):
         response = orbit.app.test_client().post("/api/auth/register", json=["not", "an", "object"])
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get_json()["status"], 400)
+
+    def test_non_object_json_registration_body_returns_400(self):
+        response = orbit.app.test_client().post("/api/auth/register", json=["not", "an", "object"])
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get_json()["status"], 400)
