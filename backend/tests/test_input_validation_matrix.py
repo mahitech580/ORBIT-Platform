@@ -390,3 +390,7 @@ class InputValidationMatrixTests(unittest.TestCase):
     def test_api_response_denies_frame_embedding(self):
         response = orbit.app.test_client().get("/api/meta")
         self.assertEqual(response.headers.get("X-Frame-Options"), "DENY")
+
+    def test_api_response_sets_referrer_policy(self):
+        response = orbit.app.test_client().get("/api/meta")
+        self.assertEqual(response.headers.get("Referrer-Policy"), "no-referrer")
