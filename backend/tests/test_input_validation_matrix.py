@@ -314,3 +314,9 @@ class InputValidationMatrixTests(unittest.TestCase):
             result = guarded()
         self.assertEqual(result[1], 401)
         self.assertEqual(result[0].get_json()["error"], "A Bearer token is required.")
+
+    def test_token_guard_rejects_basic_authorization_scheme(self):
+        guarded = orbit.token_required(lambda: "protected")
+        with orbit.app.test_request_context("/", headers={"Authorization": "Basic abc"}):
+            result = guarded()
+        self.assertEqual(result[1], 401)
