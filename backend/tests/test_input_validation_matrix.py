@@ -113,3 +113,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_read_password_rejects_whitespace_only_content(self):
         self.assert_bad_request(orbit.read_password, {"password": "        "})
+
+    def test_read_password_rejects_list_content(self):
+        self.assert_bad_request(orbit.read_password, {"password": ["not", "text"]})
