@@ -290,3 +290,8 @@ class InputValidationMatrixTests(unittest.TestCase):
         response = orbit.app.test_client().post("/api/auth/login", json={"email": "person@example.test"})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get_json()["error"], "Password is required.")
+
+    def test_registration_rejects_missing_email_before_database_access(self):
+        response = orbit.app.test_client().post("/api/auth/register", json={"username": "valid_user", "password": "correct-horse"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get_json()["error"], "Email is required.")
