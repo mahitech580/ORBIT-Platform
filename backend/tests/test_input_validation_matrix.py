@@ -250,3 +250,8 @@ class InputValidationMatrixTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.headers.get("Cache-Control"), "no-store")
         self.assertRegex(response.headers["X-Request-ID"], r"^[a-f0-9]{32}$")
+
+    def test_non_object_json_registration_body_returns_400(self):
+        response = orbit.app.test_client().post("/api/auth/register", json=["not", "an", "object"])
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get_json()["status"], 400)
