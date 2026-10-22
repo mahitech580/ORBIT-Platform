@@ -110,3 +110,6 @@ class InputValidationMatrixTests(unittest.TestCase):
     def test_read_password_preserves_nonblank_outer_whitespace(self):
         value = self.run_helper(orbit.read_password, {"password": "  keep spaces  "})
         self.assertEqual(value, "  keep spaces  ")
+
+    def test_read_password_rejects_whitespace_only_content(self):
+        self.assert_bad_request(orbit.read_password, {"password": "        "})
