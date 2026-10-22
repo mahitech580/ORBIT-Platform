@@ -30,3 +30,6 @@ if __name__ == "__main__":
 
     def test_tiny_negative_decimal_underflow_becomes_null(self):
         self.assertIsNone(orbit.json_safe(Decimal("-1e-10000")))
+
+    def test_negative_finite_decimal_keeps_sign(self):
+        self.assertEqual(orbit.json_safe(Decimal("-12.50")), -12.5)
