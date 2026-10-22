@@ -394,3 +394,7 @@ class InputValidationMatrixTests(unittest.TestCase):
     def test_api_response_sets_referrer_policy(self):
         response = orbit.app.test_client().get("/api/meta")
         self.assertEqual(response.headers.get("Referrer-Policy"), "no-referrer")
+
+    def test_api_response_restricts_unused_browser_capabilities(self):
+        response = orbit.app.test_client().get("/api/meta")
+        self.assertEqual(response.headers.get("Permissions-Policy"), "camera=(), microphone=(), geolocation=()")
