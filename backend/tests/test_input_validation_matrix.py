@@ -205,3 +205,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_metric_validation_rejects_negative_infinity(self):
         self.assert_bad_request(orbit.read_metric_value, {"response_time_ms": float("-inf")}, "response_time_ms", maximum=999999.99)
+
+    def test_response_time_accepts_exact_decimal_maximum(self):
+        self.assertEqual(self.run_helper(orbit.read_metric_value, {"response_time_ms": 999999.99}, "response_time_ms", maximum=999999.99), 999999.99)
