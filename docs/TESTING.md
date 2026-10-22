@@ -2,6 +2,11 @@
 
 Run commands from the repository root unless a section says otherwise.
 
+## Continuous integration
+
+- `.github/workflows/backend.yml` runs Python compilation, the unit suite, and the PostgreSQL integration suite against an isolated PostgreSQL 16 service on pushes to `main` and pull requests.
+- `.github/workflows/pages.yml` runs the frontend tests and builds the GitHub Pages browser demo. A successful static-site build does not prove that the separately hosted API or database is reachable.
+
 ## Frontend tests
 
 The frontend uses Node's built-in test runner; no browser test framework is required for the pure utility suites.
