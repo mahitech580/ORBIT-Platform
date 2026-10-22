@@ -52,3 +52,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_read_string_accepts_empty_text_with_zero_length_limit(self):
         self.assertEqual(self.run_helper(orbit.read_string, {"label": ""}, "label", max_length=0), "")
+
+    def test_read_string_rejects_nonempty_text_with_zero_length_limit(self):
+        self.assert_bad_request(orbit.read_string, {"label": "x"}, "label", max_length=0)
