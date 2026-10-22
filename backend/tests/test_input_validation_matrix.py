@@ -119,3 +119,7 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_read_password_accepts_single_character_at_helper_boundary(self):
         self.assertEqual(self.run_helper(orbit.read_password, {"password": "x"}), "x")
+
+    def test_read_password_accepts_exact_unicode_character_limit(self):
+        value = "界" * 1024
+        self.assertEqual(self.run_helper(orbit.read_password, {"password": value}), value)
