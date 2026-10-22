@@ -127,3 +127,6 @@ class InputValidationMatrixTests(unittest.TestCase):
     def test_metric_timestamp_accepts_space_separator(self):
         value = self.run_helper(orbit.parse_metric_timestamp, "2026-10-22 12:34:56")
         self.assertEqual(value, datetime(2026, 10, 22, 12, 34, 56))
+
+    def test_metric_timestamp_rejects_impossible_calendar_date(self):
+        self.assert_bad_request(orbit.parse_metric_timestamp, "2026-02-30T12:00:00Z")
