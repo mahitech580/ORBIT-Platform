@@ -94,3 +94,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_positive_int_rejects_empty_text(self):
         self.assert_bad_request(orbit.positive_int, "", "ID")
+
+    def test_positive_int_rejects_whitespace_only_text(self):
+        self.assert_bad_request(orbit.positive_int, " \t\n", "ID")
