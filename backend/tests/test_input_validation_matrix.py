@@ -199,3 +199,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_metric_validation_rejects_numeric_strings(self):
         self.assert_bad_request(orbit.read_metric_value, {"cpu_usage": "12.5"}, "cpu_usage", maximum=100)
+
+    def test_metric_validation_rejects_nan(self):
+        self.assert_bad_request(orbit.read_metric_value, {"cpu_usage": float("nan")}, "cpu_usage", maximum=100)
