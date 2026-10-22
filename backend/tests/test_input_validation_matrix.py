@@ -238,3 +238,9 @@ class InputValidationMatrixTests(unittest.TestCase):
         response = orbit.app.test_client().get("/api/meta", headers={"X-Request-ID": "caller-controlled-id"})
         self.assertRegex(response.headers["X-Request-ID"], r"^[a-f0-9]{32}$")
         self.assertNotEqual(response.headers["X-Request-ID"], "caller-controlled-id")
+
+    def test_successive_responses_receive_distinct_request_ids(self):
+        client = orbit.app.test_client()
+        first = client.get("/api/meta").headers["X-Request-ID"]
+        second = client.get("/api/meta").headers["X-Request-ID"]
+        self.assertNotEqual(first, second)
