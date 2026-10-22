@@ -307,3 +307,10 @@ class InputValidationMatrixTests(unittest.TestCase):
         self.assertEqual(response.status_code, 405)
         self.assertEqual(response.get_json()["status"], 405)
         self.assertEqual(response.headers.get("Cache-Control"), "no-store")
+
+    def test_token_guard_rejects_missing_authorization_header(self):
+        guarded = orbit.token_required(lambda: "protected")
+        with orbit.app.test_request_context("/"):
+            result = guarded()
+        self.assertEqual(result[1], 401)
+        self.assertEqual(result[0].get_json()["error"], "A Bearer token is required.")
