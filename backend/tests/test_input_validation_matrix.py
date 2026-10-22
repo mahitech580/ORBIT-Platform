@@ -161,3 +161,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_cpu_measurement_accepts_zero(self):
         self.assertEqual(self.run_helper(orbit.read_metric_value, {"cpu_usage": 0}, "cpu_usage", maximum=100), 0)
+
+    def test_cpu_measurement_accepts_exact_upper_bound(self):
+        self.assertEqual(self.run_helper(orbit.read_metric_value, {"cpu_usage": 100}, "cpu_usage", maximum=100), 100)
