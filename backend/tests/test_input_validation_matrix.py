@@ -155,3 +155,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_optional_metric_missing_value_returns_none(self):
         self.assertIsNone(self.run_helper(orbit.read_metric_value, {}, "cpu_usage", maximum=100))
+
+    def test_optional_metric_explicit_null_returns_none(self):
+        self.assertIsNone(self.run_helper(orbit.read_metric_value, {"cpu_usage": None}, "cpu_usage", maximum=100))
