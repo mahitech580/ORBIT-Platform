@@ -136,3 +136,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_metric_timestamp_rejects_hour_outside_clock_range(self):
         self.assert_bad_request(orbit.parse_metric_timestamp, "2026-10-22T25:00:00")
+
+    def test_metric_timestamp_rejects_invalid_minutes(self):
+        self.assert_bad_request(orbit.parse_metric_timestamp, "2026-10-22T12:60:00")
