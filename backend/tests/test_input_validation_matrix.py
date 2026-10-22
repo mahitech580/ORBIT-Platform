@@ -361,3 +361,10 @@ class InputValidationMatrixTests(unittest.TestCase):
         with orbit.app.test_request_context("/", headers={"Authorization": "bearer " + token}):
             result = guarded()
         self.assertEqual(result, "protected")
+
+    def test_token_guard_trims_trailing_whitespace_from_token(self):
+        token = orbit.issue_token({"id": 7, "email": "user@example.test"})
+        guarded = orbit.token_required(lambda: "protected")
+        with orbit.app.test_request_context("/", headers={"Authorization": "Bearer " + token + "  "}):
+            result = guarded()
+        self.assertEqual(result, "protected")
