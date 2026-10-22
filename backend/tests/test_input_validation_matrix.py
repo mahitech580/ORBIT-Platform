@@ -382,3 +382,7 @@ class InputValidationMatrixTests(unittest.TestCase):
         with orbit.app.test_request_context("/", headers={"Authorization": "Bearer " + token}):
             result = guarded()
         self.assertEqual(result[1], 401)
+
+    def test_api_response_sets_nosniff_content_type_header(self):
+        response = orbit.app.test_client().get("/api/meta")
+        self.assertEqual(response.headers.get("X-Content-Type-Options"), "nosniff")
