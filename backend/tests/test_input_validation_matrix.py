@@ -193,3 +193,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_metric_validation_rejects_boolean_numbers(self):
         self.assert_bad_request(orbit.read_metric_value, {"cpu_usage": True}, "cpu_usage", maximum=100)
+
+    def test_metric_validation_rejects_decimal_objects(self):
+        self.assert_bad_request(orbit.read_metric_value, {"cpu_usage": Decimal("1.25")}, "cpu_usage", maximum=100)
