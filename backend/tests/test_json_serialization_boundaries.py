@@ -36,3 +36,6 @@ if __name__ == "__main__":
 
     def test_large_representable_decimal_remains_finite(self):
         self.assertEqual(orbit.json_safe(Decimal("1e308")), 1e308)
+
+    def test_decimal_zero_remains_numeric_zero(self):
+        self.assertEqual(orbit.json_safe(Decimal("0")), 0.0)
