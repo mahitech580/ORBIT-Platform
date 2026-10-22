@@ -224,3 +224,8 @@ class InputValidationMatrixTests(unittest.TestCase):
     def test_production_database_configuration_accepts_all_explicit_db_fields(self):
         environment = {"DB_HOST": "db.internal", "DB_NAME": "orbit", "DB_USER": "orbit_user", "DB_PASSWORD": "test-only"}
         orbit.validate_database_configuration(True, "", environment)
+
+    def test_production_database_configuration_rejects_missing_password(self):
+        environment = {"DB_HOST": "db.internal", "DB_NAME": "orbit", "DB_USER": "orbit_user"}
+        with self.assertRaises(RuntimeError):
+            orbit.validate_database_configuration(True, "", environment)
