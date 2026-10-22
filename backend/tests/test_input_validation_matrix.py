@@ -301,3 +301,9 @@ class InputValidationMatrixTests(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.get_json()["status"], 404)
         self.assertRegex(response.headers["X-Request-ID"], r"^[a-f0-9]{32}$")
+
+    def test_wrong_method_returns_json_405_with_no_store_header(self):
+        response = orbit.app.test_client().post("/api/meta", json={})
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.get_json()["status"], 405)
+        self.assertEqual(response.headers.get("Cache-Control"), "no-store")
