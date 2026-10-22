@@ -61,3 +61,6 @@ class InputValidationMatrixTests(unittest.TestCase):
             with self.assertRaises(BadRequest) as caught:
                 orbit.read_string({"service_name": False}, "service_name")
         self.assertEqual(caught.exception.description, "Service name must be text.")
+
+    def test_positive_int_accepts_maximum_as_decimal_text(self):
+        self.assertEqual(self.run_helper(orbit.positive_int, "2147483647", "ID"), 2147483647)
