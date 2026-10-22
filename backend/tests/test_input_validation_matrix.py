@@ -347,3 +347,10 @@ class InputValidationMatrixTests(unittest.TestCase):
         with orbit.app.test_request_context("/", headers={"Authorization": "Bearer " + token}):
             result = guarded()
         self.assertEqual(result[1], 401)
+
+    def test_token_guard_rejects_expired_jwt(self):
+        token = orbit.jwt.encode({"user_id": 7, "exp": 1}, orbit.SECRET_KEY, algorithm="HS256")
+        guarded = orbit.token_required(lambda: "protected")
+        with orbit.app.test_request_context("/", headers={"Authorization": "Bearer " + token}):
+            result = guarded()
+        self.assertEqual(result[1], 401)
