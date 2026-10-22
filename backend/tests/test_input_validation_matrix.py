@@ -229,3 +229,7 @@ class InputValidationMatrixTests(unittest.TestCase):
         environment = {"DB_HOST": "db.internal", "DB_NAME": "orbit", "DB_USER": "orbit_user"}
         with self.assertRaises(RuntimeError):
             orbit.validate_database_configuration(True, "", environment)
+
+    def test_metadata_response_uses_server_generated_request_id(self):
+        response = orbit.app.test_client().get("/api/meta")
+        self.assertRegex(response.headers["X-Request-ID"], r"^[a-f0-9]{32}$")
