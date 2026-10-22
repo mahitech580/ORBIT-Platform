@@ -85,3 +85,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_positive_int_rejects_huge_decimal_text(self):
         self.assert_bad_request(orbit.positive_int, "9" * 100, "ID")
+
+    def test_positive_int_accepts_maximum_as_decimal_text(self):
+        self.assertEqual(self.run_helper(orbit.positive_int, "2147483647", "ID"), 2147483647)
