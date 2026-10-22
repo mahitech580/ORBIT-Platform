@@ -386,3 +386,7 @@ class InputValidationMatrixTests(unittest.TestCase):
     def test_api_response_sets_nosniff_content_type_header(self):
         response = orbit.app.test_client().get("/api/meta")
         self.assertEqual(response.headers.get("X-Content-Type-Options"), "nosniff")
+
+    def test_api_response_denies_frame_embedding(self):
+        response = orbit.app.test_client().get("/api/meta")
+        self.assertEqual(response.headers.get("X-Frame-Options"), "DENY")
