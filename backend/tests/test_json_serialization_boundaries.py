@@ -39,3 +39,6 @@ if __name__ == "__main__":
 
     def test_decimal_zero_remains_numeric_zero(self):
         self.assertEqual(orbit.json_safe(Decimal("0")), 0.0)
+
+    def test_nested_tuple_decimal_overflow_is_converted_recursively(self):
+        self.assertEqual(orbit.json_safe({"samples": (Decimal("3.5"), Decimal("1e10000"))}), {"samples": [3.5, None]})
