@@ -233,3 +233,8 @@ class InputValidationMatrixTests(unittest.TestCase):
     def test_metadata_response_uses_server_generated_request_id(self):
         response = orbit.app.test_client().get("/api/meta")
         self.assertRegex(response.headers["X-Request-ID"], r"^[a-f0-9]{32}$")
+
+    def test_caller_supplied_request_id_is_not_trusted(self):
+        response = orbit.app.test_client().get("/api/meta", headers={"X-Request-ID": "caller-controlled-id"})
+        self.assertRegex(response.headers["X-Request-ID"], r"^[a-f0-9]{32}$")
+        self.assertNotEqual(response.headers["X-Request-ID"], "caller-controlled-id")
