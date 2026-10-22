@@ -96,7 +96,7 @@ Use **Settings → Workspace backup → Export JSON** to download the project, d
 
 In browser-demo mode, **Restore browser demo → Choose JSON file** validates the schema, count summary, IDs, and project/team/deployment relationships before requesting confirmation. Restore replaces the current demo user's workspace records and remaps IDs to keep references consistent. Metrics and authentication state are not exported; restore is deliberately unavailable for server-backed accounts and never writes imported data into the production database.
 
-The importer limits snapshots to 10,000 records and rejects unsupported schema versions. Treat backups as operational data even after redaction. See [the testing guide](docs/TESTING.md) for validation coverage and local test commands.
+The importer limits snapshots to 10,000 records and rejects unsupported schema versions. Treat backups as operational data even after redaction. See [the testing guide](docs/TESTING.md) for validation coverage and local test commands. The backend workflow runs Python and PostgreSQL integration tests on pushes to `main` and pull requests; the Pages workflow tests and builds the browser demo.
 
 ## API overview
 
