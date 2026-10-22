@@ -244,3 +244,9 @@ class InputValidationMatrixTests(unittest.TestCase):
         first = client.get("/api/meta").headers["X-Request-ID"]
         second = client.get("/api/meta").headers["X-Request-ID"]
         self.assertNotEqual(first, second)
+
+    def test_validation_error_keeps_no_store_and_request_id_headers(self):
+        response = orbit.app.test_client().post("/api/auth/register", json=[])
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.headers.get("Cache-Control"), "no-store")
+        self.assertRegex(response.headers["X-Request-ID"], r"^[a-f0-9]{32}$")
