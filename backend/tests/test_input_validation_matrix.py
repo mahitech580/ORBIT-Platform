@@ -148,3 +148,7 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_metric_timestamp_rejects_trailing_garbage(self):
         self.assert_bad_request(orbit.parse_metric_timestamp, "2026-10-22T12:00:00Zjunk")
+
+    def test_metric_timestamp_normalizes_offset_into_next_day(self):
+        value = self.run_helper(orbit.parse_metric_timestamp, "2026-10-22T23:45:00-02:00")
+        self.assertEqual(value, datetime(2026, 10, 23, 1, 45, 0))
