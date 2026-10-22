@@ -408,3 +408,8 @@ class InputValidationMatrixTests(unittest.TestCase):
         response = orbit.app.test_client().post("/api/auth/register", json={"email": "valid@example.test", "username": "valid_user", "password": "p" * 1025})
         self.assertEqual(response.status_code, 400)
         self.assertIn("at most 1024 characters", response.get_json()["error"])
+
+    def test_production_database_configuration_rejects_blank_host(self):
+        environment = {"DB_HOST": " ", "DB_NAME": "orbit", "DB_USER": "orbit_user", "DB_PASSWORD": "test-only"}
+        with self.assertRaises(RuntimeError):
+            orbit.validate_database_configuration(True, "", environment)
