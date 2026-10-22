@@ -64,3 +64,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_positive_int_accepts_maximum_as_decimal_text(self):
         self.assertEqual(self.run_helper(orbit.positive_int, "2147483647", "ID"), 2147483647)
+
+    def test_positive_int_trims_multiple_ascii_whitespace_characters(self):
+        self.assertEqual(self.run_helper(orbit.positive_int, " \t23\n", "ID"), 23)
