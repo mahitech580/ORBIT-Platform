@@ -295,3 +295,9 @@ class InputValidationMatrixTests(unittest.TestCase):
         response = orbit.app.test_client().post("/api/auth/register", json={"username": "valid_user", "password": "correct-horse"})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get_json()["error"], "Email is required.")
+
+    def test_unknown_api_path_returns_json_404_with_request_id(self):
+        response = orbit.app.test_client().get("/api/path-that-does-not-exist")
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.get_json()["status"], 404)
+        self.assertRegex(response.headers["X-Request-ID"], r"^[a-f0-9]{32}$")
