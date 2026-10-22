@@ -18,7 +18,7 @@
     "framer-motion": "^12.23.26"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.0.0",
+    "@vitejs/plugin-react": "^6.1.2",
     "vite": "^4.3.0"
   }
 }
