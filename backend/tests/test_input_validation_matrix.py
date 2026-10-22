@@ -327,3 +327,9 @@ class InputValidationMatrixTests(unittest.TestCase):
             result = guarded()
         self.assertEqual(result[1], 401)
         self.assertIn("invalid or expired", result[0].get_json()["error"])
+
+    def test_token_guard_rejects_bearer_scheme_without_token(self):
+        guarded = orbit.token_required(lambda: "protected")
+        with orbit.app.test_request_context("/", headers={"Authorization": "Bearer   "}):
+            result = guarded()
+        self.assertEqual(result[1], 401)
