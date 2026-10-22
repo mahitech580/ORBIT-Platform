@@ -33,3 +33,6 @@ if __name__ == "__main__":
 
     def test_negative_finite_decimal_keeps_sign(self):
         self.assertEqual(orbit.json_safe(Decimal("-12.50")), -12.5)
+
+    def test_large_representable_decimal_remains_finite(self):
+        self.assertEqual(orbit.json_safe(Decimal("1e308")), 1e308)
