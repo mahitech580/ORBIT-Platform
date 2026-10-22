@@ -175,3 +175,8 @@ class InputValidationMatrixTests(unittest.TestCase):
         environment = {"DB_HOST": None, "DB_NAME": None, "DB_USER": None, "DB_PASSWORD": None}
         with self.assertRaises(RuntimeError):
             orbit.validate_database_configuration(True, "", environment)
+
+    def test_integer_metric_normalizes_whole_float_to_int(self):
+        value = self.run_helper(orbit.read_metric_value, {"requests_total": 12.0}, "requests_total", integer=True, maximum=orbit.POSTGRES_INTEGER_MAX)
+        self.assertEqual(value, 12)
+        self.assertIsInstance(value, int)
