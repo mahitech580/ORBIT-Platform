@@ -183,3 +183,7 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_integer_metric_rejects_fractional_float(self):
         self.assert_bad_request(orbit.read_metric_value, {"requests_total": 12.5}, "requests_total", integer=True, maximum=orbit.POSTGRES_INTEGER_MAX)
+
+    def test_integer_metric_accepts_postgres_serial_maximum(self):
+        value = self.run_helper(orbit.read_metric_value, {"memory_usage": orbit.POSTGRES_INTEGER_MAX}, "memory_usage", integer=True, maximum=orbit.POSTGRES_INTEGER_MAX)
+        self.assertEqual(value, 2147483647)
