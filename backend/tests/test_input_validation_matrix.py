@@ -152,3 +152,6 @@ class InputValidationMatrixTests(unittest.TestCase):
     def test_metric_timestamp_normalizes_offset_into_next_day(self):
         value = self.run_helper(orbit.parse_metric_timestamp, "2026-10-22T23:45:00-02:00")
         self.assertEqual(value, datetime(2026, 10, 23, 1, 45, 0))
+
+    def test_optional_metric_missing_value_returns_none(self):
+        self.assertIsNone(self.run_helper(orbit.read_metric_value, {}, "cpu_usage", maximum=100))
