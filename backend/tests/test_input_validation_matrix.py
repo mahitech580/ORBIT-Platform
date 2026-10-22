@@ -55,3 +55,9 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_read_string_rejects_nonempty_text_with_zero_length_limit(self):
         self.assert_bad_request(orbit.read_string, {"label": "x"}, "label", max_length=0)
+
+    def test_read_string_error_label_expands_underscores(self):
+        with orbit.app.test_request_context("/", method="POST", json={}):
+            with self.assertRaises(BadRequest) as caught:
+                orbit.read_string({"service_name": False}, "service_name")
+        self.assertEqual(caught.exception.description, "Service name must be text.")
