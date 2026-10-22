@@ -46,3 +46,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_read_string_rejects_null_when_default_is_null(self):
         self.assert_bad_request(orbit.read_string, {"label": None}, "label", default=None)
+
+    def test_read_string_trims_carriage_return_and_newline(self):
+        self.assertEqual(self.run_helper(orbit.read_string, {"label": "\r\n Orbit \t"}, "label"), "Orbit")
