@@ -220,3 +220,7 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_production_database_configuration_accepts_explicit_database_url(self):
         orbit.validate_database_configuration(True, "postgresql://orbit:example@db.example/orbit", {})
+
+    def test_production_database_configuration_accepts_all_explicit_db_fields(self):
+        environment = {"DB_HOST": "db.internal", "DB_NAME": "orbit", "DB_USER": "orbit_user", "DB_PASSWORD": "test-only"}
+        orbit.validate_database_configuration(True, "", environment)
