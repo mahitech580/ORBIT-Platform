@@ -214,3 +214,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_negative_zero_is_accepted_as_nonnegative_measurement(self):
         self.assertEqual(self.run_helper(orbit.read_metric_value, {"response_time_ms": -0.0}, "response_time_ms", maximum=999999.99), -0.0)
+
+    def test_nonproduction_database_configuration_can_use_local_defaults(self):
+        orbit.validate_database_configuration(False, "", {})
