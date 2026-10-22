@@ -265,3 +265,8 @@ class InputValidationMatrixTests(unittest.TestCase):
         response = orbit.app.test_client().post("/api/auth/register", data="{bad json", content_type="application/json")
         self.assertEqual(response.status_code, 400)
         self.assertIn("JSON object", response.get_json()["error"])
+
+    def test_registration_rejects_invalid_email_before_database_access(self):
+        response = orbit.app.test_client().post("/api/auth/register", json={"email": "not-an-email", "username": "valid_user", "password": "correct-horse"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get_json()["error"], "Enter a valid email address.")
