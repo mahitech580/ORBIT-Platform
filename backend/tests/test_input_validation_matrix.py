@@ -67,3 +67,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_positive_int_trims_multiple_ascii_whitespace_characters(self):
         self.assertEqual(self.run_helper(orbit.positive_int, " \t23\n", "ID"), 23)
+
+    def test_positive_int_rejects_explicit_plus_sign(self):
+        self.assert_bad_request(orbit.positive_int, "+1", "ID")
