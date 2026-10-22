@@ -60,7 +60,10 @@ def validate_database_configuration(is_production, database_url, environment):
     if not is_production or (isinstance(database_url, str) and database_url.strip()):
         return
     required = ("DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD")
-    missing = [name for name in required if not str(environment.get(name, "")).strip()]
+    missing = [
+        name for name in required
+        if not isinstance(environment.get(name), str) or not environment.get(name, "").strip()
+    ]
     if missing:
         raise RuntimeError(
             "Production database configuration is incomplete. Set DATABASE_URL or "
