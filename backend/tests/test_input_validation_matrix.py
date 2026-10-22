@@ -320,3 +320,10 @@ class InputValidationMatrixTests(unittest.TestCase):
         with orbit.app.test_request_context("/", headers={"Authorization": "Basic abc"}):
             result = guarded()
         self.assertEqual(result[1], 401)
+
+    def test_token_guard_rejects_malformed_bearer_token(self):
+        guarded = orbit.token_required(lambda: "protected")
+        with orbit.app.test_request_context("/", headers={"Authorization": "Bearer not-a-jwt"}):
+            result = guarded()
+        self.assertEqual(result[1], 401)
+        self.assertIn("invalid or expired", result[0].get_json()["error"])
