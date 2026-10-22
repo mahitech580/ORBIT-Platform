@@ -211,3 +211,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_response_time_rejects_value_above_supported_maximum(self):
         self.assert_bad_request(orbit.read_metric_value, {"response_time_ms": 1000000}, "response_time_ms", maximum=999999.99)
+
+    def test_negative_zero_is_accepted_as_nonnegative_measurement(self):
+        self.assertEqual(self.run_helper(orbit.read_metric_value, {"response_time_ms": -0.0}, "response_time_ms", maximum=999999.99), -0.0)
