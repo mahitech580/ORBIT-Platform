@@ -217,3 +217,6 @@ class InputValidationMatrixTests(unittest.TestCase):
 
     def test_nonproduction_database_configuration_can_use_local_defaults(self):
         orbit.validate_database_configuration(False, "", {})
+
+    def test_production_database_configuration_accepts_explicit_database_url(self):
+        orbit.validate_database_configuration(True, "postgresql://orbit:example@db.example/orbit", {})
