@@ -260,3 +260,8 @@ class InputValidationMatrixTests(unittest.TestCase):
         response = orbit.app.test_client().post("/api/auth/register", json=["not", "an", "object"])
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get_json()["status"], 400)
+
+    def test_malformed_json_registration_body_returns_400(self):
+        response = orbit.app.test_client().post("/api/auth/register", data="{bad json", content_type="application/json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("JSON object", response.get_json()["error"])
