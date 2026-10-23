@@ -2,7 +2,7 @@
 
 ORBIT is a project operations workspace built with React, Vite, Flask, and PostgreSQL. Version 2.0 focuses on safer account handling, user-scoped project data, reliable local configuration, usable project management, and honest deployment-status reporting.
 
-## What it does
+# What it does
 
 - Account registration and sign-in with signed, expiring JWTs.
 - Private owner-scoped team and project inventory.
