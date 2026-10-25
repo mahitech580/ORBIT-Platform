@@ -57,3 +57,7 @@ if __name__ == "__main__":
     def test_request_id_is_32_character_hex(self):
         response = self.client.get("/api/meta")
         self.assertRegex(response.headers.get("X-Request-ID", ""), r"^[a-f0-9]{32}$")
+
+    def test_meta_response_disables_caching(self):
+        response = self.client.get("/api/meta")
+        self.assertEqual(response.headers.get("Cache-Control"), "no-store")
