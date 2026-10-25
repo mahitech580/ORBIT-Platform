@@ -49,3 +49,7 @@ test('shared CSV cell serializer doubles embedded quotes', () => {
 test('shared CSV cell serializer quotes commas', () => {
   assert.equal(csvCell('one,two'), '"one,two"');
 });
+
+test('shared CSV cell serializer quotes line breaks and preserves them', () => {
+  assert.equal(csvCell('first\nsecond'), '"first\nsecond"');
+});
