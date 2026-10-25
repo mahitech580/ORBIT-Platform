@@ -68,5 +68,10 @@ class IntegerSettingTests(unittest.TestCase):
         self.assertEqual(orbit.parse_integer_setting("DB_CONNECT_TIMEOUT", "300", 5, maximum=300), 300)
 
 
+    def test_zero_timeout_is_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, "DB_CONNECT_TIMEOUT must be 1 to 300"):
+            orbit.parse_integer_setting("DB_CONNECT_TIMEOUT", "0", 5, maximum=300)
+
+
 if __name__ == "__main__":
     unittest.main()
