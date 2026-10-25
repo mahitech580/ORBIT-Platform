@@ -169,7 +169,7 @@ export function validateWorkspaceBackup(snapshot) {
   });
   deployments.forEach((deployment, index) => {
     if (!deployment || typeof deployment !== 'object' || Array.isArray(deployment)) return;
-    if (!Number.isFinite(Number(deployment.project_id))) {
+    if (normalizeRecordId(deployment.project_id) === null) {
       errors.push('Deployment record ' + (index + 1) + ' has an invalid project reference.');
     }
     if (deployment.version != null && (typeof deployment.version !== 'string' || deployment.version.length > 80)) {
@@ -181,7 +181,7 @@ export function validateWorkspaceBackup(snapshot) {
   });
   instances.forEach((instance, index) => {
     if (!instance || typeof instance !== 'object' || Array.isArray(instance)) return;
-    if (!Number.isFinite(Number(instance.project_id))) {
+    if (normalizeRecordId(instance.project_id) === null) {
       errors.push('Instance record ' + (index + 1) + ' has an invalid project reference.');
     }
     if (typeof instance.name !== 'string' || !instance.name.trim() || instance.name.length > 120) {
@@ -211,7 +211,8 @@ export function validateWorkspaceBackup(snapshot) {
   const teamIds = validateIds(teams, 'Team');
   projects.forEach((project, index) => {
     if (!project || typeof project !== 'object' || Array.isArray(project) || project.team_id == null) return;
-    if (!teamIds.has(Number(project.team_id))) {
+    const teamId = normalizeRecordId(project.team_id);
+    if (teamId === null || !teamIds.has(teamId)) {
       errors.push('Project record ' + (index + 1) + ' references a team missing from the backup.');
     }
   });
@@ -220,24 +221,25 @@ export function validateWorkspaceBackup(snapshot) {
   const deploymentProjectById = new Map();
   deployments.forEach((deployment) => {
     if (!deployment || typeof deployment !== 'object' || Array.isArray(deployment)) return;
-    deploymentProjectById.set(Number(deployment.id), Number(deployment.project_id));
+    deploymentProjectById.set(normalizeRecordId(deployment.id), normalizeRecordId(deployment.project_id));
   });
   deployments.forEach((deployment, index) => {
-    if (deployment && typeof deployment === 'object' && !Array.isArray(deployment) && !projectIds.has(Number(deployment.project_id))) {
+    if (deployment && typeof deployment === 'object' && !Array.isArray(deployment) && !projectIds.has(normalizeRecordId(deployment.project_id))) {
       errors.push('Deployment record ' + (index + 1) + ' references a project missing from the backup.');
     }
   });
   instances.forEach((instance, index) => {
     if (!instance || typeof instance !== 'object' || Array.isArray(instance)) return;
-    if (!projectIds.has(Number(instance.project_id))) errors.push('Instance record ' + (index + 1) + ' references a project missing from the backup.');
+    const projectId = normalizeRecordId(instance.project_id);
+    if (projectId === null || !projectIds.has(projectId)) errors.push('Instance record ' + (index + 1) + ' references a project missing from the backup.');
     if (instance.deployment_id == null) {
       errors.push('Instance record ' + (index + 1) + ' is missing a deployment reference.');
       return;
     }
-    const deploymentId = Number(instance.deployment_id);
-    if (!deploymentIds.has(deploymentId)) {
+    const deploymentId = normalizeRecordId(instance.deployment_id);
+    if (deploymentId === null || !deploymentIds.has(deploymentId)) {
       errors.push('Instance record ' + (index + 1) + ' references a deployment missing from the backup.');
-    } else if (deploymentProjectById.get(deploymentId) !== Number(instance.project_id)) {
+    } else if (deploymentProjectById.get(deploymentId) !== projectId) {
       errors.push('Instance record ' + (index + 1) + ' references a deployment belonging to another project.');
     }
   });
