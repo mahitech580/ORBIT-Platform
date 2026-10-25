@@ -11,6 +11,10 @@
 - Recover malformed demo browser state, repair next-ID counters, and retain current-tab changes when storage is blocked or quota-limited.
 - Add regression tests for authentication boundaries, timestamp parsing, request IDs, health/readiness behavior, browser persistence, exports, and backup validation.
 - Document API contracts, security boundaries, and repeatable local test commands.
+- Validate integer database settings and demo-auth flags explicitly so invalid environment values fail fast with clear configuration errors.
+- Enforce case-insensitive username uniqueness at the PostgreSQL boundary to match browser-demo registration.
+- Centralize formula-safe CSV cell escaping and CSV output formatting across project, deployment, team, instance, and telemetry exports.
+- Validate backup team descriptions, instance types, and integer references before restore; reject boolean and coercible non-integer identifiers.
 
 ## Release notes
 
