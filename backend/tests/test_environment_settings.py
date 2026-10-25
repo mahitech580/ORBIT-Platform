@@ -60,5 +60,9 @@ class IntegerSettingTests(unittest.TestCase):
             orbit.parse_integer_setting("DB_PORT", 5432.9, 5432, maximum=65535)
 
 
+    def test_timeout_minimum_is_accepted(self):
+        self.assertEqual(orbit.parse_integer_setting("DB_CONNECT_TIMEOUT", "1", 5, maximum=300), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
