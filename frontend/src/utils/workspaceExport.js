@@ -174,6 +174,9 @@ export function validateWorkspaceBackup(snapshot) {
     if (typeof instance.name !== 'string' || !instance.name.trim() || instance.name.length > 120) {
       errors.push('Instance record ' + (index + 1) + ' has an invalid name.');
     }
+    if (instance.instance_type != null && (typeof instance.instance_type !== 'string' || instance.instance_type.length > 80)) {
+      errors.push('Instance record ' + (index + 1) + ' has an invalid instance type.');
+    }
   });
 
   const validateIds = (items, label) => {
