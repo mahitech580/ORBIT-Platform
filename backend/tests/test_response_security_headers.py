@@ -45,3 +45,7 @@ if __name__ == "__main__":
     def test_meta_response_sets_referrer_policy(self):
         response = self.client.get("/api/meta")
         self.assertEqual(response.headers.get("Referrer-Policy"), "no-referrer")
+
+    def test_meta_response_restricts_browser_capabilities(self):
+        response = self.client.get("/api/meta")
+        self.assertEqual(response.headers.get("Permissions-Policy"), "camera=(), microphone=(), geolocation=()")
