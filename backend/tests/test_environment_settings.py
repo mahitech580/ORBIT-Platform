@@ -98,5 +98,11 @@ class IntegerSettingTests(unittest.TestCase):
             orbit.parse_integer_setting("DB_PORT", "+5432", 5432, maximum=65535)
 
 
+    def test_boolean_setting_accepts_case_insensitive_true_values(self):
+        for value in ("true", "TRUE", " yes ", "On", "1"):
+            with self.subTest(value=value):
+                self.assertIs(orbit.parse_boolean_setting("FEATURE_FLAG", value, False), True)
+
+
 if __name__ == "__main__":
     unittest.main()
