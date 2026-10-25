@@ -78,3 +78,7 @@ test('shared CSV serializer does not mutate source row arrays', () => {
   assert.deepEqual(row, ['=SUM(A1:A2)']);
   assert.equal(rows[0], row);
 });
+
+test('shared CSV serializer emits the header when there are no records', () => {
+  assert.equal(serializeCsv(['ID', 'Name'], []), '\uFEFFID,Name\r\n');
+});
