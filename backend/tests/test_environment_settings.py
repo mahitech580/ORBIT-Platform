@@ -115,5 +115,10 @@ class IntegerSettingTests(unittest.TestCase):
         self.assertIs(orbit.parse_boolean_setting("FEATURE_FLAG", None, False), False)
 
 
+    def test_boolean_setting_uses_default_when_blank(self):
+        self.assertIs(orbit.parse_boolean_setting("FEATURE_FLAG", "   ", True), True)
+        self.assertIs(orbit.parse_boolean_setting("FEATURE_FLAG", "\t", False), False)
+
+
 if __name__ == "__main__":
     unittest.main()
