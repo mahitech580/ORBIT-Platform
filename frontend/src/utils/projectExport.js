@@ -1,11 +1,4 @@
-const FORMULA_PREFIX = /^[\u0000-\u0020]*[=+\-@]/;
-
-function csvCell(value) {
-  let text = String(value ?? '');
-  if (FORMULA_PREFIX.test(text)) text = "'" + text;
-  if (/[",\r\n]/.test(text)) return '"' + text.replace(/"/g, '""') + '"';
-  return text;
-}
+import { serializeCsv } from './csv.js';
 
 /** Serialize the exact project list displayed by the current filters. */
 export function buildProjectCsv(projects) {
@@ -23,7 +16,5 @@ export function buildProjectCsv(projects) {
     project.created_at,
     project.updated_at
   ]);
-  return '\uFEFF' + [header, ...rows]
-    .map(row => row.map(csvCell).join(','))
-    .join('\r\n') + '\r\n';
+  return serializeCsv(header, rows);
 }
