@@ -53,3 +53,7 @@ if __name__ == "__main__":
     def test_meta_response_uses_nosniff(self):
         response = self.client.get("/api/meta")
         self.assertEqual(response.headers.get("X-Content-Type-Options"), "nosniff")
+
+    def test_request_id_is_32_character_hex(self):
+        response = self.client.get("/api/meta")
+        self.assertRegex(response.headers.get("X-Request-ID", ""), r"^[a-f0-9]{32}$")
