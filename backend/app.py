@@ -46,10 +46,16 @@ def parse_integer_setting(name, value, default, *, minimum=1, maximum=None):
         return default
     if isinstance(value, bool) or not isinstance(value, (str, int)):
         raise RuntimeError(name + " must be an integer.")
-    try:
-        parsed = int(value.strip()) if isinstance(value, str) else value
-    except (TypeError, ValueError, OverflowError):
-        raise RuntimeError(name + " must be an integer.") from None
+    if isinstance(value, str):
+        normalized = value.strip()
+        if not normalized or not normalized.isascii() or not normalized.isdecimal():
+            raise RuntimeError(name + " must be an integer.")
+        try:
+            parsed = int(normalized)
+        except (ValueError, OverflowError):
+            raise RuntimeError(name + " must be an integer.") from None
+    else:
+        parsed = value
     if parsed < minimum or (maximum is not None and parsed > maximum):
         bounds = str(minimum) + (" to " + str(maximum) if maximum is not None else " or greater")
         raise RuntimeError(name + " must be " + bounds + ".")
