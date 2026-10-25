@@ -49,10 +49,10 @@ class JsonSafeContractTests(unittest.TestCase):
         self.assertEqual(json.loads(encoded), [4, "item_004"])
 
     def test_json_safe_regression_case_005(self):
-        value = {"index": 5, "enabled": false}
+        value = {"index": 5, "enabled": False}
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), {"index": 5, "enabled": false})
+        self.assertEqual(json.loads(encoded), {"index": 5, "enabled": False})
 
     def test_json_safe_regression_case_006(self):
         value = ({"index": 6, "values": (6, 7)})
@@ -76,7 +76,7 @@ class JsonSafeContractTests(unittest.TestCase):
         value = [True, False, None, 9]
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), [true, false, null, 9])
+        self.assertEqual(json.loads(encoded), [True, False, None, 9])
 
     def test_json_safe_regression_case_010(self):
         value = {"unicode": "ORBIT-010-✓", "count": 10}
@@ -109,10 +109,10 @@ class JsonSafeContractTests(unittest.TestCase):
         self.assertEqual(json.loads(encoded), [14, "item_014"])
 
     def test_json_safe_regression_case_015(self):
-        value = {"index": 15, "enabled": false}
+        value = {"index": 15, "enabled": False}
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), {"index": 15, "enabled": false})
+        self.assertEqual(json.loads(encoded), {"index": 15, "enabled": False})
 
     def test_json_safe_regression_case_016(self):
         value = ({"index": 16, "values": (16, 17)})
@@ -136,7 +136,7 @@ class JsonSafeContractTests(unittest.TestCase):
         value = [True, False, None, 19]
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), [true, false, null, 19])
+        self.assertEqual(json.loads(encoded), [True, False, None, 19])
 
     def test_json_safe_regression_case_017(self):
         value = [{"index": 17}, [{"nested": 18}]]
@@ -154,7 +154,7 @@ class JsonSafeContractTests(unittest.TestCase):
         value = [True, False, None, 19]
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), [true, false, null, 19])
+        self.assertEqual(json.loads(encoded), [True, False, None, 19])
 
     def test_json_safe_regression_case_020(self):
         value = {"unicode": "ORBIT-020-✓", "count": 20}
@@ -187,10 +187,10 @@ class JsonSafeContractTests(unittest.TestCase):
         self.assertEqual(json.loads(encoded), [24, "item_024"])
 
     def test_json_safe_regression_case_025(self):
-        value = {"index": 25, "enabled": false}
+        value = {"index": 25, "enabled": False}
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), {"index": 25, "enabled": false})
+        self.assertEqual(json.loads(encoded), {"index": 25, "enabled": False})
 
     def test_json_safe_regression_case_026(self):
         value = ({"index": 26, "values": (26, 27)})
@@ -214,7 +214,7 @@ class JsonSafeContractTests(unittest.TestCase):
         value = [True, False, None, 29]
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), [true, false, null, 29])
+        self.assertEqual(json.loads(encoded), [True, False, None, 29])
 
     def test_json_safe_regression_case_030(self):
         value = {"unicode": "ORBIT-030-✓", "count": 30}
@@ -247,10 +247,10 @@ class JsonSafeContractTests(unittest.TestCase):
         self.assertEqual(json.loads(encoded), [34, "item_034"])
 
     def test_json_safe_regression_case_035(self):
-        value = {"index": 35, "enabled": false}
+        value = {"index": 35, "enabled": False}
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), {"index": 35, "enabled": false})
+        self.assertEqual(json.loads(encoded), {"index": 35, "enabled": False})
 
     def test_json_safe_regression_case_036(self):
         value = ({"index": 36, "values": (36, 37)})
@@ -274,7 +274,7 @@ class JsonSafeContractTests(unittest.TestCase):
         value = [True, False, None, 39]
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), [true, false, null, 39])
+        self.assertEqual(json.loads(encoded), [True, False, None, 39])
 
     def test_json_safe_regression_case_040(self):
         value = {"unicode": "ORBIT-040-✓", "count": 40}
@@ -307,10 +307,10 @@ class JsonSafeContractTests(unittest.TestCase):
         self.assertEqual(json.loads(encoded), [44, "item_044"])
 
     def test_json_safe_regression_case_045(self):
-        value = {"index": 45, "enabled": false}
+        value = {"index": 45, "enabled": False}
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), {"index": 45, "enabled": false})
+        self.assertEqual(json.loads(encoded), {"index": 45, "enabled": False})
 
     def test_json_safe_regression_case_046(self):
         value = ({"index": 46, "values": (46, 47)})
@@ -334,7 +334,7 @@ class JsonSafeContractTests(unittest.TestCase):
         value = [True, False, None, 49]
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), [true, false, null, 49])
+        self.assertEqual(json.loads(encoded), [True, False, None, 49])
 
     def test_json_safe_regression_case_050(self):
         value = {"unicode": "ORBIT-050-✓", "count": 50}
@@ -367,10 +367,10 @@ class JsonSafeContractTests(unittest.TestCase):
         self.assertEqual(json.loads(encoded), [54, "item_054"])
 
     def test_json_safe_regression_case_055(self):
-        value = {"index": 55, "enabled": false}
+        value = {"index": 55, "enabled": False}
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), {"index": 55, "enabled": false})
+        self.assertEqual(json.loads(encoded), {"index": 55, "enabled": False})
 
     def test_json_safe_regression_case_056(self):
         value = ({"index": 56, "values": (56, 57)})
@@ -394,7 +394,7 @@ class JsonSafeContractTests(unittest.TestCase):
         value = [True, False, None, 59]
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), [true, false, null, 59])
+        self.assertEqual(json.loads(encoded), [True, False, None, 59])
 
     def test_json_safe_regression_case_060(self):
         value = {"unicode": "ORBIT-060-✓", "count": 60}
@@ -427,10 +427,10 @@ class JsonSafeContractTests(unittest.TestCase):
         self.assertEqual(json.loads(encoded), [64, "item_064"])
 
     def test_json_safe_regression_case_065(self):
-        value = {"index": 65, "enabled": false}
+        value = {"index": 65, "enabled": False}
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), {"index": 65, "enabled": false})
+        self.assertEqual(json.loads(encoded), {"index": 65, "enabled": False})
 
     def test_json_safe_regression_case_066(self):
         value = ({"index": 66, "values": (66, 67)})
@@ -454,7 +454,7 @@ class JsonSafeContractTests(unittest.TestCase):
         value = [True, False, None, 69]
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), [true, false, null, 69])
+        self.assertEqual(json.loads(encoded), [True, False, None, 69])
 
     def test_json_safe_regression_case_070(self):
         value = {"unicode": "ORBIT-070-✓", "count": 70}
@@ -487,10 +487,10 @@ class JsonSafeContractTests(unittest.TestCase):
         self.assertEqual(json.loads(encoded), [74, "item_074"])
 
     def test_json_safe_regression_case_075(self):
-        value = {"index": 75, "enabled": false}
+        value = {"index": 75, "enabled": False}
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), {"index": 75, "enabled": false})
+        self.assertEqual(json.loads(encoded), {"index": 75, "enabled": False})
 
     def test_json_safe_regression_case_076(self):
         value = ({"index": 76, "values": (76, 77)})
@@ -514,7 +514,7 @@ class JsonSafeContractTests(unittest.TestCase):
         value = [True, False, None, 79]
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), [true, false, null, 79])
+        self.assertEqual(json.loads(encoded), [True, False, None, 79])
 
     def test_json_safe_regression_case_080(self):
         value = {"unicode": "ORBIT-080-✓", "count": 80}
@@ -547,10 +547,10 @@ class JsonSafeContractTests(unittest.TestCase):
         self.assertEqual(json.loads(encoded), [84, "item_084"])
 
     def test_json_safe_regression_case_085(self):
-        value = {"index": 85, "enabled": false}
+        value = {"index": 85, "enabled": False}
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), {"index": 85, "enabled": false})
+        self.assertEqual(json.loads(encoded), {"index": 85, "enabled": False})
 
     def test_json_safe_regression_case_086(self):
         value = ({"index": 86, "values": (86, 87)})
@@ -574,7 +574,7 @@ class JsonSafeContractTests(unittest.TestCase):
         value = [True, False, None, 89]
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), [true, false, null, 89])
+        self.assertEqual(json.loads(encoded), [True, False, None, 89])
 
     def test_json_safe_regression_case_090(self):
         value = {"unicode": "ORBIT-090-✓", "count": 90}
@@ -607,10 +607,10 @@ class JsonSafeContractTests(unittest.TestCase):
         self.assertEqual(json.loads(encoded), [94, "item_094"])
 
     def test_json_safe_regression_case_095(self):
-        value = {"index": 95, "enabled": false}
+        value = {"index": 95, "enabled": False}
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), {"index": 95, "enabled": false})
+        self.assertEqual(json.loads(encoded), {"index": 95, "enabled": False})
 
     def test_json_safe_regression_case_096(self):
         value = ({"index": 96, "values": (96, 97)})
@@ -634,7 +634,7 @@ class JsonSafeContractTests(unittest.TestCase):
         value = [True, False, None, 99]
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), [true, false, null, 99])
+        self.assertEqual(json.loads(encoded), [True, False, None, 99])
 
     def test_json_safe_regression_case_100(self):
         value = {"unicode": "ORBIT-100-✓", "count": 100}
@@ -667,10 +667,10 @@ class JsonSafeContractTests(unittest.TestCase):
         self.assertEqual(json.loads(encoded), [104, "item_104"])
 
     def test_json_safe_regression_case_105(self):
-        value = {"index": 105, "enabled": false}
+        value = {"index": 105, "enabled": False}
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), {"index": 105, "enabled": false})
+        self.assertEqual(json.loads(encoded), {"index": 105, "enabled": False})
 
     def test_json_safe_regression_case_106(self):
         value = ({"index": 106, "values": (106, 107)})
@@ -694,7 +694,7 @@ class JsonSafeContractTests(unittest.TestCase):
         value = [True, False, None, 109]
         normalized = orbit.json_safe(value)
         encoded = json.dumps(normalized, allow_nan=False)
-        self.assertEqual(json.loads(encoded), [true, false, null, 109])
+        self.assertEqual(json.loads(encoded), [True, False, None, 109])
 
     def test_json_safe_regression_case_110(self):
         value = {"unicode": "ORBIT-110-✓", "count": 110}
