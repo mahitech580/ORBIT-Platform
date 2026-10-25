@@ -127,5 +127,12 @@ class IntegerSettingTests(unittest.TestCase):
                     orbit.parse_boolean_setting("FEATURE_FLAG", value, False)
 
 
+    def test_boolean_setting_rejects_non_string_values(self):
+        for value in (True, False, 1, 0, []):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(RuntimeError, "boolean setting"):
+                    orbit.parse_boolean_setting("FEATURE_FLAG", value, False)
+
+
 if __name__ == "__main__":
     unittest.main()
