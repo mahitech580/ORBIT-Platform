@@ -64,3 +64,7 @@ test('shared CSV serializer emits UTF-8 BOM and CRLF row endings', () => {
 test('shared CSV cell serializer neutralizes a formula after a null byte', () => {
   assert.equal(csvCell('\u0000=SUM(A1:A2)'), "'\u0000=SUM(A1:A2)");
 });
+
+test('shared CSV cell serializer preserves harmless leading whitespace', () => {
+  assert.equal(csvCell('  ordinary text'), '  ordinary text');
+});
