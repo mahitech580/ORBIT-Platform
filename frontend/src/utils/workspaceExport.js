@@ -1,7 +1,20 @@
 const SENSITIVE_FIELD = /(?:password|passphrase|secret|token|authorization|api[_-]?key|private[_-]?key|cookie|credential)/i;
 
 // Browser restore is intended for workspace snapshots, not unbounded bulk imports.
+
 const MAX_BACKUP_RECORDS = 10000;
+
+/** Normalize a record reference only when it is a positive safe integer. */
+function normalizeRecordId(value) {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  if (!normalized || !/^[0-9]+$/.test(normalized)) return null;
+  const parsed = Number(normalized);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
 
 const SENSITIVE_TEXT_PATTERNS = [
   [/\b[A-Z0-9_-]*(?:password|passwd|passphrase|secret|token|authorization|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret)\b\s*[:=]\s*(?:Bearer\s+[^\s,;]+|Basic\s+[^\s,;]+|"[^"]*"|'[^']*'|[^\s,;]+)/gi, '[REDACTED: credential assignment'],
@@ -183,12 +196,8 @@ export function validateWorkspaceBackup(snapshot) {
     const seen = new Set();
     items.forEach((item, index) => {
       if (!item || typeof item !== 'object' || Array.isArray(item)) return;
-      const rawId = item.id;
-      const normalizedText = typeof rawId === 'string' ? rawId.trim() : null;
-      const id = typeof rawId === 'number'
-        ? rawId
-        : (normalizedText && /^[0-9]+$/.test(normalizedText) ? Number(normalizedText) : NaN);
-      if (!Number.isSafeInteger(id) || id < 1) {
+      const id = normalizeRecordId(item.id);
+      if (id === null) {
         errors.push(label + ' record ' + (index + 1) + ' has an invalid ID.');
       } else if (seen.has(id)) {
         errors.push(label + ' records contain duplicate ID ' + id + '.');
