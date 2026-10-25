@@ -351,5 +351,16 @@ class RealPostgresWorkflowTests(unittest.TestCase):
         self.assertEqual(owner_metrics.get_json()["metrics"], [])
 
 
+    def test_username_uniqueness_is_case_insensitive(self):
+        self.register("casefold@example.test", "case_fold_user")
+        response = self.client.post("/api/auth/register", json={
+            "email": "casefold-second@example.test",
+            "username": "CASE_FOLD_USER",
+            "password": "correct-horse-battery-42",
+        })
+        self.assertEqual(response.status_code, 409)
+        self.assertIn("already registered", response.get_json()["error"])
+
+
 if __name__ == "__main__":
     unittest.main()
