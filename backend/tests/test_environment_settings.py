@@ -26,5 +26,9 @@ class IntegerSettingTests(unittest.TestCase):
         self.assertEqual(orbit.parse_integer_setting("DB_PORT", "1", 5432, maximum=65535), 1)
 
 
+    def test_maximum_port_is_accepted(self):
+        self.assertEqual(orbit.parse_integer_setting("DB_PORT", "65535", 5432, maximum=65535), 65535)
+
+
 if __name__ == "__main__":
     unittest.main()
