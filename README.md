@@ -50,7 +50,7 @@ Prerequisites: Python 3.10+, Node.js 18+, npm, and PostgreSQL 14+.
 7. In a second terminal, install frontend packages from `frontend` with `npm install`, then run `npm run dev`.
 8. Open http://localhost:3000.
 
-The backend uses the variables in .env when python-dotenv is installed, as listed in requirements.txt. The frontend calls /api by default and uses the Vite proxy in development. Set VITE_API_URL to an absolute API base only when the frontend and API are intentionally hosted separately.
+The backend uses the variables in .env when python-dotenv is installed, as listed in requirements.txt. See the [configuration reference](docs/CONFIGURATION_REFERENCE.md) for accepted database ports/timeouts and demo-auth boolean values. The frontend calls /api by default and uses the Vite proxy in development. Set VITE_API_URL to an absolute API base only when the frontend and API are intentionally hosted separately.
 
 ## Deploying the backend to Render
 
