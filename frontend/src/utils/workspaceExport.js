@@ -150,6 +150,9 @@ export function validateWorkspaceBackup(snapshot) {
     if (typeof team.name !== 'string' || !team.name.trim() || team.name.length > 120) {
       errors.push('Team record ' + (index + 1) + ' has an invalid name.');
     }
+    if (team.description != null && (typeof team.description !== 'string' || team.description.length > 2000)) {
+      errors.push('Team record ' + (index + 1) + ' has an invalid description.');
+    }
   });
   deployments.forEach((deployment, index) => {
     if (!deployment || typeof deployment !== 'object' || Array.isArray(deployment)) return;
