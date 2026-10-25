@@ -463,3 +463,12 @@ test('accepts positive decimal digit strings as imported record IDs', async () =
   const snapshot = buildWorkspaceExport({ teams: [{ id: '17', name: 'Operations' }] }, 't');
   assert.equal(validateWorkspaceBackup(snapshot).valid, true);
 });
+
+test('rejects boolean project team references in imported backups', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({
+    teams: [{ id: 1, name: 'Operations' }],
+    projects: [{ id: 2, team_id: true, name: 'Atlas', runtime: 'node', status: 'active' }]
+  }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('team missing from the backup')));
+});
