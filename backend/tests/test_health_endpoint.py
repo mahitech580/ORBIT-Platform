@@ -51,3 +51,11 @@ class HealthEndpointTests(unittest.TestCase):
             response = self.client.get("/api/health")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()["database"], "connected")
+\n
+    def test_health_response_includes_request_id_and_security_policy(self):
+        with patch.object(orbit, "get_db", return_value=HealthyConnection()):
+            response = self.client.get("/health")
+        self.assertEqual(response.status_code, 200)
+        self.assertRegex(response.headers.get("X-Request-ID", ""), r"^[a-f0-9]{32}$")
+        self.assertEqual(response.headers.get("Cache-Control"), "no-store")
+        self.assertEqual(response.headers.get("X-Frame-Options"), "DENY")
