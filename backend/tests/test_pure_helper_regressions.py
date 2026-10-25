@@ -312,3 +312,7 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
 \n
     def test_password_verification_rejects_malformed_recognized_hash(self):
         self.assertFalse(orbit.verify_password("password", "pbkdf2:sha256:600000$truncated"))
+\n
+    def test_legacy_sha256_hash_comparison_is_case_insensitive(self):
+        digest = hashlib.sha256(b"legacy-password").hexdigest().upper()
+        self.assertTrue(orbit.verify_password("legacy-password", digest))
