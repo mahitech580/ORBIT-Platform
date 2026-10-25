@@ -421,3 +421,9 @@ test('rejects non-string instance types in imported backups', async () => {
   }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid instance type')));
 });
+
+test('rejects boolean record IDs instead of coercing them to numbers', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ projects: [{ id: true, name: 'Atlas', runtime: 'node', status: 'active' }] }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid ID')));
+});
