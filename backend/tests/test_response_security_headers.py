@@ -33,3 +33,7 @@ if __name__ == "__main__":
     def test_meta_response_disables_caching(self):
         response = self.client.get("/api/meta")
         self.assertEqual(response.headers.get("Cache-Control"), "no-store")
+
+    def test_meta_response_sets_pragma_no_cache(self):
+        response = self.client.get("/api/meta")
+        self.assertEqual(response.headers.get("Pragma"), "no-cache")
