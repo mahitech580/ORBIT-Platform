@@ -30,3 +30,9 @@ test('CSV exporters tolerate missing and malformed collection inputs', () => {
   assert.equal(buildInstanceCsv(undefined).split('\r\n').length, 2);
   assert.equal(buildMetricsCsv(undefined).split('\r\n').length, 2);
 });
+
+test('shared CSV cell serializer neutralizes formula prefixes after control whitespace', () => {
+  for (const prefix of ['=', '+', '-', '@']) {
+    assert.equal(csvCell('\t\r ' + prefix + 'formula'), "'\t\r " + prefix + 'formula');
+  }
+});
