@@ -333,3 +333,14 @@ test('rejects an instance type longer than the API contract', async () => {
   const snapshot = buildWorkspaceExport({ instances: [{ id: 1, project_id: 1, deployment_id: 1, name: 'worker', instance_type: 't'.repeat(81) }] }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid instance type')));
 });
+
+test('accepts an instance type at the API length boundary', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({
+    teams: [{ id: 1, name: 'Operations' }],
+    projects: [{ id: 10, team_id: 1, name: 'Atlas', runtime: 'node', status: 'active' }],
+    deployments: [{ id: 20, project_id: 10, version: '1.0.0', branch: 'main' }],
+    instances: [{ id: 30, project_id: 10, deployment_id: 20, name: 'worker', instance_type: 't'.repeat(80) }]
+  }, 't');
+  assert.equal(validateWorkspaceBackup(snapshot).valid, true);
+});
