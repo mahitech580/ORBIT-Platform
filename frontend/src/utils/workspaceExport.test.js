@@ -387,3 +387,9 @@ test('rejects duplicate instance IDs in imported snapshots', async () => {
   }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('Instance records contain duplicate ID 3')));
 });
+
+test('rejects zero-valued record IDs in backups', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ projects: [{ id: 0, name: 'Atlas', runtime: 'node', status: 'active' }] }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid ID')));
+});
