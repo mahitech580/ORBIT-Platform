@@ -71,3 +71,12 @@ test('keeps normal API messages unchanged when no request ID exists', () => {
     'Project not found.'
   );
 });
+
+test('rejects request IDs with whitespace padding', () => {
+  assert.equal(
+    getApiErrorMessage({
+      response: { data: { error: 'Failure' }, headers: { 'x-request-id': ' ' + REQUEST_ID } }
+    }),
+    'Failure'
+  );
+});
