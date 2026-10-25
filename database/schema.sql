@@ -189,3 +189,4 @@ CREATE INDEX IF NOT EXISTS idx_metrics_timestamp ON metrics(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_metrics_project_timestamp ON metrics(project_id, timestamp DESC, id DESC);
 CREATE INDEX IF NOT EXISTS idx_logs_project_id ON logs(project_id);
 CREATE INDEX IF NOT EXISTS idx_users_email_lower ON users(LOWER(email));
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_lower ON users(LOWER(username));
