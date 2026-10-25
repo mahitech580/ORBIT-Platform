@@ -81,7 +81,9 @@ The seed schema includes this account and sample projects. Demo authentication i
 - SECRET_KEY: signing key for JWTs. Never commit a production value.
 - ENABLE_DEMO_AUTH: enables the fixed demo credentials; use false outside local development.
 - DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD: PostgreSQL connection settings.
-- DB_CONNECT_TIMEOUT: connection timeout in seconds.
+- DB_CONNECT_TIMEOUT: connection timeout in seconds; accepted values are 1–300, and invalid values fail fast with a configuration error.
+- DB_PORT: PostgreSQL port (1–65535); configure it as ASCII decimal digits only.
+- ENABLE_DEMO_AUTH: optional boolean flag accepting `true`/`false`, `yes`/`no`, `on`/`off`, or `1`/`0`; an invalid non-empty value fails startup rather than silently disabling demo sign-in.
 - DB_SSLMODE: optional PostgreSQL SSL mode.
 - CORS_ORIGINS: comma-separated list of browser origins allowed to call the API.
 - FLASK_DEBUG: set to 1 only for local development.
