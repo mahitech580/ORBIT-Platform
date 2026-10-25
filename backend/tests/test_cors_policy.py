@@ -27,3 +27,8 @@ class CorsPolicyTests(unittest.TestCase):
         allowed = response.headers.get("Access-Control-Allow-Headers", "").lower()
         self.assertIn("authorization", allowed)
         self.assertIn("content-type", allowed)
+\n
+    def test_cors_allowed_response_keeps_security_policy_headers(self):
+        response = self.client.get("/api/meta", headers={"Origin": "https://mahitech580.github.io"})
+        self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "https://mahitech580.github.io")
+        self.assertEqual(response.headers.get("Content-Security-Policy", "").split(";")[0], "default-src 'none'")
