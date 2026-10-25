@@ -44,10 +44,10 @@ def parse_integer_setting(name, value, default, *, minimum=1, maximum=None):
     """Parse an integer environment setting and fail with a useful configuration error."""
     if value is None or (isinstance(value, str) and not value.strip()):
         return default
-    if isinstance(value, bool):
+    if isinstance(value, bool) or not isinstance(value, (str, int)):
         raise RuntimeError(name + " must be an integer.")
     try:
-        parsed = int(value.strip()) if isinstance(value, str) else int(value)
+        parsed = int(value.strip()) if isinstance(value, str) else value
     except (TypeError, ValueError, OverflowError):
         raise RuntimeError(name + " must be an integer.") from None
     if parsed < minimum or (maximum is not None and parsed > maximum):
