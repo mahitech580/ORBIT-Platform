@@ -60,6 +60,12 @@ class JsonSafeContractTests(unittest.TestCase):
         encoded = json.dumps(normalized, allow_nan=False)
         self.assertEqual(json.loads(encoded), {"index": 6, "values": [6, 7]})
 
+    def test_json_safe_regression_case_007(self):
+        value = [{"index": 7}, [{"nested": 8}]]
+        normalized = orbit.json_safe(value)
+        encoded = json.dumps(normalized, allow_nan=False)
+        self.assertEqual(json.loads(encoded), [{"index": 7}, [{"nested": 8}]])
+
 
 if __name__ == "__main__":
     unittest.main()
