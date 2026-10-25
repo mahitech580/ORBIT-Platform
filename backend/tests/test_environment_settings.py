@@ -55,5 +55,10 @@ class IntegerSettingTests(unittest.TestCase):
             orbit.parse_integer_setting("DB_PORT", "postgres", 5432, maximum=65535)
 
 
+    def test_float_value_is_rejected_without_truncation(self):
+        with self.assertRaisesRegex(RuntimeError, "DB_PORT must be an integer"):
+            orbit.parse_integer_setting("DB_PORT", 5432.9, 5432, maximum=65535)
+
+
 if __name__ == "__main__":
     unittest.main()
