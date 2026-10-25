@@ -83,5 +83,10 @@ class IntegerSettingTests(unittest.TestCase):
             orbit.parse_integer_setting("DB_CONNECT_TIMEOUT", "-2", 5, maximum=300)
 
 
+    def test_underscore_in_port_text_is_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, "DB_PORT must be an integer"):
+            orbit.parse_integer_setting("DB_PORT", "5_432", 5432, maximum=65535)
+
+
 if __name__ == "__main__":
     unittest.main()
