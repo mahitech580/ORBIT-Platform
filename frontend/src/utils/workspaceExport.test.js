@@ -393,3 +393,9 @@ test('rejects zero-valued record IDs in backups', async () => {
   const snapshot = buildWorkspaceExport({ projects: [{ id: 0, name: 'Atlas', runtime: 'node', status: 'active' }] }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid ID')));
 });
+
+test('rejects negative record IDs in backups', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ teams: [{ id: -4, name: 'Operations' }] }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid ID')));
+});
