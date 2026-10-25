@@ -29,3 +29,7 @@ class ResponseSecurityHeaderTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_meta_response_disables_caching(self):
+        response = self.client.get("/api/meta")
+        self.assertEqual(response.headers.get("Cache-Control"), "no-store")
