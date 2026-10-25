@@ -183,7 +183,11 @@ export function validateWorkspaceBackup(snapshot) {
     const seen = new Set();
     items.forEach((item, index) => {
       if (!item || typeof item !== 'object' || Array.isArray(item)) return;
-      const id = Number(item.id);
+      const rawId = item.id;
+      const normalizedText = typeof rawId === 'string' ? rawId.trim() : null;
+      const id = typeof rawId === 'number'
+        ? rawId
+        : (normalizedText && /^[0-9]+$/.test(normalizedText) ? Number(normalizedText) : NaN);
       if (!Number.isSafeInteger(id) || id < 1) {
         errors.push(label + ' record ' + (index + 1) + ' has an invalid ID.');
       } else if (seen.has(id)) {
