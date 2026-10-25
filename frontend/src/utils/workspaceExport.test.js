@@ -439,3 +439,9 @@ test('rejects exponent-formatted record IDs in backups', async () => {
   const snapshot = buildWorkspaceExport({ teams: [{ id: '1e2', name: 'Operations' }] }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid ID')));
 });
+
+test('rejects Unicode digit strings as record IDs', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ teams: [{ id: '１', name: 'Operations' }] }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid ID')));
+});
