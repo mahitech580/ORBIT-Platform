@@ -411,3 +411,13 @@ test('accepts a team description at the API length boundary', async () => {
   const snapshot = buildWorkspaceExport({ teams: [{ id: 1, name: 'Operations', description: 'x'.repeat(2000) }] }, 't');
   assert.equal(validateWorkspaceBackup(snapshot).valid, true);
 });
+
+test('rejects non-string instance types in imported backups', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({
+    projects: [{ id: 1, name: 'Atlas', runtime: 'node', status: 'active' }],
+    deployments: [{ id: 2, project_id: 1, version: '1.0.0', branch: 'main' }],
+    instances: [{ id: 3, project_id: 1, deployment_id: 2, name: 'worker', instance_type: 123 }]
+  }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid instance type')));
+});
