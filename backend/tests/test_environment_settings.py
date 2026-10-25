@@ -30,5 +30,10 @@ class IntegerSettingTests(unittest.TestCase):
         self.assertEqual(orbit.parse_integer_setting("DB_PORT", "65535", 5432, maximum=65535), 65535)
 
 
+    def test_zero_port_is_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, "DB_PORT must be 1 to 65535"):
+            orbit.parse_integer_setting("DB_PORT", "0", 5432, maximum=65535)
+
+
 if __name__ == "__main__":
     unittest.main()
