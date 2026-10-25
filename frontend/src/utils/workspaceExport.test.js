@@ -451,3 +451,9 @@ test('rejects record IDs above JavaScript safe integer range', async () => {
   const snapshot = buildWorkspaceExport({ teams: [{ id: Number.MAX_SAFE_INTEGER + 1, name: 'Operations' }] }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid ID')));
 });
+
+test('rejects array-valued record IDs', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ teams: [{ id: [1], name: 'Operations' }] }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid ID')));
+});
