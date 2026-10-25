@@ -433,3 +433,9 @@ test('rejects decimal-formatted record IDs in backups', async () => {
   const snapshot = buildWorkspaceExport({ teams: [{ id: '1.0', name: 'Operations' }] }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid ID')));
 });
+
+test('rejects exponent-formatted record IDs in backups', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ teams: [{ id: '1e2', name: 'Operations' }] }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid ID')));
+});
