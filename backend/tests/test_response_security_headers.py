@@ -49,3 +49,7 @@ if __name__ == "__main__":
     def test_meta_response_restricts_browser_capabilities(self):
         response = self.client.get("/api/meta")
         self.assertEqual(response.headers.get("Permissions-Policy"), "camera=(), microphone=(), geolocation=()")
+
+    def test_meta_response_uses_nosniff(self):
+        response = self.client.get("/api/meta")
+        self.assertEqual(response.headers.get("X-Content-Type-Options"), "nosniff")
