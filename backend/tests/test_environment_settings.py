@@ -50,5 +50,10 @@ class IntegerSettingTests(unittest.TestCase):
             orbit.parse_integer_setting("DB_PORT", "5432.0", 5432, maximum=65535)
 
 
+    def test_non_numeric_port_text_is_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, "DB_PORT must be an integer"):
+            orbit.parse_integer_setting("DB_PORT", "postgres", 5432, maximum=65535)
+
+
 if __name__ == "__main__":
     unittest.main()
