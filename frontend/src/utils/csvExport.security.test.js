@@ -68,3 +68,13 @@ test('shared CSV cell serializer neutralizes a formula after a null byte', () =>
 test('shared CSV cell serializer preserves harmless leading whitespace', () => {
   assert.equal(csvCell('  ordinary text'), '  ordinary text');
 });
+
+test('shared CSV serializer does not mutate source row arrays', () => {
+  const header = ['Name'];
+  const row = ['=SUM(A1:A2)'];
+  const rows = [row];
+  serializeCsv(header, rows);
+  assert.deepEqual(header, ['Name']);
+  assert.deepEqual(row, ['=SUM(A1:A2)']);
+  assert.equal(rows[0], row);
+});
