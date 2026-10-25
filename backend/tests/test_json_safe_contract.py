@@ -24,6 +24,12 @@ class JsonSafeContractTests(unittest.TestCase):
         self.assertIsNone(decoded["values"][0])
         self.assertEqual(decoded["values"][1]["amount"], 2.75)
 
+    def test_json_safe_regression_case_001(self):
+        value = "case_001"
+        normalized = orbit.json_safe(value)
+        encoded = json.dumps(normalized, allow_nan=False)
+        self.assertEqual(json.loads(encoded), "case_001")
+
 
 if __name__ == "__main__":
     unittest.main()
