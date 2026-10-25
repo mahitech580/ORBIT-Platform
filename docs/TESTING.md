@@ -30,7 +30,7 @@ Install the backend requirements and execute the unit suite from backend:
     python -m compileall -q .
     python -m unittest discover -s tests -v
 
-The isolated helper tests exercise input bounds, signed-token validation, password hashing compatibility, production database configuration, and UTC JSON serialization without requiring a live PostgreSQL connection.
+The isolated helper tests exercise input bounds, signed-token validation, password hashing compatibility, production database configuration, and UTC JSON serialization without requiring a live PostgreSQL connection. Configuration parsing also has focused tests in `tests/test_environment_settings.py`; shared CSV quoting and spreadsheet-formula protection are tested in `frontend/src/utils/csvExport.security.test.js`.
 
 ## PostgreSQL integration checks
 
