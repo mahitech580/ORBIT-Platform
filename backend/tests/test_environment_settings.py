@@ -35,5 +35,10 @@ class IntegerSettingTests(unittest.TestCase):
             orbit.parse_integer_setting("DB_PORT", "0", 5432, maximum=65535)
 
 
+    def test_negative_port_is_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, "DB_PORT must be 1 to 65535"):
+            orbit.parse_integer_setting("DB_PORT", "-1", 5432, maximum=65535)
+
+
 if __name__ == "__main__":
     unittest.main()
