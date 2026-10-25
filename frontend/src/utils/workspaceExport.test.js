@@ -353,3 +353,12 @@ test('rejects duplicate project IDs in imported snapshots', async () => {
   ] }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('Project records contain duplicate ID 1')));
 });
+
+test('rejects duplicate team IDs in imported snapshots', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ teams: [
+    { id: 7, name: 'Operations' },
+    { id: 7, name: 'Engineering' }
+  ] }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('Team records contain duplicate ID 7')));
+});
