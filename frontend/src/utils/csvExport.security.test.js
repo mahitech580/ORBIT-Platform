@@ -60,3 +60,7 @@ test('shared CSV serializer emits UTF-8 BOM and CRLF row endings', () => {
   assert.ok(csv.endsWith('\r\n'));
   assert.equal(csv, '\uFEFFName\r\nAtlas\r\nBeacon\r\n');
 });
+
+test('shared CSV cell serializer neutralizes a formula after a null byte', () => {
+  assert.equal(csvCell('\u0000=SUM(A1:A2)'), "'\u0000=SUM(A1:A2)");
+});
