@@ -457,3 +457,9 @@ test('rejects array-valued record IDs', async () => {
   const snapshot = buildWorkspaceExport({ teams: [{ id: [1], name: 'Operations' }] }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid ID')));
 });
+
+test('accepts positive decimal digit strings as imported record IDs', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ teams: [{ id: '17', name: 'Operations' }] }, 't');
+  assert.equal(validateWorkspaceBackup(snapshot).valid, true);
+});
