@@ -362,3 +362,15 @@ test('rejects duplicate team IDs in imported snapshots', async () => {
   ] }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('Team records contain duplicate ID 7')));
 });
+
+test('rejects duplicate deployment IDs in imported snapshots', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({
+    projects: [{ id: 1, name: 'Atlas', runtime: 'node', status: 'active' }],
+    deployments: [
+      { id: 9, project_id: 1, version: '1.0.0', branch: 'main' },
+      { id: 9, project_id: 1, version: '2.0.0', branch: 'main' }
+    ]
+  }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('Deployment records contain duplicate ID 9')));
+});
