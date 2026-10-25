@@ -80,3 +80,11 @@ test('rejects request IDs with whitespace padding', () => {
     'Failure'
   );
 });
+
+test('ignores request IDs with an incorrect prefix even when the length is valid', () => {
+  const requestId = 'z' + REQUEST_ID.slice(1);
+  assert.equal(
+    getApiErrorMessage({ response: { data: { error: 'Failure' }, headers: { 'x-request-id': requestId } } }),
+    'Failure'
+  );
+});
