@@ -41,3 +41,7 @@ if __name__ == "__main__":
     def test_meta_response_denies_frames(self):
         response = self.client.get("/api/meta")
         self.assertEqual(response.headers.get("X-Frame-Options"), "DENY")
+
+    def test_meta_response_sets_referrer_policy(self):
+        response = self.client.get("/api/meta")
+        self.assertEqual(response.headers.get("Referrer-Policy"), "no-referrer")
