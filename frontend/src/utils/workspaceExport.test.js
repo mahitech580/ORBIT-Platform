@@ -344,3 +344,12 @@ test('accepts an instance type at the API length boundary', async () => {
   }, 't');
   assert.equal(validateWorkspaceBackup(snapshot).valid, true);
 });
+
+test('rejects duplicate project IDs in imported snapshots', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ projects: [
+    { id: 1, name: 'Atlas', runtime: 'node', status: 'active' },
+    { id: 1, name: 'Beacon', runtime: 'python', status: 'active' }
+  ] }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('Project records contain duplicate ID 1')));
+});
