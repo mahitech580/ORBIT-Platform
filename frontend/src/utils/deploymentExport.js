@@ -1,12 +1,4 @@
-const FORMULA_PREFIX = /^[\u0000-\u0020]*[=+\-@]/;
-
-/** Escape a value for CSV and neutralize spreadsheet formula prefixes. */
-function csvCell(value) {
-  let text = String(value ?? '');
-  if (FORMULA_PREFIX.test(text)) text = "'" + text;
-  if (/[",\r\n]/.test(text)) return '"' + text.replace(/"/g, '""') + '"';
-  return text;
-}
+import { serializeCsv } from './csv.js';
 
 /**
  * Export deployment records exactly as currently shown by the supplied list.
@@ -34,7 +26,5 @@ export function buildDeploymentCsv(deployments, projects = []) {
     ];
   });
   // BOM helps spreadsheet programs recognize UTF-8; CRLF is the conventional CSV row ending.
-  return '\uFEFF' + [header, ...rows]
-    .map(row => row.map(csvCell).join(','))
-    .join('\r\n') + '\r\n';
+  return serializeCsv(header, rows);
 }
