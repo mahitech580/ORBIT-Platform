@@ -104,5 +104,11 @@ class IntegerSettingTests(unittest.TestCase):
                 self.assertIs(orbit.parse_boolean_setting("FEATURE_FLAG", value, False), True)
 
 
+    def test_boolean_setting_accepts_documented_false_values(self):
+        for value in ("false", "FALSE", " no ", "Off", "0"):
+            with self.subTest(value=value):
+                self.assertIs(orbit.parse_boolean_setting("FEATURE_FLAG", value, True), False)
+
+
 if __name__ == "__main__":
     unittest.main()
