@@ -427,3 +427,9 @@ test('rejects boolean record IDs instead of coercing them to numbers', async () 
   const snapshot = buildWorkspaceExport({ projects: [{ id: true, name: 'Atlas', runtime: 'node', status: 'active' }] }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid ID')));
 });
+
+test('rejects decimal-formatted record IDs in backups', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ teams: [{ id: '1.0', name: 'Operations' }] }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid ID')));
+});
