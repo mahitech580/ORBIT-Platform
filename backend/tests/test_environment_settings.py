@@ -120,5 +120,12 @@ class IntegerSettingTests(unittest.TestCase):
         self.assertIs(orbit.parse_boolean_setting("FEATURE_FLAG", "\t", False), False)
 
 
+    def test_boolean_setting_rejects_unknown_words(self):
+        for value in ("enabled", "disabled", "tru", "2"):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(RuntimeError, "ENABLE_DEMO_AUTH|FEATURE_FLAG"):
+                    orbit.parse_boolean_setting("FEATURE_FLAG", value, False)
+
+
 if __name__ == "__main__":
     unittest.main()
