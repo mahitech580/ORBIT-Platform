@@ -1,11 +1,4 @@
-const FORMULA_PREFIX = /^[\u0000-\u0020]*[=+\-@]/;
-
-function csvCell(value) {
-  let text = String(value ?? '');
-  if (FORMULA_PREFIX.test(text)) text = "'" + text;
-  if (/[",\r\n]/.test(text)) return '"' + text.replace(/"/g, '""') + '"';
-  return text;
-}
+import { serializeCsv } from './csv.js';
 
 export function buildInstanceCsv(instances, projects = []) {
   const records = Array.isArray(instances)
@@ -21,5 +14,5 @@ export function buildInstanceCsv(instances, projects = []) {
       instance.instance_type, instance.status, instance.deployment_id, instance.created_at
     ];
   });
-  return '\uFEFF' + [header, ...rows].map(row => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
+  return serializeCsv(header, rows);
 }
