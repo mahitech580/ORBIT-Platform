@@ -32,3 +32,12 @@ class CorsPolicyTests(unittest.TestCase):
         response = self.client.get("/api/meta", headers={"Origin": "https://mahitech580.github.io"})
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "https://mahitech580.github.io")
         self.assertEqual(response.headers.get("Content-Security-Policy", "").split(";")[0], "default-src 'none'")
+\n
+    def test_preflight_response_includes_request_id_and_hardening_headers(self):
+        response = self.client.options("/api/projects", headers={
+            "Origin": "https://mahitech580.github.io",
+            "Access-Control-Request-Method": "GET",
+        })
+        self.assertRegex(response.headers.get("X-Request-ID", ""), r"^[a-f0-9]{32}$")
+        self.assertEqual(response.headers.get("X-Content-Type-Options"), "nosniff")
+        self.assertEqual(response.headers.get("Cache-Control"), "no-store")
