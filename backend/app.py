@@ -100,6 +100,9 @@ def add_browser_security_headers(response):
     response.headers.setdefault("Cache-Control", "no-store")
     response.headers.setdefault("Pragma", "no-cache")
     response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Content-Security-Policy", "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'")
+    response.headers.setdefault("X-Permitted-Cross-Domain-Policies", "none")
+    response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
     request_id = getattr(request, "orbit_request_id", None) if has_request_context() else None
