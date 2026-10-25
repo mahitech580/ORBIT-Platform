@@ -38,7 +38,27 @@ if not SECRET_KEY:
 
 DEMO_EMAIL = "demo@orbit.local"
 DEMO_PASSWORD = "demo123"
-DEMO_AUTH_ENABLED = os.getenv("ENABLE_DEMO_AUTH", "false" if IS_PRODUCTION else "true").lower() in {"1", "true", "yes"}
+
+
+def parse_boolean_setting(name, value, default):
+    """Parse explicit boolean environment values without silently hiding typos."""
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return default
+    if not isinstance(value, str):
+        raise RuntimeError(name + " must be a boolean setting.")
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise RuntimeError(name + " must be one of: true, false, yes, no, on, off, 1, 0.")
+
+
+DEMO_AUTH_ENABLED = parse_boolean_setting(
+    "ENABLE_DEMO_AUTH",
+    os.getenv("ENABLE_DEMO_AUTH"),
+    default=not IS_PRODUCTION,
+)
 
 def parse_integer_setting(name, value, default, *, minimum=1, maximum=None):
     """Parse an integer environment setting and fail with a useful configuration error."""
