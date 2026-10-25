@@ -40,13 +40,29 @@ DEMO_EMAIL = "demo@orbit.local"
 DEMO_PASSWORD = "demo123"
 DEMO_AUTH_ENABLED = os.getenv("ENABLE_DEMO_AUTH", "false" if IS_PRODUCTION else "true").lower() in {"1", "true", "yes"}
 
+def parse_integer_setting(name, value, default, *, minimum=1, maximum=None):
+    """Parse an integer environment setting and fail with a useful configuration error."""
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return default
+    if isinstance(value, bool):
+        raise RuntimeError(name + " must be an integer.")
+    try:
+        parsed = int(value.strip()) if isinstance(value, str) else int(value)
+    except (TypeError, ValueError, OverflowError):
+        raise RuntimeError(name + " must be an integer.") from None
+    if parsed < minimum or (maximum is not None and parsed > maximum):
+        bounds = str(minimum) + (" to " + str(maximum) if maximum is not None else " or greater")
+        raise RuntimeError(name + " must be " + bounds + ".")
+    return parsed
+
+
 DATABASE = {
     "host": os.getenv("DB_HOST", "localhost"),
     "database": os.getenv("DB_NAME", "orbit"),
     "user": os.getenv("DB_USER", "postgres"),
     "password": os.getenv("DB_PASSWORD", "password"),
-    "port": int(os.getenv("DB_PORT", "5432")),
-    "connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "5")),
+    "port": parse_integer_setting("DB_PORT", os.getenv("DB_PORT"), 5432, maximum=65535),
+    "connect_timeout": parse_integer_setting("DB_CONNECT_TIMEOUT", os.getenv("DB_CONNECT_TIMEOUT"), 5, maximum=300),
 }
 if os.getenv("DB_SSLMODE"):
     DATABASE["sslmode"] = os.getenv("DB_SSLMODE")
