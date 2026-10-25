@@ -53,3 +53,10 @@ test('shared CSV cell serializer quotes commas', () => {
 test('shared CSV cell serializer quotes line breaks and preserves them', () => {
   assert.equal(csvCell('first\nsecond'), '"first\nsecond"');
 });
+
+test('shared CSV serializer emits UTF-8 BOM and CRLF row endings', () => {
+  const csv = serializeCsv(['Name'], [['Atlas'], ['Beacon']]);
+  assert.ok(csv.startsWith('\uFEFF'));
+  assert.ok(csv.endsWith('\r\n'));
+  assert.equal(csv, '\uFEFFName\r\nAtlas\r\nBeacon\r\n');
+});
