@@ -36,3 +36,8 @@ test('shared CSV cell serializer neutralizes formula prefixes after control whit
     assert.equal(csvCell('\t\r ' + prefix + 'formula'), "'\t\r " + prefix + 'formula');
   }
 });
+
+test('shared CSV cell serializer normalizes nullish values to empty cells', () => {
+  assert.equal(csvCell(null), '');
+  assert.equal(csvCell(undefined), '');
+});
