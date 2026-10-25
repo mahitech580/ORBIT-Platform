@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { csvCell, serializeCsv } from './csv.js';
 import { buildDeploymentCsv } from './deploymentExport.js';
 import { buildInstanceCsv } from './instanceExport.js';
 import { buildMetricsCsv } from './metricsExport.js';
