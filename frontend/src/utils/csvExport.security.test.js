@@ -82,3 +82,7 @@ test('shared CSV serializer does not mutate source row arrays', () => {
 test('shared CSV serializer emits the header when there are no records', () => {
   assert.equal(serializeCsv(['ID', 'Name'], []), '\uFEFFID,Name\r\n');
 });
+
+test('shared CSV serializer preserves Unicode cell content', () => {
+  assert.equal(serializeCsv(['Name'], [['東京', 'Māhendra']]), '\uFEFFName\r\n東京,Māhendra\r\n');
+});
