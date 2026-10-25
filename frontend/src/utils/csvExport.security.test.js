@@ -41,3 +41,7 @@ test('shared CSV cell serializer normalizes nullish values to empty cells', () =
   assert.equal(csvCell(null), '');
   assert.equal(csvCell(undefined), '');
 });
+
+test('shared CSV cell serializer doubles embedded quotes', () => {
+  assert.equal(csvCell('say "hello"'), '"say ""hello"""');
+});
