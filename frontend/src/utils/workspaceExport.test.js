@@ -399,3 +399,9 @@ test('rejects negative record IDs in backups', async () => {
   const snapshot = buildWorkspaceExport({ teams: [{ id: -4, name: 'Operations' }] }, 't');
   assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid ID')));
 });
+
+test('rejects non-string team descriptions in imported backups', async () => {
+  const { validateWorkspaceBackup } = await import('./workspaceExport.js');
+  const snapshot = buildWorkspaceExport({ teams: [{ id: 1, name: 'Operations', description: { unexpected: true } }] }, 't');
+  assert.ok(validateWorkspaceBackup(snapshot).errors.some(error => error.includes('invalid description')));
+});
