@@ -26,10 +26,6 @@ class ResponseSecurityHeaderTests(unittest.TestCase):
         self.assertEqual(response.headers.get("X-Content-Type-Options"), "nosniff")
         self.assertEqual(response.headers.get("Cache-Control"), "no-store")
 
-
-if __name__ == "__main__":
-    unittest.main()
-
     def test_meta_response_disables_caching(self):
         response = self.client.get("/api/meta")
         self.assertEqual(response.headers.get("Cache-Control"), "no-store")
@@ -58,6 +54,6 @@ if __name__ == "__main__":
         response = self.client.get("/api/meta")
         self.assertRegex(response.headers.get("X-Request-ID", ""), r"^[a-f0-9]{32}$")
 
-    def test_meta_response_disables_caching(self):
-        response = self.client.get("/api/meta")
-        self.assertEqual(response.headers.get("Cache-Control"), "no-store")
+
+if __name__ == "__main__":
+    unittest.main()
