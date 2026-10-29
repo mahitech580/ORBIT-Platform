@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
+import OrbitalScene from '../components/OrbitalScene';
 
 const riseIn = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.48, ease: [0.22, 1, 0.36, 1] } } };
 const staggerIn = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.075, delayChildren: 0.06 } } };
@@ -195,7 +196,7 @@ export default function Dashboard({
               <a className="btn btn-hero-secondary" href="https://github.com/mahitech580/ORBIT-Platform#readme" target="_blank" rel="noreferrer">View documentation <span>↗</span></a>
             </div>
           </div>
-          <div className="hero-planet-mark" aria-hidden="true"><span className="planet-orbit one" /><span className="planet-orbit two" /><span className="planet-core">O</span></div>
+          <OrbitalScene />
         </motion.section>
 
         <motion.section className="stats-grid" aria-label="Workspace counts" variants={staggerIn} initial="hidden" animate="show">
