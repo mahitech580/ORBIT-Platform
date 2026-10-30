@@ -52,3 +52,18 @@ test('ignores malformed rows and non-finite measurements without producing NaN t
   ]);
   assert.deepEqual(summary, { avg_cpu: 30, avg_memory: 512, total_requests: 10 });
 });
+
+test('does not coerce booleans, arrays, objects, or blank strings into measurements', () => {
+  assert.deepEqual(summarizeMetrics([
+    { cpu_usage: true, memory_usage: [], requests_total: {} },
+    { cpu_usage: ' ', memory_usage: -1, requests_total: -2 },
+    { cpu_usage: 101, memory_usage: 1.5, requests_total: 2.5 }
+  ]), { avg_cpu: null, avg_memory: null, total_requests: null });
+});
+
+test('ignores values outside the telemetry API field domains', () => {
+  assert.deepEqual(summarizeMetrics([
+    { cpu_usage: -1, memory_usage: 2147483648, requests_total: 2147483648 },
+    { cpu_usage: 80, memory_usage: 1024, requests_total: 12 }
+  ]), { avg_cpu: 80, avg_memory: 1024, total_requests: 12 });
+});
