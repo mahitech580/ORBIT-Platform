@@ -23,6 +23,20 @@ class CorsConfigurationTests(unittest.TestCase):
             ["https://api.example.test"],
         )
 
+    def test_production_rejects_insecure_http_origins(self):
+        with self.assertRaisesRegex(RuntimeError, "must use HTTPS"):
+            orbit.parse_cors_origins("http://api.example.test", is_production=True)
+
+    def test_production_accepts_https_while_development_keeps_http_localhost(self):
+        self.assertEqual(
+            orbit.parse_cors_origins("https://api.example.test", is_production=True),
+            ["https://api.example.test"],
+        )
+        self.assertEqual(
+            orbit.parse_cors_origins("http://localhost:3000", is_production=False),
+            ["http://localhost:3000"],
+        )
+
     def test_explicit_allowlist_includes_only_the_origins_that_were_configured(self):
         self.assertEqual(
             orbit.parse_cors_origins("https://api.example.test, https://mahitech580.github.io"),

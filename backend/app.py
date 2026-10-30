@@ -207,6 +207,8 @@ def parse_cors_origins(value, *, is_production=False):
             or parsed.fragment
         ):
             raise RuntimeError("CORS_ORIGINS must contain exact HTTP(S) origins without paths or credentials.")
+        if is_production and parsed.scheme.lower() != "https":
+            raise RuntimeError("Production CORS_ORIGINS must use HTTPS origins.")
         normalized = parsed.scheme.lower() + "://" + parsed.netloc.lower()
         if normalized not in origins:
             origins.append(normalized)
