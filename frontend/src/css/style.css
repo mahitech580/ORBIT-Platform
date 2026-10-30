@@ -701,6 +701,7 @@ textarea { min-height: 85px; resize: vertical; }
   width: clamp(145px, 20vw, 225px);
   aspect-ratio: 1;
   transform-style: preserve-3d;
+  translate: 0 0;
   transform: translate(-50%, -50%) rotateX(calc(10deg + var(--scene-tilt-y))) rotateY(var(--scene-tilt-x));
   animation: orbit-scene-float 7s ease-in-out infinite;
 }
@@ -827,8 +828,8 @@ textarea { min-height: 85px; resize: vertical; }
 .orbit-scene-caption > span:last-of-type { color: rgba(108,154,205,.65); }
 .orbit-scene-live-dot { width: 5px; height: 5px; border-radius: 50%; background: #46e7be; box-shadow: 0 0 9px rgba(70,231,190,.8); }
 @keyframes orbit-scene-float {
-  0%, 100% { margin-top: 0; }
-  50% { margin-top: -7px; }
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -7px; }
 }
 @keyframes orbit-scene-ring-pulse {
   0%, 100% { opacity: .68; }
