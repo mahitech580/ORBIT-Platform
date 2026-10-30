@@ -759,6 +759,18 @@ def get_deployment(deployment_id):
     return jsonify(rows[0])
 
 
+def summarize_metric_rows(metrics):
+    """Return null for measurements that were not recorded, not synthetic zeros."""
+    cpu_values = [float(row["cpu_usage"]) for row in metrics if row.get("cpu_usage") is not None]
+    memory_values = [float(row["memory_usage"]) for row in metrics if row.get("memory_usage") is not None]
+    request_values = [int(row["requests_total"]) for row in metrics if row.get("requests_total") is not None]
+    return {
+        "avg_cpu": round(sum(cpu_values) / len(cpu_values), 2) if cpu_values else None,
+        "avg_memory": round(sum(memory_values) / len(memory_values), 2) if memory_values else None,
+        "total_requests": sum(request_values) if request_values else None,
+    }
+
+
 @app.route("/api/metrics/<int:project_id>", methods=["GET"])
 @token_required
 def get_metrics(project_id):
@@ -770,13 +782,7 @@ def get_metrics(project_id):
            ORDER BY timestamp DESC, id DESC LIMIT 100""",
         (project_id,),
     )
-    cpu_values = [float(row["cpu_usage"]) for row in metrics if row.get("cpu_usage") is not None]
-    memory_values = [float(row["memory_usage"]) for row in metrics if row.get("memory_usage") is not None]
-    summary = {
-        "avg_cpu": round(sum(cpu_values) / len(cpu_values), 2) if cpu_values else 0,
-        "avg_memory": round(sum(memory_values) / len(memory_values), 2) if memory_values else 0,
-        "total_requests": sum(int(row.get("requests_total") or 0) for row in metrics),
-    }
+    summary = summarize_metric_rows(metrics)
     return jsonify({"metrics": metrics, "summary": summary})
 
 def read_metric_value(data, field, *, integer=False, minimum=0, maximum=None):
