@@ -132,6 +132,7 @@ def resolve_database_sslmode(is_production, sslmode):
 
 # All TIMESTAMP WITHOUT TIME ZONE values are written and read as UTC.
 POSTGRES_SESSION_OPTIONS = "-c timezone=UTC"
+POSTGRES_APPLICATION_NAME = "orbit-platform-api"
 
 DATABASE = {
     "host": os.getenv("DB_HOST", "localhost"),
@@ -140,6 +141,7 @@ DATABASE = {
     "password": os.getenv("DB_PASSWORD", "password"),
     "port": parse_integer_setting("DB_PORT", os.getenv("DB_PORT"), 5432, maximum=65535),
     "connect_timeout": parse_integer_setting("DB_CONNECT_TIMEOUT", os.getenv("DB_CONNECT_TIMEOUT"), 5, maximum=300),
+    "application_name": POSTGRES_APPLICATION_NAME,
     "options": POSTGRES_SESSION_OPTIONS,
 }
 database_sslmode = resolve_database_sslmode(IS_PRODUCTION, os.getenv("DB_SSLMODE"))
@@ -290,6 +292,7 @@ def get_db():
     if DATABASE_URL:
         options = {
             "connect_timeout": DATABASE["connect_timeout"],
+            "application_name": POSTGRES_APPLICATION_NAME,
             "options": POSTGRES_SESSION_OPTIONS,
         }
         sslmode = resolve_database_sslmode(IS_PRODUCTION, os.getenv("DB_SSLMODE"))

@@ -96,6 +96,23 @@ class DatabaseSslConfigurationTests(unittest.TestCase):
         self.assertEqual(connect.call_args.args[0], database_url)
         self.assertEqual(connect.call_args.kwargs["sslmode"], "require")
 
+    def test_direct_and_url_connections_identify_the_application(self):
+        with patch.object(orbit, "DATABASE_URL", ""), \
+             patch.object(orbit.psycopg2, "connect") as direct_connect:
+            orbit.get_db()
+        self.assertEqual(
+            direct_connect.call_args.kwargs["application_name"],
+            orbit.POSTGRES_APPLICATION_NAME,
+        )
+
+        with patch.object(orbit, "DATABASE_URL", "postgresql://user:pass@example.test/orbit"), \
+             patch.object(orbit.psycopg2, "connect") as url_connect:
+            orbit.get_db()
+        self.assertEqual(
+            url_connect.call_args.kwargs["application_name"],
+            orbit.POSTGRES_APPLICATION_NAME,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
