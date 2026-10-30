@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import OrbitalScene from '../components/OrbitalScene';
+import { describeDeploymentActivity } from '../utils/deploymentActivityLabel.js';
 
 const riseIn = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.48, ease: [0.22, 1, 0.36, 1] } } };
 const staggerIn = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.075, delayChildren: 0.06 } } };
@@ -240,7 +241,7 @@ export default function Dashboard({
             </div>
             {noReleaseData ? <div className="chart-empty-state"><span className="chart-empty-glyph">⌁</span><strong>No deployment activity yet</strong><small>Record a deployment to start building your history chart.</small><button className="text-link" type="button" onClick={() => onPageChange('deployments')}>Record deployment →</button></div> : <div className="activity-chart-shell">
               <div className="chart-y-labels"><span>{maxDaily}</span><span>{Math.ceil(maxDaily * .66)}</span><span>{Math.ceil(maxDaily * .33)}</span><span>0</span></div>
-              <svg className="activity-chart-svg" viewBox="0 0 700 190" role="img" aria-label="Daily deployment records by status over the last seven days" preserveAspectRatio="none">
+              <svg className="activity-chart-svg" viewBox="0 0 700 190" role="img" aria-label={describeDeploymentActivity(weekly)} preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="completedFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#20c997" stopOpacity=".25" /><stop offset="1" stopColor="#20c997" stopOpacity="0" /></linearGradient>
                   <linearGradient id="pendingFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#3b91ff" stopOpacity=".16" /><stop offset="1" stopColor="#3b91ff" stopOpacity="0" /></linearGradient>
