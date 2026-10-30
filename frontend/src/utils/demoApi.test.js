@@ -33,6 +33,36 @@ test('seeds a demo workspace and sample metrics', async () => {
   assert.ok(storage.getItem(demoStorageKey));
 });
 
+test('reports missing demo telemetry as unavailable rather than zero', async () => {
+  const result = await api.get('/metrics/2');
+  assert.deepEqual(result.data.metrics, []);
+  assert.deepEqual(result.data.summary, {
+    avg_cpu: null,
+    avg_memory: null,
+    total_requests: null
+  });
+});
+
+test('summarizes the same latest 100 telemetry rows returned by the demo API', async () => {
+  await api.get('/projects');
+  const state = JSON.parse(storage.getItem(demoStorageKey));
+  state.metrics['1'] = Array.from({ length: 101 }, (_, index) => ({
+    id: index + 1,
+    project_id: 1,
+    cpu_usage: 10,
+    memory_usage: 512,
+    requests_total: index === 0 ? 99 : 1,
+    timestamp: new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString()
+  }));
+  storage.setItem(demoStorageKey, JSON.stringify(state));
+
+  const result = await api.get('/metrics/1');
+  assert.equal(result.data.metrics.length, 100);
+  assert.equal(result.data.summary.avg_cpu, 10);
+  assert.equal(result.data.summary.avg_memory, 512);
+  assert.equal(result.data.summary.total_requests, 100);
+});
+
 test('creates, updates, and archives a project', async () => {
   const created = await api.post('/projects', { name: 'Test project', description: 'A temporary project', runtime: 'python' });
   const id = created.data.project.id;

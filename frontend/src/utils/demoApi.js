@@ -1,4 +1,5 @@
 import { buildWorkspaceExport, validateWorkspaceBackup } from './workspaceExport.js';
+import { summarizeMetrics } from './metricsSummary.js';
 
 const STORAGE_KEY = 'orbit.pages.demo.data.v2';
 const DEMO_EMAIL = 'demo@orbit.local';
@@ -400,15 +401,12 @@ export function createDemoApi() {
       if (metricsMatch) {
         if (!ownedProject(state, metricsMatch[1])) fail('Project not found.', 404);
         const metrics = state.metrics[metricsMatch[1]] || [];
-        const cpu = metrics.filter(row => row.cpu_usage != null).map(row => Number(row.cpu_usage));
-        const memory = metrics.filter(row => row.memory_usage != null).map(row => Number(row.memory_usage));
+        const returnedMetrics = [...metrics]
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+          .slice(0, 100);
         return response({
-          metrics: [...metrics].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 100),
-          summary: {
-            avg_cpu: cpu.length ? Number((cpu.reduce((sum, value) => sum + value, 0) / cpu.length).toFixed(2)) : 0,
-            avg_memory: memory.length ? Number((memory.reduce((sum, value) => sum + value, 0) / memory.length).toFixed(2)) : 0,
-            total_requests: metrics.reduce((sum, row) => sum + Number(row.requests_total || 0), 0)
-          }
+          metrics: returnedMetrics,
+          summary: summarizeMetrics(returnedMetrics)
         });
       }
       if (route === '/teams') return response({ teams: state.teams.filter(team => Number(team.owner_id) === activeUserId()) });
