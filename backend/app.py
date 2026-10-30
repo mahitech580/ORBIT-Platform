@@ -180,8 +180,6 @@ def parse_cors_origins(value, *, is_production=False):
         if normalized not in origins:
             origins.append(normalized)
 
-    if PAGES_ORIGIN not in origins:
-        origins.append(PAGES_ORIGIN)
     return origins
 
 

@@ -16,3 +16,15 @@ class CorsConfigurationTests(unittest.TestCase):
         for origin in ("https://example.com/api", "https://user:pass@example.com"):
             with self.assertRaises(RuntimeError):
                 orbit.parse_cors_origins(origin)
+
+    def test_explicit_production_allowlist_is_authoritative(self):
+        self.assertEqual(
+            orbit.parse_cors_origins("https://api.example.test", is_production=True),
+            ["https://api.example.test"],
+        )
+
+    def test_explicit_allowlist_includes_only_the_origins_that_were_configured(self):
+        self.assertEqual(
+            orbit.parse_cors_origins("https://api.example.test, https://mahitech580.github.io"),
+            ["https://api.example.test", "https://mahitech580.github.io"],
+        )
