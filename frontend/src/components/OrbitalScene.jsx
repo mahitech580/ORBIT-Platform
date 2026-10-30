@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { getOrbitTilt } from '../utils/orbitTilt.js';
 
 /**
  * Lightweight CSS 3D orbital scene for the dashboard hero.
@@ -46,9 +47,9 @@ export default function OrbitalScene() {
 
     const onPointerMove = event => {
       if (reducedMotion.matches || event.pointerType === 'touch') return;
-      const bounds = scene.getBoundingClientRect();
-      targetX = ((event.clientX - bounds.left) / Math.max(bounds.width, 1) - 0.5) * 12;
-      targetY = ((event.clientY - bounds.top) / Math.max(bounds.height, 1) - 0.5) * -9;
+      const tilt = getOrbitTilt(event.clientX, event.clientY, scene.getBoundingClientRect());
+      targetX = tilt.x;
+      targetY = tilt.y;
       requestTilt();
     };
 
