@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 
 /**
  * Lightweight CSS 3D orbital scene for the dashboard hero.
- * No WebGL or external runtime is required; respects reduced-motion preferences.
+ * No WebGL or external runtime is required; respects live motion preferences.
  */
 export default function OrbitalScene() {
   const sceneRef = useRef(null);
@@ -10,44 +10,74 @@ export default function OrbitalScene() {
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return undefined;
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (reducedMotion.matches) return undefined;
 
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     let frame = 0;
     let targetX = 0;
     let targetY = 0;
     let currentX = 0;
     let currentY = 0;
-    const onPointerMove = event => {
-      const bounds = scene.getBoundingClientRect();
-      targetX = ((event.clientX - bounds.left) / Math.max(bounds.width, 1) - 0.5) * 12;
-      targetY = ((event.clientY - bounds.top) / Math.max(bounds.height, 1) - 0.5) * -9;
-    };
-    const onPointerLeave = () => { targetX = 0; targetY = 0; };
-    const animateTilt = () => {
-      currentX += (targetX - currentX) * 0.055;
-      currentY += (targetY - currentY) * 0.055;
+
+    const writeTilt = () => {
       scene.style.setProperty('--scene-tilt-x', currentX.toFixed(2) + 'deg');
       scene.style.setProperty('--scene-tilt-y', currentY.toFixed(2) + 'deg');
+    };
+
+    const animateTilt = () => {
+      if (reducedMotion.matches) {
+        frame = 0;
+        return;
+      }
+      currentX += (targetX - currentX) * 0.055;
+      currentY += (targetY - currentY) * 0.055;
+      writeTilt();
       if (Math.abs(targetX - currentX) > 0.03 || Math.abs(targetY - currentY) > 0.03) {
         frame = window.requestAnimationFrame(animateTilt);
       } else {
         frame = 0;
       }
     };
+
     const requestTilt = () => {
-      if (!frame) frame = window.requestAnimationFrame(animateTilt);
+      if (!reducedMotion.matches && !frame) {
+        frame = window.requestAnimationFrame(animateTilt);
+      }
     };
+
+    const onPointerMove = event => {
+      if (reducedMotion.matches || event.pointerType === 'touch') return;
+      const bounds = scene.getBoundingClientRect();
+      targetX = ((event.clientX - bounds.left) / Math.max(bounds.width, 1) - 0.5) * 12;
+      targetY = ((event.clientY - bounds.top) / Math.max(bounds.height, 1) - 0.5) * -9;
+      requestTilt();
+    };
+
+    const onPointerLeave = () => {
+      targetX = 0;
+      targetY = 0;
+      requestTilt();
+    };
+
+    const onMotionPreferenceChange = event => {
+      if (!event.matches) return;
+      if (frame) window.cancelAnimationFrame(frame);
+      frame = 0;
+      targetX = 0;
+      targetY = 0;
+      currentX = 0;
+      currentY = 0;
+      writeTilt();
+    };
+
     scene.addEventListener('pointermove', onPointerMove, { passive: true });
     scene.addEventListener('pointerleave', onPointerLeave, { passive: true });
-    scene.addEventListener('pointermove', requestTilt, { passive: true });
-    scene.addEventListener('pointerleave', requestTilt, { passive: true });
+    reducedMotion.addEventListener('change', onMotionPreferenceChange);
+
     return () => {
-      window.cancelAnimationFrame(frame);
+      if (frame) window.cancelAnimationFrame(frame);
       scene.removeEventListener('pointermove', onPointerMove);
       scene.removeEventListener('pointerleave', onPointerLeave);
-      scene.removeEventListener('pointermove', requestTilt);
-      scene.removeEventListener('pointerleave', requestTilt);
+      reducedMotion.removeEventListener('change', onMotionPreferenceChange);
     };
   }, []);
 
