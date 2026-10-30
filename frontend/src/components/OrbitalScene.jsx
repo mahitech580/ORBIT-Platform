@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { getOrbitTilt } from '../utils/orbitTilt.js';
+import { subscribeMediaQuery } from '../utils/mediaQueryListener.js';
 
 /**
  * Lightweight CSS 3D orbital scene for the dashboard hero.
@@ -109,13 +110,13 @@ export default function OrbitalScene() {
 
     scene.addEventListener('pointermove', onPointerMove, { passive: true });
     scene.addEventListener('pointerleave', onPointerLeave, { passive: true });
-    reducedMotion.addEventListener('change', onMotionPreferenceChange);
+    const unsubscribeMotionPreference = subscribeMediaQuery(reducedMotion, onMotionPreferenceChange);
 
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
       scene.removeEventListener('pointermove', onPointerMove);
       scene.removeEventListener('pointerleave', onPointerLeave);
-      reducedMotion.removeEventListener('change', onMotionPreferenceChange);
+      unsubscribeMotionPreference();
       document.removeEventListener('visibilitychange', onVisibilityChange);
       if (observer) observer.disconnect();
     };

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { shouldTrackBackgroundPointer } from '../utils/backgroundPointer.js';
+import { subscribeMediaQuery } from '../utils/mediaQueryListener.js';
 
 const VERTEX_SHADER = [
   'attribute vec2 a_position;',
@@ -228,11 +229,7 @@ export default function SmokeBackground({ lightMode = true }) {
       window.addEventListener('resize', onResize, { passive: true });
       canvas.addEventListener('webglcontextlost', onContextLost);
       document.addEventListener('visibilitychange', onVisibilityChange);
-      if (typeof motionPreference.addEventListener === 'function') {
-        motionPreference.addEventListener('change', onMotionPreferenceChange);
-      } else if (typeof motionPreference.addListener === 'function') {
-        motionPreference.addListener(onMotionPreferenceChange);
-      }
+      const unsubscribeMotionPreference = subscribeMediaQuery(motionPreference, onMotionPreferenceChange);
       window.addEventListener('pointermove', movePointer, { passive: true });
       window.addEventListener('pointerleave', leavePointer, { passive: true });
       canvas.dataset.fallback = 'false';
@@ -244,11 +241,7 @@ export default function SmokeBackground({ lightMode = true }) {
         window.removeEventListener('resize', onResize);
         canvas.removeEventListener('webglcontextlost', onContextLost);
         document.removeEventListener('visibilitychange', onVisibilityChange);
-        if (typeof motionPreference.removeEventListener === 'function') {
-          motionPreference.removeEventListener('change', onMotionPreferenceChange);
-        } else if (typeof motionPreference.removeListener === 'function') {
-          motionPreference.removeListener(onMotionPreferenceChange);
-        }
+        unsubscribeMotionPreference();
         window.removeEventListener('pointermove', movePointer);
         window.removeEventListener('pointerleave', leavePointer);
         if (buffer) gl.deleteBuffer(buffer);
