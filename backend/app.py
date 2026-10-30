@@ -243,6 +243,8 @@ def add_browser_security_headers(response):
     response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if IS_PRODUCTION:
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     request_id = getattr(request, "orbit_request_id", None) if has_request_context() else None
     response.headers.setdefault("X-Request-ID", request_id or uuid.uuid4().hex)
     return response

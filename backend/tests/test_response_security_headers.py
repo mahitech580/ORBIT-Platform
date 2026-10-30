@@ -50,6 +50,21 @@ class ResponseSecurityHeaderTests(unittest.TestCase):
         response = self.client.get("/api/meta")
         self.assertEqual(response.headers.get("X-Content-Type-Options"), "nosniff")
 
+    def test_production_responses_enable_http_strict_transport_security(self):
+        from unittest.mock import patch
+        with patch.object(orbit, "IS_PRODUCTION", True):
+            response = self.client.get("/api/meta")
+        self.assertEqual(
+            response.headers.get("Strict-Transport-Security"),
+            "max-age=31536000; includeSubDomains",
+        )
+
+    def test_development_responses_do_not_pin_local_http_origins_to_https(self):
+        from unittest.mock import patch
+        with patch.object(orbit, "IS_PRODUCTION", False):
+            response = self.client.get("/api/meta")
+        self.assertIsNone(response.headers.get("Strict-Transport-Security"))
+
     def test_request_id_is_32_character_hex(self):
         response = self.client.get("/api/meta")
         self.assertRegex(response.headers.get("X-Request-ID", ""), r"^[a-f0-9]{32}$")
