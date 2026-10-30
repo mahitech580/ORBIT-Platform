@@ -125,6 +125,7 @@ class DatabaseConnectionContractTests(unittest.TestCase):
         connect.assert_called_once_with(
             "postgresql://user:pass@example.test/orbit",
             connect_timeout=orbit.DATABASE["connect_timeout"],
+            application_name=orbit.POSTGRES_APPLICATION_NAME,
             options="-c timezone=UTC",
             sslmode="require",
         )
