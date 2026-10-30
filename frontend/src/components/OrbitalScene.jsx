@@ -19,6 +19,7 @@ export default function OrbitalScene() {
     let targetY = 0;
     let currentX = 0;
     let currentY = 0;
+    let pointerPosition = null;
 
     const writeTilt = () => {
       scene.style.setProperty('--scene-tilt-x', currentX.toFixed(2) + 'deg');
@@ -29,6 +30,13 @@ export default function OrbitalScene() {
       if (reducedMotion.matches) {
         frame = 0;
         return;
+      }
+      if (pointerPosition) {
+        const { clientX, clientY } = pointerPosition;
+        pointerPosition = null;
+        const tilt = getOrbitTilt(clientX, clientY, scene.getBoundingClientRect());
+        targetX = tilt.x;
+        targetY = tilt.y;
       }
       currentX += (targetX - currentX) * 0.055;
       currentY += (targetY - currentY) * 0.055;
@@ -48,13 +56,13 @@ export default function OrbitalScene() {
 
     const onPointerMove = event => {
       if (reducedMotion.matches || document.hidden || !isIntersecting || event.pointerType === 'touch') return;
-      const tilt = getOrbitTilt(event.clientX, event.clientY, scene.getBoundingClientRect());
-      targetX = tilt.x;
-      targetY = tilt.y;
+      // Keep only the latest pointer sample; geometry is read once in the next frame.
+      pointerPosition = { clientX: event.clientX, clientY: event.clientY };
       requestTilt();
     };
 
     const onPointerLeave = () => {
+      pointerPosition = null;
       targetX = 0;
       targetY = 0;
       requestTilt();
@@ -64,6 +72,7 @@ export default function OrbitalScene() {
       if (!event.matches) return;
       if (frame) window.cancelAnimationFrame(frame);
       frame = 0;
+      pointerPosition = null;
       targetX = 0;
       targetY = 0;
       currentX = 0;
@@ -77,6 +86,7 @@ export default function OrbitalScene() {
       if (paused) {
         if (frame) window.cancelAnimationFrame(frame);
         frame = 0;
+        pointerPosition = null;
         targetX = 0;
         targetY = 0;
         currentX = 0;
