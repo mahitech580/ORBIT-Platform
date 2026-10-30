@@ -15,6 +15,7 @@ import SmokeBackground from './components/SmokeBackground';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { getApiErrorMessage } from './utils/apiError.js';
 import { getStorageItem, removeStorageItem, setStorageItem } from './utils/safeStorage.js';
+import { createRequestSequence } from './utils/requestSequence.js';
 
 const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 const HEALTH_URL = import.meta.env.VITE_HEALTH_URL || API_URL.replace(/\/api\/?$/, '') + '/health';
@@ -75,6 +76,10 @@ export default function App() {
   const [lightMode, setLightMode] = useState(readStoredTheme);
   const [refreshSeconds, setRefreshSeconds] = useState(readRefreshSeconds);
   const shouldReduceMotion = useReducedMotion();
+  const workspaceRequests = useRef(null);
+  const healthRequests = useRef(null);
+  if (!workspaceRequests.current) workspaceRequests.current = createRequestSequence();
+  if (!healthRequests.current) healthRequests.current = createRequestSequence();
 
   const api = useMemo(() => DEMO_MODE ? createDemoApi() : axios.create({
     baseURL: API_URL,
@@ -83,13 +88,19 @@ export default function App() {
   }), []);
 
   const updateHealth = useCallback(() => {
+    const requestId = healthRequests.current.begin();
     if (DEMO_MODE) {
       setHealth({ status: 'demo', database: 'browser storage', mode: 'browser-demo', timestamp: new Date().toISOString() });
       return;
     }
     axios.get(HEALTH_URL, { timeout: 5000 })
-      .then(response => setHealth(response.data || { status: 'unknown' }))
+      .then(response => {
+        if (healthRequests.current.isCurrent(requestId)) {
+          setHealth(response.data || { status: 'unknown' });
+        }
+      })
       .catch(requestError => {
+        if (!healthRequests.current.isCurrent(requestId)) return;
         setHealth(requestError.response?.data || {
           status: 'unavailable',
           database: 'unavailable',
@@ -100,6 +111,7 @@ export default function App() {
 
   const loadWorkspace = useCallback(async ({ showSpinner = false } = {}) => {
     if (!token) return false;
+    const requestId = workspaceRequests.current.begin();
     if (showSpinner) setLoading(true);
     try {
       const [projectResponse, deploymentResponse, teamResponse, instanceResponse] = await Promise.all([
@@ -108,6 +120,7 @@ export default function App() {
         api.get('/teams'),
         api.get('/instances')
       ]);
+      if (!workspaceRequests.current.isCurrent(requestId)) return false;
       setProjects(projectResponse.data.projects || []);
       setDeployments(deploymentResponse.data.deployments || []);
       setTeams(teamResponse.data.teams || []);
@@ -117,11 +130,12 @@ export default function App() {
       updateHealth();
       return true;
     } catch (requestError) {
+      if (!workspaceRequests.current.isCurrent(requestId)) return false;
       setError(getApiErrorMessage(requestError, 'Could not refresh the workspace. Your last loaded data is still visible.'));
       updateHealth();
       return false;
     } finally {
-      if (showSpinner) setLoading(false);
+      if (workspaceRequests.current.isCurrent(requestId)) setLoading(false);
     }
   }, [api, token, updateHealth]);
 
@@ -131,6 +145,8 @@ export default function App() {
       response => response,
       requestError => {
         if (requestError.response?.status === 401 && getStorageItem('token')) {
+          workspaceRequests.current.invalidate();
+          healthRequests.current.invalidate();
           removeStorageItem('token');
           removeStorageItem('orbit.user');
           setToken(null);
@@ -149,6 +165,8 @@ export default function App() {
 
   useEffect(() => {
     if (!token) {
+      workspaceRequests.current.invalidate();
+      healthRequests.current.invalidate();
       delete api.defaults.headers.common.Authorization;
       setProjects([]);
       setDeployments([]);
@@ -161,7 +179,10 @@ export default function App() {
     }
     api.defaults.headers.common.Authorization = 'Bearer ' + token;
     loadWorkspace({ showSpinner: true });
-    return undefined;
+    return () => {
+      workspaceRequests.current.invalidate();
+      healthRequests.current.invalidate();
+    };
   }, [api, token, loadWorkspace]);
 
   useEffect(() => {
@@ -193,6 +214,8 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    workspaceRequests.current.invalidate();
+    healthRequests.current.invalidate();
     removeStorageItem('token');
     removeStorageItem('orbit.user');
     if (DEMO_MODE) setStorageItem('orbit.demo.loggedOut', 'true');
