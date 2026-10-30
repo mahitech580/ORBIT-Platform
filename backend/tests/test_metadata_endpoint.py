@@ -23,7 +23,7 @@ class MetadataEndpointTests(unittest.TestCase):
     def test_metadata_does_not_require_a_bearer_token(self):
         response = self.client.get("/api/meta")
         self.assertEqual(response.status_code, 200)
-\n
+
     def test_metadata_response_contains_content_security_policy(self):
         response = self.client.get("/api/meta")
         self.assertEqual(

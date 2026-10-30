@@ -31,7 +31,7 @@ class ProtectedRouteAuthenticationTests(unittest.TestCase):
             with self.subTest(header=header):
                 response = self.client.get("/api/projects", headers={"Authorization": header})
                 self.assertEqual(response.status_code, 401)
-\n
+
     def test_anonymous_route_rejection_keeps_security_and_diagnostic_headers(self):
         response = self.client.get("/api/projects")
         self.assertEqual(response.status_code, 401)

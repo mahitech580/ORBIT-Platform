@@ -309,10 +309,10 @@ class OrbitPureHelperRegressionTests(unittest.TestCase):
     def test_parse_metric_timestamp_accepts_lowercase_utc_suffix(self):
         parsed = self.run_in_request(orbit.parse_metric_timestamp, "2026-10-21T12:00:00z")
         self.assertEqual(parsed, datetime(2026, 10, 21, 12, 0, 0))
-\n
+
     def test_password_verification_rejects_malformed_recognized_hash(self):
         self.assertFalse(orbit.verify_password("password", "pbkdf2:sha256:600000$truncated"))
-\n
+
     def test_legacy_sha256_hash_comparison_is_case_insensitive(self):
         digest = hashlib.sha256(b"legacy-password").hexdigest().upper()
         self.assertTrue(orbit.verify_password("legacy-password", digest))
