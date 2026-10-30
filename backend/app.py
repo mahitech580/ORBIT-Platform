@@ -68,7 +68,8 @@ def parse_integer_setting(name, value, default, *, minimum=1, maximum=None):
         raise RuntimeError(name + " must be an integer.")
     if isinstance(value, str):
         normalized = value.strip()
-        if not normalized or not normalized.isascii() or not normalized.isdecimal():
+        digits = normalized[1:] if normalized.startswith("-") else normalized
+        if not digits or not digits.isascii() or not digits.isdecimal():
             raise RuntimeError(name + " must be an integer.")
         try:
             parsed = int(normalized)
