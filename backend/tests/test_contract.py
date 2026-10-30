@@ -125,8 +125,15 @@ class DatabaseConnectionContractTests(unittest.TestCase):
         connect.assert_called_once_with(
             "postgresql://user:pass@example.test/orbit",
             connect_timeout=orbit.DATABASE["connect_timeout"],
+            options="-c timezone=UTC",
             sslmode="require",
         )
+
+    def test_direct_database_settings_use_a_utc_session(self):
+        with patch.object(orbit, "DATABASE_URL", ""), \
+             patch.object(orbit.psycopg2, "connect") as connect:
+            orbit.get_db()
+        self.assertEqual(connect.call_args.kwargs["options"], "-c timezone=UTC")
 
     def test_explicit_sslmode_overrides_production_default(self):
         from unittest.mock import patch

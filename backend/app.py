@@ -107,6 +107,9 @@ def parse_integer_setting(name, value, default, *, minimum=1, maximum=None):
     return parsed
 
 
+# All TIMESTAMP WITHOUT TIME ZONE values are written and read as UTC.
+POSTGRES_SESSION_OPTIONS = "-c timezone=UTC"
+
 DATABASE = {
     "host": os.getenv("DB_HOST", "localhost"),
     "database": os.getenv("DB_NAME", "orbit"),
@@ -114,6 +117,7 @@ DATABASE = {
     "password": os.getenv("DB_PASSWORD", "password"),
     "port": parse_integer_setting("DB_PORT", os.getenv("DB_PORT"), 5432, maximum=65535),
     "connect_timeout": parse_integer_setting("DB_CONNECT_TIMEOUT", os.getenv("DB_CONNECT_TIMEOUT"), 5, maximum=300),
+    "options": POSTGRES_SESSION_OPTIONS,
 }
 if os.getenv("DB_SSLMODE"):
     DATABASE["sslmode"] = validate_database_sslmode(IS_PRODUCTION, os.getenv("DB_SSLMODE"))
@@ -271,7 +275,10 @@ def json_safe(value):
 def get_db():
     """Open a short-lived PostgreSQL connection using Render's URL or local DB_* settings."""
     if DATABASE_URL:
-        options = {"connect_timeout": DATABASE["connect_timeout"]}
+        options = {
+            "connect_timeout": DATABASE["connect_timeout"],
+            "options": POSTGRES_SESSION_OPTIONS,
+        }
         explicit_sslmode = os.getenv("DB_SSLMODE")
         if explicit_sslmode:
             options["sslmode"] = validate_database_sslmode(IS_PRODUCTION, explicit_sslmode)
