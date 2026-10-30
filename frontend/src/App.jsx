@@ -16,6 +16,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { getApiErrorMessage } from './utils/apiError.js';
 import { getStorageItem, removeStorageItem, setStorageItem } from './utils/safeStorage.js';
 import { createRequestSequence } from './utils/requestSequence.js';
+import { isCurrentBearerRequest } from './utils/currentAuthRequest.js';
 
 const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 const HEALTH_URL = import.meta.env.VITE_HEALTH_URL || API_URL.replace(/\/api\/?$/, '') + '/health';
@@ -144,7 +145,7 @@ export default function App() {
     const interceptorId = api.interceptors.response.use(
       response => response,
       requestError => {
-        if (requestError.response?.status === 401 && getStorageItem('token')) {
+        if (requestError.response?.status === 401 && isCurrentBearerRequest(requestError.config?.headers, getStorageItem('token'))) {
           workspaceRequests.current.invalidate();
           healthRequests.current.invalidate();
           removeStorageItem('token');
