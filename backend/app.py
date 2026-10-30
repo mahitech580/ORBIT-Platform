@@ -388,7 +388,10 @@ def health():
         finally:
             conn.close()
     except Exception:
-        app.logger.warning("Health check could not connect to PostgreSQL.")
+        app.logger.warning(
+            "Health check could not connect to PostgreSQL (request_id=%s).",
+            getattr(request, "orbit_request_id", "unknown"),
+        )
     status_code = 200 if database_status == "connected" else 503
     return jsonify({
         "status": "ok" if status_code == 200 else "degraded",
@@ -769,10 +772,18 @@ def ingest_metrics(project_id):
             returning=True,
         )
     except psycopg2.Error:
-        app.logger.exception("Telemetry insert failed for project %s.", project_id)
+        app.logger.exception(
+            "Telemetry insert failed for project %s (request_id=%s).",
+            project_id,
+            getattr(request, "orbit_request_id", "unknown"),
+        )
         return jsonify({"error": "Telemetry could not be stored right now."}), 503
     if not rows:
-        app.logger.error("Telemetry insert returned no row for project %s.", project_id)
+        app.logger.error(
+            "Telemetry insert returned no row for project %s (request_id=%s).",
+            project_id,
+            getattr(request, "orbit_request_id", "unknown"),
+        )
         return jsonify({"error": "Telemetry could not be stored right now."}), 503
     return jsonify({"success": True, "metric": rows[0]}), 201
 

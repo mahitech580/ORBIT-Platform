@@ -59,3 +59,10 @@ class HealthEndpointTests(unittest.TestCase):
         self.assertRegex(response.headers.get("X-Request-ID", ""), r"^[a-f0-9]{32}$")
         self.assertEqual(response.headers.get("Cache-Control"), "no-store")
         self.assertEqual(response.headers.get("X-Frame-Options"), "DENY")
+
+    def test_database_warning_log_contains_the_response_request_id(self):
+        with patch.object(orbit, "get_db", side_effect=RuntimeError("database offline")):
+            with self.assertLogs(orbit.app.logger, level="WARNING") as captured:
+                response = self.client.get("/health")
+        self.assertEqual(response.status_code, 503)
+        self.assertIn(response.headers["X-Request-ID"], "\n".join(captured.output))
