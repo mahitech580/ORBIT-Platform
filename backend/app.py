@@ -116,7 +116,7 @@ DATABASE = {
     "connect_timeout": parse_integer_setting("DB_CONNECT_TIMEOUT", os.getenv("DB_CONNECT_TIMEOUT"), 5, maximum=300),
 }
 if os.getenv("DB_SSLMODE"):
-    DATABASE["sslmode"] = os.getenv("DB_SSLMODE")
+    DATABASE["sslmode"] = validate_database_sslmode(IS_PRODUCTION, os.getenv("DB_SSLMODE"))
 
 # Render provides DATABASE_URL; local development can continue using DB_* fields.
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
@@ -139,6 +139,22 @@ def validate_database_configuration(is_production, database_url, environment):
 
 
 validate_database_configuration(IS_PRODUCTION, DATABASE_URL, os.environ)
+
+def validate_database_sslmode(is_production, sslmode):
+    """Validate libpq TLS modes and forbid downgrade modes in production."""
+    if sslmode is None or (isinstance(sslmode, str) and not sslmode.strip()):
+        return None
+    if not isinstance(sslmode, str):
+        raise RuntimeError("DB_SSLMODE must be a valid PostgreSQL SSL mode.")
+    normalized = sslmode.strip().lower()
+    allowed = {"disable", "allow", "prefer", "require", "verify-ca", "verify-full"}
+    if normalized not in allowed:
+        raise RuntimeError("DB_SSLMODE must be one of: " + ", ".join(sorted(allowed)) + ".")
+    if is_production and normalized in {"disable", "allow", "prefer"}:
+        raise RuntimeError("Production DB_SSLMODE must require TLS; use require, verify-ca, or verify-full.")
+    return normalized
+
+
 
 PAGES_ORIGIN = "https://mahitech580.github.io"
 DEVELOPMENT_CORS_ORIGINS = (
@@ -258,7 +274,7 @@ def get_db():
         options = {"connect_timeout": DATABASE["connect_timeout"]}
         explicit_sslmode = os.getenv("DB_SSLMODE")
         if explicit_sslmode:
-            options["sslmode"] = explicit_sslmode
+            options["sslmode"] = validate_database_sslmode(IS_PRODUCTION, explicit_sslmode)
         elif IS_PRODUCTION:
             # Render's managed PostgreSQL endpoint requires TLS in production.
             options["sslmode"] = "require"
