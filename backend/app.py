@@ -13,6 +13,7 @@ import math
 import os
 import re
 import uuid
+from urllib.parse import urlsplit
 
 import jwt
 import psycopg2
@@ -137,14 +138,56 @@ def validate_database_configuration(is_production, database_url, environment):
 
 validate_database_configuration(IS_PRODUCTION, DATABASE_URL, os.environ)
 
+PAGES_ORIGIN = "https://mahitech580.github.io"
+DEVELOPMENT_CORS_ORIGINS = (
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    PAGES_ORIGIN,
+)
+
+
+def parse_cors_origins(value, *, is_production=False):
+    """Parse exact browser origins and fail closed on wildcard or URL paths."""
+    if not isinstance(value, str) or not value.strip():
+        configured = [PAGES_ORIGIN] if is_production else list(DEVELOPMENT_CORS_ORIGINS)
+    else:
+        configured = value.split(",")
+
+    origins = []
+    for candidate in configured:
+        origin = candidate.strip()
+        if not origin:
+            continue
+        if origin == "*":
+            raise RuntimeError("CORS_ORIGINS must not contain a wildcard origin.")
+        try:
+            parsed = urlsplit(origin)
+            parsed.port
+        except ValueError:
+            raise RuntimeError("CORS_ORIGINS must contain valid HTTP(S) origins.") from None
+        if (
+            parsed.scheme.lower() not in {"http", "https"}
+            or not parsed.hostname
+            or "*" in parsed.hostname
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path not in {"", "/"}
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise RuntimeError("CORS_ORIGINS must contain exact HTTP(S) origins without paths or credentials.")
+        normalized = parsed.scheme.lower() + "://" + parsed.netloc.lower()
+        if normalized not in origins:
+            origins.append(normalized)
+
+    if PAGES_ORIGIN not in origins:
+        origins.append(PAGES_ORIGIN)
+    return origins
+
+
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024
-allowed_origins = [origin.strip() for origin in os.getenv(
-    "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,https://mahitech580.github.io"
-).split(",") if origin.strip()]
-# Ensure the public GitHub Pages app is allowed even if Render has explicit CORS_ORIGINS.
-if "https://mahitech580.github.io" not in allowed_origins:
-    allowed_origins.append("https://mahitech580.github.io")
+allowed_origins = parse_cors_origins(os.getenv("CORS_ORIGINS"), is_production=IS_PRODUCTION)
 CORS(app, resources={
     r"/api/*": {"origins": allowed_origins},
     r"/health": {"origins": allowed_origins},
