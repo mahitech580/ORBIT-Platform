@@ -849,6 +849,10 @@ textarea { min-height: 85px; resize: vertical; }
   .orbit-scene { right: -20%; width: 62%; opacity: .42; }
   .orbit-scene-caption { display: none; }
 }
+
+@media (hover: none), (pointer: coarse) {
+  .orbit-scene { pointer-events: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   .orbit-scene-depth, .orbit-scene-ring-mid, .orbit-scene-satellite { animation: none !important; }
 }
