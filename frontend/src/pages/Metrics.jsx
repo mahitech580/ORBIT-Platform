@@ -70,7 +70,11 @@ export default function Metrics({ projects, api, refreshSeconds = 30 }) {
     };
   }, [fetchMetrics, refreshSeconds, selectedProject]);
 
-  const formatNumber = (value, digits = 1) => Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: digits });
+  const formatNumber = (value, digits = 1) => {
+    if (value === null || value === undefined || value === '') return '—';
+    const number = Number(value);
+    return Number.isFinite(number) ? number.toLocaleString(undefined, { maximumFractionDigits: digits }) : '—';
+  };
   const visibleMetrics = useMemo(() => filterMetricsByRange(metrics, timeRange), [metrics, timeRange]);
   const visibleSummary = useMemo(() => summarizeMetrics(visibleMetrics), [visibleMetrics]);
   const selectedProjectName = projects.find(project => Number(project.id) === Number(selectedProject))?.name || 'Project';
@@ -127,8 +131,8 @@ export default function Metrics({ projects, api, refreshSeconds = 30 }) {
       {selectedProject && summary && (
         <>
           <div className="metrics-kpi-grid">
-            <div className="metric-kpi"><span>Average CPU</span><strong>{formatNumber(visibleSummary.avg_cpu)}<small>%</small></strong><div className="metric-track"><span style={{ width: Math.min(Number(visibleSummary.avg_cpu || 0), 100) + '%' }} /></div></div>
-            <div className="metric-kpi"><span>Average memory</span><strong>{formatNumber(Number(visibleSummary.avg_memory || 0) / 1024)}<small> GB</small></strong><p>Based on recorded memory values</p></div>
+            <div className="metric-kpi"><span>Average CPU</span><strong>{formatNumber(visibleSummary.avg_cpu)}{visibleSummary.avg_cpu === null ? null : <small>%</small>}</strong><div className="metric-track"><span style={{ width: Math.min(Number(visibleSummary.avg_cpu || 0), 100) + '%' }} /></div></div>
+            <div className="metric-kpi"><span>Average memory</span><strong>{visibleSummary.avg_memory === null ? '—' : <>{formatNumber(visibleSummary.avg_memory / 1024)}<small> GB</small></>}</strong><p>Based on recorded memory values</p></div>
             <div className="metric-kpi"><span>Total requests</span><strong>{formatNumber(visibleSummary.total_requests, 0)}</strong><p>Sum of returned measurement records</p></div>
           </div>
 
@@ -169,18 +173,23 @@ export default function Metrics({ projects, api, refreshSeconds = 30 }) {
 
               <section className="section metric-chart-section">
                 <div className="section-heading-row"><div><h2>CPU trend</h2><p>Most recent 10 measurements returned by the API</p></div><span className="chart-legend"><i /> CPU usage</span></div>
-                <div className="simple-chart improved-chart">
-                  <div className="chart-bars">
-                    {[...visibleMetrics].slice(0, 10).reverse().map((metric, index) => {
-                      const value = Math.max(0, Math.min(Number(metric.cpu_usage || 0), 100));
-                      return <div key={metric.id || metric.timestamp || index} className="chart-column">
-                        <div className="bar" style={{ height: Math.max(value, 2) + '%' }} title={formatNumber(value) + '% CPU'} />
-                        <span>{metric.timestamp ? new Date(metric.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : index + 1}</span>
-                      </div>;
-                    })}
+                {visibleSummary.avg_cpu === null ? (
+                  <div className="empty-message compact-empty"><p>No CPU measurements were included in this time window.</p></div>
+                ) : (
+                  <div className="simple-chart improved-chart">
+                    <div className="chart-bars">
+                      {[...visibleMetrics].slice(0, 10).reverse().map((metric, index) => {
+                        const hasValue = metric.cpu_usage !== null && metric.cpu_usage !== undefined && metric.cpu_usage !== '' && Number.isFinite(Number(metric.cpu_usage));
+                        const value = hasValue ? Math.max(0, Math.min(Number(metric.cpu_usage), 100)) : 0;
+                        return <div key={metric.id || metric.timestamp || index} className="chart-column" title={hasValue ? formatNumber(value) + '% CPU' : 'CPU not recorded'}>
+                          {hasValue && <div className="bar" style={{ height: Math.max(value, 2) + '%' }} />}
+                          <span>{metric.timestamp ? new Date(metric.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : index + 1}</span>
+                        </div>;
+                      })}
+                    </div>
+                    <div className="chart-axis-labels"><span>0%</span><span>50%</span><span>100%</span></div>
                   </div>
-                  <div className="chart-axis-labels"><span>0%</span><span>50%</span><span>100%</span></div>
-                </div>
+                )}
               </section>
             </>
           )}

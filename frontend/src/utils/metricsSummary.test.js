@@ -24,9 +24,15 @@ test('handles strings containing numeric values and ignores malformed values', (
 });
 
 test('returns a zeroed summary for empty and malformed input', () => {
-  const empty = { avg_cpu: 0, avg_memory: 0, total_requests: 0 };
+  const empty = { avg_cpu: null, avg_memory: null, total_requests: null };
   assert.deepEqual(summarizeMetrics(null), empty);
   assert.deepEqual(summarizeMetrics([null, 'bad', []]), empty);
+});
+
+test('preserves real zero measurements while marking absent fields as unavailable', () => {
+  assert.deepEqual(summarizeMetrics([
+    { cpu_usage: 0, memory_usage: null, requests_total: 0 }
+  ]), { avg_cpu: 0, avg_memory: null, total_requests: 0 });
 });
 
 test('does not mutate the source telemetry rows', () => {
