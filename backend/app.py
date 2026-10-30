@@ -107,6 +107,21 @@ def parse_integer_setting(name, value, default, *, minimum=1, maximum=None):
     return parsed
 
 
+def validate_database_sslmode(is_production, sslmode):
+    """Validate libpq TLS modes and forbid downgrade modes in production."""
+    if sslmode is None or (isinstance(sslmode, str) and not sslmode.strip()):
+        return None
+    if not isinstance(sslmode, str):
+        raise RuntimeError("DB_SSLMODE must be a valid PostgreSQL SSL mode.")
+    normalized = sslmode.strip().lower()
+    allowed = {"disable", "allow", "prefer", "require", "verify-ca", "verify-full"}
+    if normalized not in allowed:
+        raise RuntimeError("DB_SSLMODE must be one of: " + ", ".join(sorted(allowed)) + ".")
+    if is_production and normalized in {"disable", "allow", "prefer"}:
+        raise RuntimeError("Production DB_SSLMODE must require TLS; use require, verify-ca, or verify-full.")
+    return normalized
+
+
 # All TIMESTAMP WITHOUT TIME ZONE values are written and read as UTC.
 POSTGRES_SESSION_OPTIONS = "-c timezone=UTC"
 
@@ -143,21 +158,6 @@ def validate_database_configuration(is_production, database_url, environment):
 
 
 validate_database_configuration(IS_PRODUCTION, DATABASE_URL, os.environ)
-
-def validate_database_sslmode(is_production, sslmode):
-    """Validate libpq TLS modes and forbid downgrade modes in production."""
-    if sslmode is None or (isinstance(sslmode, str) and not sslmode.strip()):
-        return None
-    if not isinstance(sslmode, str):
-        raise RuntimeError("DB_SSLMODE must be a valid PostgreSQL SSL mode.")
-    normalized = sslmode.strip().lower()
-    allowed = {"disable", "allow", "prefer", "require", "verify-ca", "verify-full"}
-    if normalized not in allowed:
-        raise RuntimeError("DB_SSLMODE must be one of: " + ", ".join(sorted(allowed)) + ".")
-    if is_production and normalized in {"disable", "allow", "prefer"}:
-        raise RuntimeError("Production DB_SSLMODE must require TLS; use require, verify-ca, or verify-full.")
-    return normalized
-
 
 
 PAGES_ORIGIN = "https://mahitech580.github.io"

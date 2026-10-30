@@ -24,6 +24,31 @@ class DatabaseSslConfigurationTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "valid PostgreSQL SSL mode"):
             orbit.validate_database_sslmode(False, "sometimes")
 
+    def test_production_import_rejects_insecure_ssl_configuration_before_connecting(self):
+        import os
+        from pathlib import Path
+        import subprocess
+        import sys
+
+        environment = os.environ.copy()
+        environment.update({
+            "APP_ENV": "production",
+            "SECRET_KEY": "R7!mQ2#vN9$kL4@xP6%zT1^cB8&hD3*e",
+            "DATABASE_URL": "postgresql://user:pass@example.test/orbit",
+            "DB_SSLMODE": "disable",
+        })
+        result = subprocess.run(
+            [sys.executable, "-c", "import app"],
+            cwd=Path(__file__).resolve().parents[1],
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Production DB_SSLMODE must require TLS", result.stderr)
+        self.assertNotIn("NameError", result.stderr)
+
     def test_database_url_connection_cannot_override_production_tls_with_disable(self):
         with patch.object(orbit, "DATABASE_URL", "postgresql://user:pass@example.test/orbit"), \
              patch.object(orbit, "IS_PRODUCTION", True), \
