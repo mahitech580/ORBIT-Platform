@@ -190,6 +190,13 @@ export default function SmokeBackground({ lightMode = true }) {
         // Reduced-motion users get one still frame instead of an idle animation loop.
         if (!reducedMotion) scheduleFrame();
       };
+      const onContextLost = () => {
+        // The CSS background remains available if the browser or GPU drops WebGL.
+        disposed = true;
+        if (raf) window.cancelAnimationFrame(raf);
+        raf = 0;
+        canvas.dataset.fallback = 'true';
+      };
       const onVisibilityChange = () => {
         visible = document.visibilityState !== 'hidden';
         if (!visible) {
@@ -215,6 +222,7 @@ export default function SmokeBackground({ lightMode = true }) {
 
       resize();
       window.addEventListener('resize', resize, { passive: true });
+      canvas.addEventListener('webglcontextlost', onContextLost);
       document.addEventListener('visibilitychange', onVisibilityChange);
       if (typeof motionPreference.addEventListener === 'function') {
         motionPreference.addEventListener('change', onMotionPreferenceChange);
@@ -230,6 +238,7 @@ export default function SmokeBackground({ lightMode = true }) {
         disposed = true;
         window.cancelAnimationFrame(raf);
         window.removeEventListener('resize', resize);
+        canvas.removeEventListener('webglcontextlost', onContextLost);
         document.removeEventListener('visibilitychange', onVisibilityChange);
         if (typeof motionPreference.removeEventListener === 'function') {
           motionPreference.removeEventListener('change', onMotionPreferenceChange);
