@@ -12,7 +12,7 @@ import Settings from './pages/Settings';
 import Navigation from './components/Navigation';
 import CommandPalette from './components/CommandPalette';
 import SmokeBackground from './components/SmokeBackground';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { getApiErrorMessage } from './utils/apiError.js';
 
 const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
@@ -78,6 +78,7 @@ export default function App() {
   const [commandOpen, setCommandOpen] = useState(false);
   const [lightMode, setLightMode] = useState(readStoredTheme);
   const [refreshSeconds, setRefreshSeconds] = useState(readRefreshSeconds);
+  const shouldReduceMotion = useReducedMotion();
 
   const api = useMemo(() => DEMO_MODE ? createDemoApi() : axios.create({
     baseURL: API_URL,
@@ -368,7 +369,7 @@ export default function App() {
           <div className="workspace-loading" role="status"><span className="loading-pulse" /> Loading workspace records…</div>
         )}
         <AnimatePresence mode="wait" initial={false}>
-          <motion.div key={token ? currentPage : 'login'} className="page-transition" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.22, ease: 'easeOut' }}>
+          <motion.div key={token ? currentPage : 'login'} className="page-transition" initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -5 }} transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut' }}>
             {renderPage()}
           </motion.div>
         </AnimatePresence>

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import OrbitalScene from '../components/OrbitalScene';
 
 const riseIn = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.48, ease: [0.22, 1, 0.36, 1] } } };
@@ -74,6 +74,13 @@ export default function Dashboard({
   onRefresh,
   onPageChange
 }) {
+  const shouldReduceMotion = useReducedMotion();
+  const cardVariants = shouldReduceMotion
+    ? { hidden: { opacity: 1, y: 0 }, show: { opacity: 1, y: 0, transition: { duration: 0 } } }
+    : riseIn;
+  const groupVariants = shouldReduceMotion
+    ? { hidden: { opacity: 1 }, show: { opacity: 1, transition: { duration: 0, staggerChildren: 0, delayChildren: 0 } } }
+    : staggerIn;
   const stats = useMemo(() => ({
     projects: projects.length,
     activeProjects: projects.filter(project => project.status === 'active').length,
@@ -185,7 +192,7 @@ export default function Dashboard({
 
     <div className="dashboard-layout">
       <main className="dashboard-primary">
-        <motion.section className="hero-banner" style={{ '--earth-image': 'url("' + EARTH_IMAGE + '")' }} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}>
+        <motion.section className="hero-banner" style={{ '--earth-image': 'url("' + EARTH_IMAGE + '")' }} initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.62, ease: [0.22, 1, 0.36, 1] }}>
           <div className="hero-image-shade" />
           <div className="hero-content">
             <span className="hero-eyebrow"><i /> PROJECT OPERATIONS PLATFORM</span>
@@ -199,23 +206,23 @@ export default function Dashboard({
           <OrbitalScene />
         </motion.section>
 
-        <motion.section className="stats-grid" aria-label="Workspace counts" variants={staggerIn} initial="hidden" animate="show">
-          <motion.article className="metric-card metric-blue" variants={riseIn} whileHover={{ y: -3, transition: { duration: 0.18 } }}>
+        <motion.section className="stats-grid" aria-label="Workspace counts" variants={groupVariants} initial="hidden" animate="show">
+          <motion.article className="metric-card metric-blue" variants={cardVariants} whileHover={shouldReduceMotion ? undefined : { y: -3, transition: { duration: 0.18 } }}>
             <div className="metric-card-top"><span>Total projects</span><StatIcon icon="▣" color="blue" /></div>
             <div className="metric-value">{stats.projects}<span className="metric-detail-count">{stats.activeProjects} active</span></div>
             <div className="metric-card-foot"><span className="metric-foot-dot" /> Project inventory</div><span className="metric-card-glow" />
           </motion.article>
-          <motion.article className="metric-card metric-violet" variants={riseIn} whileHover={{ y: -3, transition: { duration: 0.18 } }}>
+          <motion.article className="metric-card metric-violet" variants={cardVariants} whileHover={shouldReduceMotion ? undefined : { y: -3, transition: { duration: 0.18 } }}>
             <div className="metric-card-top"><span>Deployment records</span><StatIcon icon="↗" color="violet" /></div>
             <div className="metric-value">{stats.releases}<span className="metric-detail-count">{stats.pending} in progress</span></div>
             <div className="metric-card-foot"><span className="metric-foot-dot" /> Release history</div><span className="metric-card-glow" />
           </motion.article>
-          <motion.article className="metric-card metric-green" variants={riseIn} whileHover={{ y: -3, transition: { duration: 0.18 } }}>
+          <motion.article className="metric-card metric-green" variants={cardVariants} whileHover={shouldReduceMotion ? undefined : { y: -3, transition: { duration: 0.18 } }}>
             <div className="metric-card-top"><span>System health</span><StatIcon icon="⌁" color="green" /></div>
             <div className="metric-value metric-health-value">{healthText}<i className={'health-status-dot ' + stateTone(health?.status)} /></div>
             <div className="metric-card-foot"><span className="metric-foot-dot" />{demoMode ? 'Local sample data' : health?.database === 'connected' ? 'Database connected' : 'Based on API health check'}</div><span className="metric-card-glow" />
           </motion.article>
-          <motion.article className="metric-card metric-orange" variants={riseIn} whileHover={{ y: -3, transition: { duration: 0.18 } }}>
+          <motion.article className="metric-card metric-orange" variants={cardVariants} whileHover={shouldReduceMotion ? undefined : { y: -3, transition: { duration: 0.18 } }}>
             <div className="metric-card-top"><span>Workspace teams</span><StatIcon icon="♧" color="orange" /></div>
             <div className="metric-value">{stats.activeTeams}<span className="metric-detail-count">{stats.instanceRecords} instance records</span></div>
             <div className="metric-card-foot"><span className="metric-foot-dot" /> Teams & resources</div><span className="metric-card-glow" />
