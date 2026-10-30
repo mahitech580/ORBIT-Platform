@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { shouldTrackBackgroundPointer } from '../utils/backgroundPointer.js';
 import { subscribeMediaQuery } from '../utils/mediaQueryListener.js';
+import { getCanvasBackingSize } from '../utils/canvasResolution.js';
 
 const VERTEX_SHADER = [
   'attribute vec2 a_position;',
@@ -114,6 +115,7 @@ export default function SmokeBackground({ lightMode = true }) {
     let height = 1;
     let startTime = 0;
     let lastFrame = 0;
+    let resizeObserver = null;
     let currentPointer = { x: 0.5, y: 0.5 };
     let targetPointer = { x: 0.5, y: 0.5 };
     const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -149,9 +151,9 @@ export default function SmokeBackground({ lightMode = true }) {
 
       const resize = () => {
         const rect = canvas.getBoundingClientRect();
-        const dpr = Math.min(window.devicePixelRatio || 1, 1.35);
-        width = Math.max(1, Math.floor(rect.width * dpr));
-        height = Math.max(1, Math.floor(rect.height * dpr));
+        const size = getCanvasBackingSize(rect.width, rect.height, window.devicePixelRatio || 1);
+        width = size.width;
+        height = size.height;
         if (canvas.width !== width || canvas.height !== height) {
           canvas.width = width;
           canvas.height = height;
@@ -227,6 +229,10 @@ export default function SmokeBackground({ lightMode = true }) {
 
       resize();
       window.addEventListener('resize', onResize, { passive: true });
+      if (typeof window.ResizeObserver === 'function') {
+        resizeObserver = new window.ResizeObserver(onResize);
+        resizeObserver.observe(canvas.parentElement || canvas);
+      }
       canvas.addEventListener('webglcontextlost', onContextLost);
       document.addEventListener('visibilitychange', onVisibilityChange);
       const unsubscribeMotionPreference = subscribeMediaQuery(motionPreference, onMotionPreferenceChange);
@@ -239,6 +245,7 @@ export default function SmokeBackground({ lightMode = true }) {
         disposed = true;
         window.cancelAnimationFrame(raf);
         window.removeEventListener('resize', onResize);
+        if (resizeObserver) resizeObserver.disconnect();
         canvas.removeEventListener('webglcontextlost', onContextLost);
         document.removeEventListener('visibilitychange', onVisibilityChange);
         unsubscribeMotionPreference();
@@ -250,6 +257,7 @@ export default function SmokeBackground({ lightMode = true }) {
     } catch {
       canvas.dataset.fallback = 'true';
       if (raf) window.cancelAnimationFrame(raf);
+      if (resizeObserver) resizeObserver.disconnect();
       if (buffer) gl.deleteBuffer(buffer);
       if (program) gl.deleteProgram(program);
       return undefined;
