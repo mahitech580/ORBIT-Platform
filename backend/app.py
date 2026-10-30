@@ -122,6 +122,14 @@ def validate_database_sslmode(is_production, sslmode):
     return normalized
 
 
+def resolve_database_sslmode(is_production, sslmode):
+    """Require encrypted PostgreSQL connections in production by default."""
+    configured = validate_database_sslmode(is_production, sslmode)
+    if configured is not None:
+        return configured
+    return "require" if is_production else None
+
+
 # All TIMESTAMP WITHOUT TIME ZONE values are written and read as UTC.
 POSTGRES_SESSION_OPTIONS = "-c timezone=UTC"
 
@@ -134,8 +142,9 @@ DATABASE = {
     "connect_timeout": parse_integer_setting("DB_CONNECT_TIMEOUT", os.getenv("DB_CONNECT_TIMEOUT"), 5, maximum=300),
     "options": POSTGRES_SESSION_OPTIONS,
 }
-if os.getenv("DB_SSLMODE"):
-    DATABASE["sslmode"] = validate_database_sslmode(IS_PRODUCTION, os.getenv("DB_SSLMODE"))
+database_sslmode = resolve_database_sslmode(IS_PRODUCTION, os.getenv("DB_SSLMODE"))
+if database_sslmode is not None:
+    DATABASE["sslmode"] = database_sslmode
 
 # Render provides DATABASE_URL; local development can continue using DB_* fields.
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
@@ -279,14 +288,18 @@ def get_db():
             "connect_timeout": DATABASE["connect_timeout"],
             "options": POSTGRES_SESSION_OPTIONS,
         }
-        explicit_sslmode = os.getenv("DB_SSLMODE")
-        if explicit_sslmode:
-            options["sslmode"] = validate_database_sslmode(IS_PRODUCTION, explicit_sslmode)
-        elif IS_PRODUCTION:
-            # Render's managed PostgreSQL endpoint requires TLS in production.
-            options["sslmode"] = "require"
+        sslmode = resolve_database_sslmode(IS_PRODUCTION, os.getenv("DB_SSLMODE"))
+        if sslmode is not None:
+            options["sslmode"] = sslmode
         return psycopg2.connect(DATABASE_URL, **options)
-    return psycopg2.connect(**DATABASE)
+
+    connection_settings = dict(DATABASE)
+    sslmode = resolve_database_sslmode(IS_PRODUCTION, os.getenv("DB_SSLMODE"))
+    if sslmode is not None:
+        connection_settings["sslmode"] = sslmode
+    else:
+        connection_settings.pop("sslmode", None)
+    return psycopg2.connect(**connection_settings)
 
 
 def db_fetch_all(query, params=()):

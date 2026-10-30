@@ -58,6 +58,44 @@ class DatabaseSslConfigurationTests(unittest.TestCase):
                 orbit.get_db()
         connect.assert_not_called()
 
+    def test_production_defaults_to_tls_when_sslmode_is_missing_or_blank(self):
+        for value in (None, "", "   "):
+            with self.subTest(value=value):
+                self.assertEqual(orbit.resolve_database_sslmode(True, value), "require")
+
+    def test_development_keeps_libpq_default_when_sslmode_is_missing_or_blank(self):
+        for value in (None, "", "   "):
+            with self.subTest(value=value):
+                self.assertIsNone(orbit.resolve_database_sslmode(False, value))
+
+    def test_direct_database_connection_defaults_to_tls_in_production(self):
+        database_settings = {
+            "host": "db.example.test",
+            "database": "orbit",
+            "user": "orbit",
+            "password": "test-only",
+            "port": 5432,
+            "connect_timeout": 5,
+            "options": orbit.POSTGRES_SESSION_OPTIONS,
+        }
+        with patch.object(orbit, "DATABASE_URL", ""), \
+             patch.object(orbit, "IS_PRODUCTION", True), \
+             patch.dict(orbit.os.environ, {"DB_SSLMODE": " "}), \
+             patch.object(orbit, "DATABASE", database_settings), \
+             patch.object(orbit.psycopg2, "connect") as connect:
+            orbit.get_db()
+        self.assertEqual(connect.call_args.kwargs["sslmode"], "require")
+
+    def test_database_url_connection_defaults_to_tls_in_production(self):
+        database_url = "postgresql://user:pass@example.test/orbit"
+        with patch.object(orbit, "DATABASE_URL", database_url), \
+             patch.object(orbit, "IS_PRODUCTION", True), \
+             patch.dict(orbit.os.environ, {"DB_SSLMODE": " "}), \
+             patch.object(orbit.psycopg2, "connect") as connect:
+            orbit.get_db()
+        self.assertEqual(connect.call_args.args[0], database_url)
+        self.assertEqual(connect.call_args.kwargs["sslmode"], "require")
+
 
 if __name__ == "__main__":
     unittest.main()
