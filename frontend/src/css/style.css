@@ -827,6 +827,10 @@ textarea { min-height: 85px; resize: vertical; }
   white-space: nowrap;
 }
 .orbit-scene-caption > span:last-of-type { color: rgba(108,154,205,.65); }
+.orbit-scene.is-paused .orbit-scene-depth,
+.orbit-scene.is-paused .orbit-scene-ring-back,
+.orbit-scene.is-paused .orbit-scene-ring-mid,
+.orbit-scene.is-paused .orbit-scene-satellite { animation-play-state: paused; }
 .orbit-scene-live-dot { width: 5px; height: 5px; border-radius: 50%; background: #46e7be; box-shadow: 0 0 9px rgba(70,231,190,.8); }
 @keyframes orbit-scene-float {
   0%, 100% { translate: 0 0; }

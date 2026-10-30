@@ -14,6 +14,7 @@ export default function OrbitalScene() {
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     let frame = 0;
+    let isIntersecting = true;
     let targetX = 0;
     let targetY = 0;
     let currentX = 0;
@@ -40,13 +41,13 @@ export default function OrbitalScene() {
     };
 
     const requestTilt = () => {
-      if (!reducedMotion.matches && !frame) {
+      if (!reducedMotion.matches && !document.hidden && isIntersecting && !frame) {
         frame = window.requestAnimationFrame(animateTilt);
       }
     };
 
     const onPointerMove = event => {
-      if (reducedMotion.matches || event.pointerType === 'touch') return;
+      if (reducedMotion.matches || document.hidden || !isIntersecting || event.pointerType === 'touch') return;
       const tilt = getOrbitTilt(event.clientX, event.clientY, scene.getBoundingClientRect());
       targetX = tilt.x;
       targetY = tilt.y;
@@ -70,6 +71,32 @@ export default function OrbitalScene() {
       writeTilt();
     };
 
+    const updatePlayback = () => {
+      const paused = document.hidden || !isIntersecting;
+      scene.classList.toggle('is-paused', paused);
+      if (paused) {
+        if (frame) window.cancelAnimationFrame(frame);
+        frame = 0;
+        targetX = 0;
+        targetY = 0;
+        currentX = 0;
+        currentY = 0;
+        writeTilt();
+      }
+    };
+
+    const onVisibilityChange = () => updatePlayback();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    let observer;
+    if (typeof window.IntersectionObserver === 'function') {
+      observer = new window.IntersectionObserver(entries => {
+        isIntersecting = Boolean(entries[0]?.isIntersecting);
+        updatePlayback();
+      });
+      observer.observe(scene);
+    }
+    updatePlayback();
+
     scene.addEventListener('pointermove', onPointerMove, { passive: true });
     scene.addEventListener('pointerleave', onPointerLeave, { passive: true });
     reducedMotion.addEventListener('change', onMotionPreferenceChange);
@@ -79,6 +106,8 @@ export default function OrbitalScene() {
       scene.removeEventListener('pointermove', onPointerMove);
       scene.removeEventListener('pointerleave', onPointerLeave);
       reducedMotion.removeEventListener('change', onMotionPreferenceChange);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      if (observer) observer.disconnect();
     };
   }, []);
 
