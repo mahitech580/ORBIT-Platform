@@ -130,6 +130,7 @@ class DatabaseConnectionContractTests(unittest.TestCase):
         )
 
     def test_direct_database_settings_use_a_utc_session(self):
+        from unittest.mock import patch
         with patch.object(orbit, "DATABASE_URL", ""), \
              patch.object(orbit.psycopg2, "connect") as connect:
             orbit.get_db()

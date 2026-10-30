@@ -47,7 +47,7 @@ def validate_production_secret(is_production, secret_key):
     if len(set(secret_key)) < 12:
         raise RuntimeError("Production SECRET_KEY must use a diverse cryptographically random value.")
     normalized = secret_key.strip().lower()
-    if normalized != secret_key or normalized.startswith(("replace-with", "development-only", "change-me")):
+    if secret_key != secret_key.strip() or normalized.startswith(("replace-with", "development-only", "change-me")):
         raise RuntimeError("Production SECRET_KEY must be a strong, unique random secret.")
 
 
@@ -116,7 +116,7 @@ def validate_database_sslmode(is_production, sslmode):
     normalized = sslmode.strip().lower()
     allowed = {"disable", "allow", "prefer", "require", "verify-ca", "verify-full"}
     if normalized not in allowed:
-        raise RuntimeError("DB_SSLMODE must be one of: " + ", ".join(sorted(allowed)) + ".")
+        raise RuntimeError("DB_SSLMODE must be a valid PostgreSQL SSL mode; choose one of: " + ", ".join(sorted(allowed)) + ".")
     if is_production and normalized in {"disable", "allow", "prefer"}:
         raise RuntimeError("Production DB_SSLMODE must require TLS; use require, verify-ca, or verify-full.")
     return normalized
