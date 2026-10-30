@@ -39,11 +39,13 @@ if not SECRET_KEY:
 
 
 def validate_production_secret(is_production, secret_key):
-    """Reject short and known placeholder keys before production can issue JWTs."""
+    """Reject short, low-diversity, and known placeholder keys before issuing JWTs."""
     if not is_production:
         return
     if not isinstance(secret_key, str) or len(secret_key.encode("utf-8")) < 32:
         raise RuntimeError("Production SECRET_KEY must contain at least 32 bytes.")
+    if len(set(secret_key)) < 12:
+        raise RuntimeError("Production SECRET_KEY must use a diverse cryptographically random value.")
     normalized = secret_key.strip().lower()
     if normalized != secret_key or normalized.startswith(("replace-with", "development-only", "change-me")):
         raise RuntimeError("Production SECRET_KEY must be a strong, unique random secret.")

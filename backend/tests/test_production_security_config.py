@@ -8,7 +8,13 @@ class ProductionSecurityConfigurationTests(unittest.TestCase):
     def test_production_requires_at_least_32_secret_bytes(self):
         with self.assertRaisesRegex(RuntimeError, "at least 32 bytes"):
             orbit.validate_production_secret(True, "short")
-        orbit.validate_production_secret(True, "a" * 32)
+        orbit.validate_production_secret(True, "R7!mQ2#vN9$kL4@xP6%zT1^cB8&hD3*e")
+
+    def test_production_rejects_low_diversity_secrets(self):
+        with self.assertRaisesRegex(RuntimeError, "diverse"):
+            orbit.validate_production_secret(True, "a" * 32)
+        with self.assertRaisesRegex(RuntimeError, "diverse"):
+            orbit.validate_production_secret(True, "12345678901234567890123456789012")
 
     def test_production_rejects_known_placeholder_secret_values(self):
         with self.assertRaisesRegex(RuntimeError, "random secret"):
