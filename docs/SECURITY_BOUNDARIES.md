@@ -2,7 +2,7 @@
 
 ## Current protections
 
-- Production startup requires an explicitly configured SECRET_KEY and a database URL or complete DB_* connection settings.
+- Production startup requires a unique SECRET_KEY of at least 32 bytes, rejects known placeholder values, disables the shared demo account, and requires a database URL or complete DB_* connection settings.
 - JWTs use HS256, include an expiry, and are validated as positive integer user identifiers. Invalid/expired sessions return 401.
 - Passwords for registered users use Werkzeug PBKDF2-SHA256 hashing. A successful login upgrades compatible legacy SHA-256 hashes.
 - API reads and writes are scoped through ownership joins. Instance records must reference a deployment belonging to the same project.

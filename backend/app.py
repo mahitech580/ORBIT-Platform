@@ -36,6 +36,26 @@ if not SECRET_KEY:
     SECRET_KEY = "development-only-key-change-before-deployment"
     print("WARNING: using a development SECRET_KEY; configure SECRET_KEY before deployment.")
 
+
+def validate_production_secret(is_production, secret_key):
+    """Reject short and known placeholder keys before production can issue JWTs."""
+    if not is_production:
+        return
+    if not isinstance(secret_key, str) or len(secret_key.encode("utf-8")) < 32:
+        raise RuntimeError("Production SECRET_KEY must contain at least 32 bytes.")
+    normalized = secret_key.strip().lower()
+    if normalized != secret_key or normalized.startswith(("replace-with", "development-only", "change-me")):
+        raise RuntimeError("Production SECRET_KEY must be a strong, unique random secret.")
+
+
+def validate_demo_auth_setting(is_production, enabled):
+    """The shared built-in demo account must never be enabled in production."""
+    if is_production and enabled:
+        raise RuntimeError("ENABLE_DEMO_AUTH must be false in production.")
+
+
+validate_production_secret(IS_PRODUCTION, SECRET_KEY)
+
 DEMO_EMAIL = "demo@orbit.local"
 DEMO_PASSWORD = "demo123"
 
@@ -59,6 +79,7 @@ DEMO_AUTH_ENABLED = parse_boolean_setting(
     os.getenv("ENABLE_DEMO_AUTH"),
     default=not IS_PRODUCTION,
 )
+validate_demo_auth_setting(IS_PRODUCTION, DEMO_AUTH_ENABLED)
 
 def parse_integer_setting(name, value, default, *, minimum=1, maximum=None):
     """Parse an integer environment setting and fail with a useful configuration error."""
