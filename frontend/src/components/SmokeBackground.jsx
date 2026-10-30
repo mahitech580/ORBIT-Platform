@@ -107,6 +107,7 @@ export default function SmokeBackground({ lightMode = true }) {
     let buffer = null;
     let raf = 0;
     let disposed = false;
+    let visible = document.visibilityState !== 'hidden';
     let width = 1;
     let height = 1;
     let startTime = 0;
@@ -162,14 +163,14 @@ export default function SmokeBackground({ lightMode = true }) {
       };
       const leavePointer = () => { targetPointer = { x: 0.5, y: 0.5 }; };
 
+      const scheduleFrame = () => {
+        if (!disposed && visible && !raf) raf = window.requestAnimationFrame(draw);
+      };
       const draw = now => {
-        if (disposed) return;
-        if (document.visibilityState === 'hidden') {
-          raf = window.requestAnimationFrame(draw);
-          return;
-        }
+        raf = 0;
+        if (disposed || !visible) return;
         if (!reducedMotion && now - lastFrame < 30) {
-          raf = window.requestAnimationFrame(draw);
+          scheduleFrame();
           return;
         }
         lastFrame = now;
@@ -185,20 +186,31 @@ export default function SmokeBackground({ lightMode = true }) {
         gl.uniform1f(dark, modeRef.current ? 0 : 1);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         // Reduced-motion users get one still frame instead of an idle animation loop.
-        if (!reducedMotion) raf = window.requestAnimationFrame(draw);
+        if (!reducedMotion) scheduleFrame();
+      };
+      const onVisibilityChange = () => {
+        visible = document.visibilityState !== 'hidden';
+        if (!visible) {
+          if (raf) window.cancelAnimationFrame(raf);
+          raf = 0;
+          return;
+        }
+        scheduleFrame();
       };
 
       resize();
       window.addEventListener('resize', resize, { passive: true });
+      document.addEventListener('visibilitychange', onVisibilityChange);
       window.addEventListener('pointermove', movePointer, { passive: true });
       window.addEventListener('pointerleave', leavePointer, { passive: true });
       canvas.dataset.fallback = 'false';
-      raf = window.requestAnimationFrame(draw);
+      scheduleFrame();
 
       return () => {
         disposed = true;
         window.cancelAnimationFrame(raf);
         window.removeEventListener('resize', resize);
+        document.removeEventListener('visibilitychange', onVisibilityChange);
         window.removeEventListener('pointermove', movePointer);
         window.removeEventListener('pointerleave', leavePointer);
         if (buffer) gl.deleteBuffer(buffer);
