@@ -114,7 +114,8 @@ export default function SmokeBackground({ lightMode = true }) {
     let lastFrame = 0;
     let currentPointer = { x: 0.5, y: 0.5 };
     let targetPointer = { x: 0.5, y: 0.5 };
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let reducedMotion = motionPreference.matches;
 
     try {
       const vertex = compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
@@ -156,6 +157,7 @@ export default function SmokeBackground({ lightMode = true }) {
         }
       };
       const movePointer = event => {
+        if (reducedMotion) return;
         targetPointer = {
           x: Math.min(1, Math.max(0, event.clientX / Math.max(1, window.innerWidth))),
           y: 1 - Math.min(1, Math.max(0, event.clientY / Math.max(1, window.innerHeight)))
@@ -197,10 +199,28 @@ export default function SmokeBackground({ lightMode = true }) {
         }
         scheduleFrame();
       };
+      const onMotionPreferenceChange = event => {
+        reducedMotion = event.matches;
+        lastFrame = 0;
+        startTime = 0;
+        if (reducedMotion) {
+          if (raf) window.cancelAnimationFrame(raf);
+          raf = 0;
+          currentPointer = { x: 0.5, y: 0.5 };
+          targetPointer = { x: 0.5, y: 0.5 };
+        }
+        // Draw one still frame when motion is reduced; otherwise restart the loop.
+        scheduleFrame();
+      };
 
       resize();
       window.addEventListener('resize', resize, { passive: true });
       document.addEventListener('visibilitychange', onVisibilityChange);
+      if (typeof motionPreference.addEventListener === 'function') {
+        motionPreference.addEventListener('change', onMotionPreferenceChange);
+      } else if (typeof motionPreference.addListener === 'function') {
+        motionPreference.addListener(onMotionPreferenceChange);
+      }
       window.addEventListener('pointermove', movePointer, { passive: true });
       window.addEventListener('pointerleave', leavePointer, { passive: true });
       canvas.dataset.fallback = 'false';
@@ -211,6 +231,11 @@ export default function SmokeBackground({ lightMode = true }) {
         window.cancelAnimationFrame(raf);
         window.removeEventListener('resize', resize);
         document.removeEventListener('visibilitychange', onVisibilityChange);
+        if (typeof motionPreference.removeEventListener === 'function') {
+          motionPreference.removeEventListener('change', onMotionPreferenceChange);
+        } else if (typeof motionPreference.removeListener === 'function') {
+          motionPreference.removeListener(onMotionPreferenceChange);
+        }
         window.removeEventListener('pointermove', movePointer);
         window.removeEventListener('pointerleave', leavePointer);
         if (buffer) gl.deleteBuffer(buffer);
