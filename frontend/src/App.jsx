@@ -14,6 +14,7 @@ import CommandPalette from './components/CommandPalette';
 import SmokeBackground from './components/SmokeBackground';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { getApiErrorMessage } from './utils/apiError.js';
+import { getStorageItem, removeStorageItem, setStorageItem } from './utils/safeStorage.js';
 
 const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 const HEALTH_URL = import.meta.env.VITE_HEALTH_URL || API_URL.replace(/\/api\/?$/, '') + '/health';
@@ -21,45 +22,40 @@ const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 const DEFAULT_REFRESH_SECONDS = 30;
 
 function readInitialToken() {
-  try {
-    const existing = localStorage.getItem('token');
-    if (existing) return existing;
-    // GitHub Pages is a browser-only demo; open the workspace immediately on first visit.
-    // This token is only a demo identifier consumed by demoApi, never a server JWT.
-    if (DEMO_MODE && localStorage.getItem('orbit.demo.loggedOut') !== 'true') {
-      const demoToken = 'orbit-pages-demo-1-' + Date.now().toString(36);
-      localStorage.setItem('token', demoToken);
-      if (!localStorage.getItem('orbit.user')) {
-        localStorage.setItem('orbit.user', JSON.stringify({
-          id: 1, email: 'demo@orbit.local', username: 'demo', name: 'Demo User'
-        }));
-      }
-      return demoToken;
+  const existing = getStorageItem('token');
+  if (existing) return existing;
+  // GitHub Pages is a browser-only demo; open the workspace immediately on first visit.
+  // This token is only a demo identifier consumed by demoApi, never a server JWT.
+  if (DEMO_MODE && getStorageItem('orbit.demo.loggedOut') !== 'true') {
+    const demoToken = 'orbit-pages-demo-1-' + Date.now().toString(36);
+    setStorageItem('token', demoToken);
+    if (!getStorageItem('orbit.user')) {
+      setStorageItem('orbit.user', JSON.stringify({
+        id: 1, email: 'demo@orbit.local', username: 'demo', name: 'Demo User'
+      }));
     }
-    return null;
-  } catch { return null; }
+    return demoToken;
+  }
+  return null;
 }
 
 function readStoredUser() {
   try {
-    const stored = JSON.parse(localStorage.getItem('orbit.user') || 'null');
+    const stored = JSON.parse(getStorageItem('orbit.user') || 'null');
     if (stored) return stored;
-    return DEMO_MODE && localStorage.getItem('token')?.startsWith('orbit-pages-demo-')
+    return DEMO_MODE && getStorageItem('orbit.demo.loggedOut') !== 'true'
       ? { id: 1, email: 'demo@orbit.local', username: 'demo', name: 'Demo User' }
       : null;
   } catch { return null; }
 }
 
 function readStoredTheme() {
-  try { return localStorage.getItem('orbit.theme') !== 'dark'; }
-  catch { return true; }
+  return getStorageItem('orbit.theme') !== 'dark';
 }
 
 function readRefreshSeconds() {
-  try {
-    const seconds = Number(localStorage.getItem('orbit.refreshSeconds'));
-    return [15, 30, 60].includes(seconds) ? seconds : DEFAULT_REFRESH_SECONDS;
-  } catch { return DEFAULT_REFRESH_SECONDS; }
+  const seconds = Number(getStorageItem('orbit.refreshSeconds'));
+  return [15, 30, 60].includes(seconds) ? seconds : DEFAULT_REFRESH_SECONDS;
 }
 
 export default function App() {
@@ -134,9 +130,9 @@ export default function App() {
     const interceptorId = api.interceptors.response.use(
       response => response,
       requestError => {
-        if (requestError.response?.status === 401 && localStorage.getItem('token')) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('orbit.user');
+        if (requestError.response?.status === 401 && getStorageItem('token')) {
+          removeStorageItem('token');
+          removeStorageItem('orbit.user');
           setToken(null);
           setUser(null);
           setProjects([]);
@@ -187,9 +183,9 @@ export default function App() {
   }, [token, refreshSeconds, loadWorkspace]);
 
   const handleLogin = (newToken, userData) => {
-    localStorage.removeItem('orbit.demo.loggedOut');
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('orbit.user', JSON.stringify(userData || null));
+    removeStorageItem('orbit.demo.loggedOut');
+    setStorageItem('token', newToken);
+    setStorageItem('orbit.user', JSON.stringify(userData || null));
     setToken(newToken);
     setUser(userData || null);
     setCurrentPage('dashboard');
@@ -197,9 +193,9 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('orbit.user');
-    if (DEMO_MODE) localStorage.setItem('orbit.demo.loggedOut', 'true');
+    removeStorageItem('token');
+    removeStorageItem('orbit.user');
+    if (DEMO_MODE) setStorageItem('orbit.demo.loggedOut', 'true');
     setToken(null);
     setUser(null);
     setProjects([]);
@@ -291,13 +287,13 @@ export default function App() {
 
   const changeRefreshSeconds = value => {
     const normalized = [15, 30, 60].includes(Number(value)) ? Number(value) : DEFAULT_REFRESH_SECONDS;
-    localStorage.setItem('orbit.refreshSeconds', String(normalized));
+    setStorageItem('orbit.refreshSeconds', String(normalized));
     setRefreshSeconds(normalized);
   };
 
   const toggleTheme = () => {
     const next = !lightMode;
-    localStorage.setItem('orbit.theme', next ? 'light' : 'dark');
+    setStorageItem('orbit.theme', next ? 'light' : 'dark');
     setLightMode(next);
   };
 
