@@ -156,6 +156,10 @@ export default function SmokeBackground({ lightMode = true }) {
           gl.viewport(0, 0, width, height);
         }
       };
+      const onResize = () => {
+        resize();
+        scheduleFrame();
+      };
       const movePointer = event => {
         if (reducedMotion) return;
         targetPointer = {
@@ -180,7 +184,6 @@ export default function SmokeBackground({ lightMode = true }) {
         const elapsed = reducedMotion ? 0.4 : (now - startTime) / 1000;
         currentPointer.x += (targetPointer.x - currentPointer.x) * 0.055;
         currentPointer.y += (targetPointer.y - currentPointer.y) * 0.055;
-        resize();
         gl.useProgram(program);
         gl.uniform2f(resolution, width, height);
         gl.uniform1f(time, elapsed);
@@ -221,7 +224,7 @@ export default function SmokeBackground({ lightMode = true }) {
       };
 
       resize();
-      window.addEventListener('resize', resize, { passive: true });
+      window.addEventListener('resize', onResize, { passive: true });
       canvas.addEventListener('webglcontextlost', onContextLost);
       document.addEventListener('visibilitychange', onVisibilityChange);
       if (typeof motionPreference.addEventListener === 'function') {
@@ -237,7 +240,7 @@ export default function SmokeBackground({ lightMode = true }) {
       return () => {
         disposed = true;
         window.cancelAnimationFrame(raf);
-        window.removeEventListener('resize', resize);
+        window.removeEventListener('resize', onResize);
         canvas.removeEventListener('webglcontextlost', onContextLost);
         document.removeEventListener('visibilitychange', onVisibilityChange);
         if (typeof motionPreference.removeEventListener === 'function') {
