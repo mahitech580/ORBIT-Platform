@@ -388,9 +388,10 @@ def health():
         finally:
             conn.close()
     except Exception:
+        request_id = getattr(request, "orbit_request_id", "unknown") if has_request_context() else "unknown"
         app.logger.warning(
             "Health check could not connect to PostgreSQL (request_id=%s).",
-            getattr(request, "orbit_request_id", "unknown"),
+            request_id,
         )
     status_code = 200 if database_status == "connected" else 503
     return jsonify({
