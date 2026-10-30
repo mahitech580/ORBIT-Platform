@@ -2,7 +2,8 @@ const MAX_TILT_X = 6;
 const MAX_TILT_Y = 4.5;
 
 function clamp(value, minimum, maximum) {
-  return Math.min(maximum, Math.max(minimum, value));
+  const bounded = Math.min(maximum, Math.max(minimum, value));
+  return bounded === 0 ? 0 : bounded;
 }
 
 /** Convert a pointer position into a bounded, gentle 3D scene tilt. */
