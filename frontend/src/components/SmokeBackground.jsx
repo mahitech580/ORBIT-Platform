@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { shouldTrackBackgroundPointer } from '../utils/backgroundPointer.js';
 
 const VERTEX_SHADER = [
   'attribute vec2 a_position;',
@@ -161,7 +162,7 @@ export default function SmokeBackground({ lightMode = true }) {
         scheduleFrame();
       };
       const movePointer = event => {
-        if (reducedMotion) return;
+        if (!shouldTrackBackgroundPointer(event, reducedMotion)) return;
         targetPointer = {
           x: Math.min(1, Math.max(0, event.clientX / Math.max(1, window.innerWidth))),
           y: 1 - Math.min(1, Math.max(0, event.clientY / Math.max(1, window.innerHeight)))
