@@ -89,6 +89,7 @@ function compileShader(gl, type, source) {
 export default function SmokeBackground({ lightMode = true }) {
   const canvasRef = useRef(null);
   const modeRef = useRef(lightMode);
+  const scheduleFrameRef = useRef(null);
   modeRef.current = lightMode;
 
   useEffect(() => {
@@ -176,6 +177,7 @@ export default function SmokeBackground({ lightMode = true }) {
       const scheduleFrame = () => {
         if (!disposed && visible && !raf) raf = window.requestAnimationFrame(draw);
       };
+      scheduleFrameRef.current = scheduleFrame;
       const draw = now => {
         raf = 0;
         if (disposed || !visible) return;
@@ -253,6 +255,7 @@ export default function SmokeBackground({ lightMode = true }) {
         window.removeEventListener('pointerleave', leavePointer);
         if (buffer) gl.deleteBuffer(buffer);
         if (program) gl.deleteProgram(program);
+        scheduleFrameRef.current = null;
       };
     } catch {
       canvas.dataset.fallback = 'true';
@@ -263,6 +266,12 @@ export default function SmokeBackground({ lightMode = true }) {
       return undefined;
     }
   }, []);
+
+  // Reduced-motion mode draws only one frame, so explicitly repaint when the
+  // theme changes instead of leaving the previous shader palette on screen.
+  useEffect(() => {
+    scheduleFrameRef.current?.();
+  }, [lightMode]);
 
   return <div className="smoke-background" aria-hidden="true">
     <canvas ref={canvasRef} />
