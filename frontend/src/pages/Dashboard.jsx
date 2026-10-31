@@ -192,7 +192,7 @@ export default function Dashboard({
     </div>
 
     <div className="dashboard-layout">
-      <main className="dashboard-primary">
+      <section className="dashboard-primary" aria-label="Dashboard overview">
         <motion.section className="hero-banner" style={{ '--earth-image': 'url("' + EARTH_IMAGE + '")' }} initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.62, ease: [0.22, 1, 0.36, 1] }}>
           <div className="hero-image-shade" />
           <div className="hero-content">
@@ -312,7 +312,7 @@ export default function Dashboard({
             </div>
           </section>
         </div>
-      </main>
+      </section>
 
       <aside className="dashboard-right-rail">
         <section className="promo-card" style={{ '--mountain-image': 'url("' + MOUNTAIN_IMAGE + '")' }}>

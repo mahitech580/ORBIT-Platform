@@ -26,3 +26,36 @@ test('the application renders its initial login shell without browser globals', 
     await server.close();
   }
 });
+
+
+test('the dashboard does not introduce a nested main landmark', async () => {
+  const server = await createServer({
+    configFile: viteConfig,
+    root: frontendRoot,
+    server: { middlewareMode: true },
+    appType: 'custom',
+    logLevel: 'silent'
+  });
+
+  try {
+    const { default: Dashboard } = await server.ssrLoadModule('/src/pages/Dashboard.jsx');
+    const markup = renderToString(React.createElement(Dashboard, {
+      projects: [],
+      deployments: [],
+      teams: [],
+      instances: [],
+      health: null,
+      user: { name: 'Test user' },
+      demoMode: true,
+      loading: false,
+      refreshing: false,
+      lastSyncedAt: null,
+      onRefresh: () => {},
+      onPageChange: () => {}
+    }));
+    assert.equal((markup.match(/<main\\b/g) || []).length, 0);
+    assert.match(markup, /class="dashboard-primary"/);
+  } finally {
+    await server.close();
+  }
+});
