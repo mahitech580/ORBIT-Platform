@@ -55,7 +55,7 @@ test('the dashboard does not introduce a nested main landmark', async () => {
       onRefresh: () => {},
       onPageChange: () => {}
     }));
-    assert.equal((markup.match(/<main\\b/g) || []).length, 0);
+    assert.equal((markup.match(/<main\b/g) || []).length, 0);
     assert.match(markup, /class="dashboard-primary"/);
   } finally {
     await server.close();
