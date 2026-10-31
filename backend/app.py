@@ -787,6 +787,8 @@ def deploy_project(project_id):
     project = owned_project(project_id, request.user_id)
     if not project:
         abort(404, description="Project not found.")
+    if project.get("status") == "archived":
+        abort(409, description="Archived projects cannot receive new deployment records. Reactivate the project first.")
     version = read_string(data, "version", default="1.0.0", required=True, max_length=80)
     branch = read_string(data, "branch", default="main", required=True, max_length=200)
     rows = db_execute(
