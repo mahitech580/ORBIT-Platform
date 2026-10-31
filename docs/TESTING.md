@@ -4,7 +4,7 @@ Run commands from the repository root unless a section says otherwise.
 
 ## Continuous integration
 
-- `.github/workflows/backend.yml` runs Python compilation, the unit suite, and the PostgreSQL integration suite against an isolated PostgreSQL 16 service on pushes to `main` and pull requests.
+- `.github/workflows/backend.yml` runs Python compilation, the unit suite, and the PostgreSQL integration suite against an isolated PostgreSQL 18 service on pushes to `main` and pull requests.
 - `.github/workflows/pages.yml` runs the frontend tests and builds the GitHub Pages browser demo. A successful static-site build does not prove that the separately hosted API or database is reachable.
 
 ## Frontend tests
@@ -34,7 +34,7 @@ The isolated helper tests exercise input bounds, signed-token validation, passwo
 
 ## PostgreSQL integration checks
 
-The CI workflow provisions a disposable PostgreSQL 16 service. Do not point integration tests at a personal or hosted database.
+The CI workflow provisions a disposable PostgreSQL 18 service. Do not point integration tests at a personal or hosted database.
 
 Set the following variables for a local disposable test database before running the unittest command from backend:
 
