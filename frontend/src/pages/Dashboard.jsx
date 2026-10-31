@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import OrbitalScene from '../components/OrbitalScene';
 import { describeDeploymentActivity } from '../utils/deploymentActivityLabel.js';
+import { summarizeDeploymentStatuses } from '../utils/deploymentStatusSummary.js';
 
 const riseIn = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.48, ease: [0.22, 1, 0.36, 1] } } };
 const staggerIn = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.075, delayChildren: 0.06 } } };
@@ -82,16 +83,20 @@ export default function Dashboard({
   const groupVariants = shouldReduceMotion
     ? { hidden: { opacity: 1 }, show: { opacity: 1, transition: { duration: 0, staggerChildren: 0, delayChildren: 0 } } }
     : staggerIn;
-  const stats = useMemo(() => ({
-    projects: projects.length,
-    activeProjects: projects.filter(project => project.status === 'active').length,
-    releases: deployments.length,
-    completed: deployments.filter(item => item.status === 'completed').length,
-    failed: deployments.filter(item => item.status === 'failed').length,
-    pending: deployments.filter(item => ['pending', 'in-progress'].includes(item.status)).length,
-    activeTeams: teams.length,
-    instanceRecords: instances.length
-  }), [projects, deployments, teams, instances]);
+  const stats = useMemo(() => {
+    const deploymentStatuses = summarizeDeploymentStatuses(deployments);
+    return {
+      projects: projects.length,
+      activeProjects: projects.filter(project => project.status === 'active').length,
+      releases: deploymentStatuses.total,
+      completed: deploymentStatuses.completed,
+      failed: deploymentStatuses.failed,
+      pending: deploymentStatuses.pending,
+      other: deploymentStatuses.other,
+      activeTeams: teams.length,
+      instanceRecords: instances.length
+    };
+  }, [projects, deployments, teams, instances]);
 
   const weekly = useMemo(() => {
     const today = new Date();
@@ -165,8 +170,10 @@ export default function Dashboard({
   const successPercent = deployments.length ? stats.completed / deployments.length * 100 : 0;
   const failedPercent = deployments.length ? stats.failed / deployments.length * 100 : 0;
   const pendingPercent = deployments.length ? stats.pending / deployments.length * 100 : 0;
+  const otherPercent = deployments.length ? stats.other / deployments.length * 100 : 0;
+  const pendingEnd = successPercent + failedPercent + pendingPercent;
   const donutStyle = deployments.length ? {
-    background: 'conic-gradient(#20c997 0 ' + successPercent + '%, #ff637d ' + successPercent + '% ' + (successPercent + failedPercent) + '%, #3b91ff ' + (successPercent + failedPercent) + '% 100%)'
+    background: 'conic-gradient(#20c997 0 ' + successPercent + '%, #ff637d ' + successPercent + '% ' + (successPercent + failedPercent) + '%, #3b91ff ' + (successPercent + failedPercent) + '% ' + pendingEnd + '%, #8b9bb0 ' + pendingEnd + '% 100%)'
   } : { background: 'conic-gradient(#334360 0 100%)' };
   const name = user?.name || user?.username || user?.email?.split('@')[0] || 'there';
   const completedLine = weekly.map(item => item.completed);
@@ -277,6 +284,7 @@ export default function Dashboard({
               <div><span><i className="legend-green" />Completed</span><strong>{stats.completed}</strong><small>{stats.releases ? Math.round(successPercent) : 0}%</small></div>
               <div><span><i className="legend-blue" />Pending / in progress</span><strong>{stats.pending}</strong><small>{stats.releases ? Math.round(pendingPercent) : 0}%</small></div>
               <div><span><i className="legend-red" />Failed</span><strong>{stats.failed}</strong><small>{stats.releases ? Math.round(failedPercent) : 0}%</small></div>
+              <div><span><i className="legend-gray" />Other / unclassified</span><strong>{stats.other}</strong><small>{stats.releases ? Math.round(otherPercent) : 0}%</small></div>
             </div>
             <p className="card-disclaimer">Tracking only. This version does not run builds or provision cloud infrastructure.</p>
           </section>
