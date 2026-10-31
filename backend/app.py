@@ -372,6 +372,11 @@ def verify_password(password, stored_hash):
         return False
 
 
+# A fixed, non-account hash keeps unknown-email login attempts on the same
+# password-KDF path as ordinary PBKDF2 accounts without generating a hash per request.
+DUMMY_PASSWORD_HASH = "pbkdf2:sha256:600000$orbit-login-timing-salt$4a6ba6d3533f1287a5d71ec5f925369f4589cf9329ca81817c8d1e0329d73307"
+
+
 def public_user(user):
     first = (user.get("first_name") or "").strip()
     last = (user.get("last_name") or "").strip()
@@ -609,9 +614,11 @@ def login():
             (email,),
         )
         if not rows:
+            verify_password(password, DUMMY_PASSWORD_HASH)
             return jsonify({"error": "Invalid email or password."}), 401
         user = rows[0]
-        password_matches = verify_password(password, user.get("password_hash"))
+        stored_hash = user.get("password_hash")
+        password_matches = verify_password(password, stored_hash)
         local_demo_signin = (
             email == DEMO_EMAIL
             and DEMO_AUTH_ENABLED
@@ -628,6 +635,11 @@ def login():
             user["password_hash"] = upgraded_hash
             password_matches = True
         if not password_matches:
+            # Legacy SHA-256 and malformed hashes are much cheaper to reject than
+            # modern KDF hashes. Add the dummy KDF so those rows do not expose a
+            # distinct fast-failure path during account enumeration.
+            if not isinstance(stored_hash, str) or not stored_hash.startswith(("pbkdf2:", "scrypt:")):
+                verify_password(password, DUMMY_PASSWORD_HASH)
             return jsonify({"error": "Invalid email or password."}), 401
         if re.fullmatch(r"[a-fA-F0-9]{64}", user.get("password_hash") or ""):
             upgraded_hash = hash_password(password)
