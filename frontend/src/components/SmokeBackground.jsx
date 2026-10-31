@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { shouldTrackBackgroundPointer } from '../utils/backgroundPointer.js';
 import { subscribeMediaQuery } from '../utils/mediaQueryListener.js';
 import { getCanvasBackingSize } from '../utils/canvasResolution.js';
+import { canRenderSmokeFrame } from '../utils/smokePlayback.js';
 
 const VERTEX_SHADER = [
   'attribute vec2 a_position;',
@@ -117,6 +118,8 @@ export default function SmokeBackground({ lightMode = true }) {
     let startTime = 0;
     let lastFrame = 0;
     let resizeObserver = null;
+    let intersectionObserver = null;
+    let intersecting = true;
     let currentPointer = { x: 0.5, y: 0.5 };
     let targetPointer = { x: 0.5, y: 0.5 };
     const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -166,7 +169,7 @@ export default function SmokeBackground({ lightMode = true }) {
         scheduleFrame();
       };
       const movePointer = event => {
-        if (!shouldTrackBackgroundPointer(event, reducedMotion)) return;
+        if (!visible || !intersecting || !shouldTrackBackgroundPointer(event, reducedMotion)) return;
         targetPointer = {
           x: Math.min(1, Math.max(0, event.clientX / Math.max(1, window.innerWidth))),
           y: 1 - Math.min(1, Math.max(0, event.clientY / Math.max(1, window.innerHeight)))
@@ -175,12 +178,12 @@ export default function SmokeBackground({ lightMode = true }) {
       const leavePointer = () => { targetPointer = { x: 0.5, y: 0.5 }; };
 
       const scheduleFrame = () => {
-        if (!disposed && visible && !raf) raf = window.requestAnimationFrame(draw);
+        if (canRenderSmokeFrame(disposed, visible, intersecting) && !raf) raf = window.requestAnimationFrame(draw);
       };
       scheduleFrameRef.current = scheduleFrame;
       const draw = now => {
         raf = 0;
-        if (disposed || !visible) return;
+        if (!canRenderSmokeFrame(disposed, visible, intersecting)) return;
         if (!reducedMotion && now - lastFrame < 30) {
           scheduleFrame();
           return;
@@ -205,6 +208,15 @@ export default function SmokeBackground({ lightMode = true }) {
         if (raf) window.cancelAnimationFrame(raf);
         raf = 0;
         canvas.dataset.fallback = 'true';
+      };
+      const onIntersectionChange = entries => {
+        intersecting = Boolean(entries[0]?.isIntersecting);
+        if (!intersecting) {
+          if (raf) window.cancelAnimationFrame(raf);
+          raf = 0;
+          return;
+        }
+        scheduleFrame();
       };
       const onVisibilityChange = () => {
         visible = document.visibilityState !== 'hidden';
@@ -235,6 +247,10 @@ export default function SmokeBackground({ lightMode = true }) {
         resizeObserver = new window.ResizeObserver(onResize);
         resizeObserver.observe(canvas.parentElement || canvas);
       }
+      if (typeof window.IntersectionObserver === 'function') {
+        intersectionObserver = new window.IntersectionObserver(onIntersectionChange, { threshold: 0 });
+        intersectionObserver.observe(canvas);
+      }
       canvas.addEventListener('webglcontextlost', onContextLost);
       document.addEventListener('visibilitychange', onVisibilityChange);
       const unsubscribeMotionPreference = subscribeMediaQuery(motionPreference, onMotionPreferenceChange);
@@ -248,6 +264,7 @@ export default function SmokeBackground({ lightMode = true }) {
         window.cancelAnimationFrame(raf);
         window.removeEventListener('resize', onResize);
         if (resizeObserver) resizeObserver.disconnect();
+        if (intersectionObserver) intersectionObserver.disconnect();
         canvas.removeEventListener('webglcontextlost', onContextLost);
         document.removeEventListener('visibilitychange', onVisibilityChange);
         unsubscribeMotionPreference();
@@ -261,6 +278,7 @@ export default function SmokeBackground({ lightMode = true }) {
       canvas.dataset.fallback = 'true';
       if (raf) window.cancelAnimationFrame(raf);
       if (resizeObserver) resizeObserver.disconnect();
+      if (intersectionObserver) intersectionObserver.disconnect();
       if (buffer) gl.deleteBuffer(buffer);
       if (program) gl.deleteProgram(program);
       return undefined;
