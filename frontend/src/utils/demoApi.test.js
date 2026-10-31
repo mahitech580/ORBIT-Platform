@@ -84,6 +84,15 @@ test('deployment records are visible in the deployment list', async () => {
 });
 
 
+test('rejects deployment records for archived projects', async () => {
+  await assert.rejects(
+    () => api.post('/projects/3/deploy', { version: '1.0.0', branch: 'main' }),
+    error => error.response.status === 409
+  );
+  const deployments = (await api.get('/deployments')).data.deployments;
+  assert.equal(deployments.some(item => item.project_id === 3), false);
+});
+
 test('creates and lists instance metadata linked to a deployment record', async () => {
   const release = await api.post('/projects/1/deploy', { version: '4.1.0', branch: 'main' });
   const saved = await api.post('/instances', {

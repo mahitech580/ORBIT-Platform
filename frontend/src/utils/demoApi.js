@@ -521,6 +521,9 @@ export function createDemoApi() {
       if (deployMatch) {
         const project = ownedProject(state, deployMatch[1]);
         if (!project) fail('Project not found.', 404);
+        if (project.status === 'archived') {
+          fail('Archived projects cannot receive new deployment records. Reactivate the project first.', 409);
+        }
         const versionValue = payload.version == null ? '1.0.0' : payload.version;
         const branchValue = payload.branch == null ? 'main' : payload.branch;
         const version = readDemoString({ version: versionValue }, 'version', { required: true, maxLength: 80 });
