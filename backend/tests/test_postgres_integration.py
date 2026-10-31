@@ -362,5 +362,88 @@ class RealPostgresWorkflowTests(unittest.TestCase):
         self.assertIn("already registered", response.get_json()["error"])
 
 
+    def test_tied_record_timestamps_use_id_as_a_stable_ordering_tiebreaker(self):
+        user = self.register("stable-order@example.test", "stable_order_user")
+        headers = self.auth(user["token"])
+        project_response = self.client.post("/api/projects", headers=headers, json={
+            "name": "Stable ordering project",
+            "runtime": "python",
+        })
+        self.assertEqual(project_response.status_code, 201, project_response.get_json())
+        project_id = project_response.get_json()["project"]["id"]
+
+        first_deployment = self.client.post(
+            f"/api/projects/{project_id}/deploy",
+            headers=headers,
+            json={"version": "1.0.0", "branch": "main"},
+        )
+        second_deployment = self.client.post(
+            f"/api/projects/{project_id}/deploy",
+            headers=headers,
+            json={"version": "2.0.0", "branch": "main"},
+        )
+        self.assertEqual(first_deployment.status_code, 201, first_deployment.get_json())
+        self.assertEqual(second_deployment.status_code, 201, second_deployment.get_json())
+        first_id = first_deployment.get_json()["deployment"]["id"]
+        second_id = second_deployment.get_json()["deployment"]["id"]
+
+        team_response = self.client.post("/api/teams", headers=headers, json={
+            "name": "Second team",
+            "description": "Used to verify deterministic team ordering",
+        })
+        self.assertEqual(team_response.status_code, 201, team_response.get_json())
+        second_team_id = team_response.get_json()["team"]["id"]
+
+        connection = orbit.get_db()
+        try:
+            with connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "UPDATE deployments SET created_at = TIMESTAMP '2026-10-01 12:00:00' WHERE project_id = %s",
+                        (project_id,),
+                    )
+                    cursor.execute(
+                        "UPDATE teams SET created_at = TIMESTAMP '2026-10-01 12:00:00' WHERE owner_id = %s",
+                        (user["user"]["id"],),
+                    )
+        finally:
+            connection.close()
+
+        automatic_instance = self.client.post("/api/instances", headers=headers, json={
+            "project_id": project_id,
+            "name": "automatic-latest-deployment",
+        })
+        self.assertEqual(automatic_instance.status_code, 201, automatic_instance.get_json())
+        self.assertEqual(automatic_instance.get_json()["instance"]["deployment_id"], second_id)
+
+        older_instance = self.client.post("/api/instances", headers=headers, json={
+            "project_id": project_id,
+            "deployment_id": first_id,
+            "name": "explicit-older-deployment",
+        })
+        self.assertEqual(older_instance.status_code, 201, older_instance.get_json())
+
+        connection = orbit.get_db()
+        try:
+            with connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "UPDATE instances SET created_at = TIMESTAMP '2026-10-01 12:00:00' WHERE project_id = %s",
+                        (project_id,),
+                    )
+        finally:
+            connection.close()
+
+        instances = self.client.get("/api/instances", headers=headers)
+        self.assertEqual(instances.status_code, 200, instances.get_json())
+        self.assertEqual(
+            [item["id"] for item in instances.get_json()["instances"]],
+            [older_instance.get_json()["instance"]["id"], automatic_instance.get_json()["instance"]["id"]],
+        )
+
+        teams = self.client.get("/api/teams", headers=headers)
+        self.assertEqual(teams.status_code, 200, teams.get_json())
+        self.assertEqual(teams.get_json()["teams"][0]["id"], second_team_id)
+
 if __name__ == "__main__":
     unittest.main()

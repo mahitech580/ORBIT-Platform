@@ -939,7 +939,7 @@ def get_instances():
            JOIN projects p ON p.id = i.project_id
            JOIN teams t ON t.id = p.team_id
            WHERE t.owner_id = %s
-           ORDER BY i.created_at DESC""",
+           ORDER BY i.created_at DESC, i.id DESC""",
         (request.user_id,),
     )
     return jsonify({"instances": rows})
@@ -968,7 +968,7 @@ def create_instance():
             abort(400, description="Deployment must belong to the selected project.")
     else:
         recent = db_fetch_all(
-            "SELECT id FROM deployments WHERE project_id = %s ORDER BY created_at DESC LIMIT 1",
+            "SELECT id FROM deployments WHERE project_id = %s ORDER BY created_at DESC, id DESC LIMIT 1",
             (project_id,),
         )
         if not recent:
@@ -989,7 +989,7 @@ def get_teams():
     rows = db_fetch_all(
         """SELECT t.*, u.username AS owner_name
            FROM teams t JOIN users u ON u.id = t.owner_id
-           WHERE t.owner_id = %s ORDER BY t.created_at DESC""",
+           WHERE t.owner_id = %s ORDER BY t.created_at DESC, t.id DESC""",
         (request.user_id,),
     )
     return jsonify({"teams": rows})
