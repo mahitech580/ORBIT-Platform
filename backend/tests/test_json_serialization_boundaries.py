@@ -21,10 +21,6 @@ class JsonSerializationBoundaryTests(unittest.TestCase):
     def test_nested_overflowing_decimal_is_sanitized(self):
         self.assertEqual(orbit.json_safe({"metrics": [Decimal("1e10000")]}), {"metrics": [None]})
 
-
-if __name__ == "__main__":
-    unittest.main()
-
     def test_tiny_positive_decimal_underflow_becomes_null(self):
         self.assertIsNone(orbit.json_safe(Decimal("1e-10000")))
 
@@ -42,3 +38,6 @@ if __name__ == "__main__":
 
     def test_nested_tuple_decimal_overflow_is_converted_recursively(self):
         self.assertEqual(orbit.json_safe({"samples": (Decimal("3.5"), Decimal("1e10000"))}), {"samples": [3.5, None]})
+
+if __name__ == "__main__":
+    unittest.main()
