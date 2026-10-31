@@ -17,6 +17,7 @@ import { getApiErrorMessage } from './utils/apiError.js';
 import { getStorageItem, removeStorageItem, setStorageItem } from './utils/safeStorage.js';
 import { createRequestSequence } from './utils/requestSequence.js';
 import { isCurrentBearerRequest } from './utils/currentAuthRequest.js';
+import { createRefreshGate } from './utils/refreshGate.js';
 
 const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 const HEALTH_URL = import.meta.env.VITE_HEALTH_URL || API_URL.replace(/\/api\/?$/, '') + '/health';
@@ -188,19 +189,17 @@ export default function App() {
 
   useEffect(() => {
     if (!token) return undefined;
-    const tick = () => {
-      if (document.visibilityState === 'visible') loadWorkspace();
+    const runRefresh = createRefreshGate(() => loadWorkspace());
+    const refreshIfVisible = () => {
+      if (document.visibilityState === 'visible') runRefresh();
     };
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') loadWorkspace();
-    };
-    window.addEventListener('focus', tick);
-    document.addEventListener('visibilitychange', onVisibility);
-    const interval = window.setInterval(tick, refreshSeconds * 1000);
+    window.addEventListener('focus', refreshIfVisible);
+    document.addEventListener('visibilitychange', refreshIfVisible);
+    const interval = window.setInterval(refreshIfVisible, refreshSeconds * 1000);
     return () => {
       window.clearInterval(interval);
-      window.removeEventListener('focus', tick);
-      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', refreshIfVisible);
+      document.removeEventListener('visibilitychange', refreshIfVisible);
     };
   }, [token, refreshSeconds, loadWorkspace]);
 

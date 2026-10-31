@@ -4,6 +4,7 @@ import { summarizeMetrics } from '../utils/metricsSummary.js';
 import { buildMetricsCsv } from '../utils/metricsExport.js';
 import { getApiErrorMessage } from '../utils/apiError.js';
 import { formatTelemetryTimestamp } from '../utils/formatTelemetryTimestamp.js';
+import { createRefreshGate } from '../utils/refreshGate.js';
 
 export default function Metrics({ projects, api, refreshSeconds = 30 }) {
   const requestSequence = useRef(0);
@@ -58,8 +59,9 @@ export default function Metrics({ projects, api, refreshSeconds = 30 }) {
   useEffect(() => {
     if (!selectedProject) return undefined;
     const seconds = [15, 30, 60].includes(Number(refreshSeconds)) ? Number(refreshSeconds) : 30;
+    const runRefresh = createRefreshGate(() => fetchMetrics());
     const refreshWhenVisible = () => {
-      if (document.visibilityState === 'visible') fetchMetrics();
+      if (document.visibilityState === 'visible') runRefresh();
     };
     const intervalId = window.setInterval(refreshWhenVisible, seconds * 1000);
     window.addEventListener('focus', refreshWhenVisible);
