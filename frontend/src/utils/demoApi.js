@@ -506,10 +506,11 @@ export function createDemoApi() {
         const runtime = readDemoString({ runtime: runtimeValue }, 'runtime', { required: true, maxLength: 30 }).toLowerCase();
         if (!['node', 'python', 'java', 'go'].includes(runtime)) fail('Unsupported runtime.');
         const team = state.teams.find(item => Number(item.owner_id) === currentUserId());
+        if (!team) fail('Create a team before creating a project.', 400);
         const projectId = nextId(state, 'nextProjectId', state.projects);
         const project = {
-          id: projectId, owner_id: currentUserId(), team_id: team?.id || null,
-          team_name: team?.name || 'Personal workspace', name, description, runtime,
+          id: projectId, owner_id: currentUserId(), team_id: team.id,
+          team_name: team.name, name, description, runtime,
           status: 'active', created_at: new Date().toISOString(), updated_at: new Date().toISOString()
         };
         state.projects.push(project);

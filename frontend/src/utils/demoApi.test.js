@@ -274,3 +274,19 @@ test('registration treats existing usernames case-insensitively', async () => {
     password: 'member-password-456'
   }), error => error.response.status === 409);
 });
+
+ 
+test('requires a team before creating a project after an empty workspace restore', async () => {
+  const emptyBackup = buildWorkspaceExport({}, 'fixed-time');
+  await api.restoreWorkspace(emptyBackup);
+
+  await assert.rejects(
+    () => api.post('/projects', { name: 'Project without a team' }),
+    error => error.response.status === 400
+  );
+
+  const team = await api.post('/teams', { name: 'Restored team' });
+  const project = await api.post('/projects', { name: 'Project with a team', runtime: 'python' });
+  assert.equal(project.data.project.team_id, team.data.team.id);
+  assert.equal(project.data.project.team_name, 'Restored team');
+});
