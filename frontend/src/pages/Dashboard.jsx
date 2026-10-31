@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import OrbitalScene from '../components/OrbitalScene';
 import { describeDeploymentActivity } from '../utils/deploymentActivityLabel.js';
 import { summarizeDeploymentStatuses } from '../utils/deploymentStatusSummary.js';
+import { buildWeeklyDeploymentActivity } from '../utils/deploymentActivity.js';
 
 const riseIn = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.48, ease: [0.22, 1, 0.36, 1] } } };
 const staggerIn = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.075, delayChildren: 0.06 } } };
@@ -98,28 +99,7 @@ export default function Dashboard({
     };
   }, [projects, deployments, teams, instances]);
 
-  const weekly = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return Array.from({ length: 7 }, (_, index) => {
-      const date = new Date(today);
-      date.setDate(today.getDate() - (6 - index));
-      const key = [date.getFullYear(), date.getMonth(), date.getDate()].join('-');
-      const entries = deployments.filter(item => {
-        const itemDate = safeDate(item.created_at);
-        return itemDate && [itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate()].join('-') === key;
-      });
-      return {
-        key,
-        day: date.toLocaleDateString(undefined, { weekday: 'short' }),
-        date,
-        total: entries.length,
-        completed: entries.filter(item => item.status === 'completed').length,
-        failed: entries.filter(item => item.status === 'failed').length,
-        pending: entries.filter(item => ['pending', 'in-progress'].includes(item.status)).length
-      };
-    });
-  }, [deployments]);
+  const weekly = useMemo(() => buildWeeklyDeploymentActivity(deployments), [deployments]);
 
   const recentProjects = useMemo(() => [...projects]
     .sort((a, b) => (safeDate(b.updated_at || b.created_at)?.getTime() || 0) - (safeDate(a.updated_at || a.created_at)?.getTime() || 0))
@@ -166,7 +146,7 @@ export default function Dashboard({
   const healthText = healthLabel(health, demoMode);
   const apiHealthy = demoMode ? null : health?.status === 'ok' ? true : health?.status === 'degraded' ? 'degraded' : health?.status === 'unavailable' ? false : null;
   const dbHealthy = demoMode ? null : health?.database === 'connected';
-  const noReleaseData = deployments.length === 0;
+  const noReleaseData = stats.releases === 0;
   const successPercent = stats.releases ? stats.completed / stats.releases * 100 : 0;
   const failedPercent = stats.releases ? stats.failed / stats.releases * 100 : 0;
   const pendingPercent = stats.releases ? stats.pending / stats.releases * 100 : 0;
