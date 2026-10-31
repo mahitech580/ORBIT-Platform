@@ -473,7 +473,12 @@ def token_required(view):
         if not separator or scheme.lower() != "bearer" or not token.strip():
             return jsonify({"error": "A Bearer token is required."}), 401
         try:
-            claims = jwt.decode(token.strip(), SECRET_KEY, algorithms=["HS256"])
+            claims = jwt.decode(
+                token.strip(),
+                SECRET_KEY,
+                algorithms=["HS256"],
+                options={"require": ["exp", "iat", "user_id"]},
+            )
             request.user_id = positive_int(claims.get("user_id"), "Token user ID")
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TypeError, ValueError, HTTPException):
             return jsonify({"error": "Your session is invalid or expired. Please sign in again."}), 401
