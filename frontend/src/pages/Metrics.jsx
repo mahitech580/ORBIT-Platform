@@ -3,6 +3,7 @@ import { filterMetricsByRange } from '../utils/metricsFilters.js';
 import { summarizeMetrics } from '../utils/metricsSummary.js';
 import { buildMetricsCsv } from '../utils/metricsExport.js';
 import { getApiErrorMessage } from '../utils/apiError.js';
+import { formatTelemetryTimestamp } from '../utils/formatTelemetryTimestamp.js';
 
 export default function Metrics({ projects, api, refreshSeconds = 30 }) {
   const requestSequence = useRef(0);
@@ -160,7 +161,7 @@ export default function Metrics({ projects, api, refreshSeconds = 30 }) {
                   <thead><tr><th>Timestamp</th><th>CPU</th><th>Memory</th><th>Requests</th><th>Errors</th><th>Response time</th></tr></thead>
                   <tbody>{visibleMetrics.map(metric => (
                     <tr key={metric.id || metric.timestamp}>
-                      <td>{metric.timestamp ? new Date(metric.timestamp).toLocaleString() : '—'}</td>
+                      <td>{formatTelemetryTimestamp(metric.timestamp)}</td>
                       <td>{metric.cpu_usage == null ? '—' : formatNumber(metric.cpu_usage) + '%'}</td>
                       <td>{metric.memory_usage == null ? '—' : formatNumber(metric.memory_usage, 0) + ' MB'}</td>
                       <td>{formatNumber(metric.requests_total, 0)}</td>
@@ -183,7 +184,7 @@ export default function Metrics({ projects, api, refreshSeconds = 30 }) {
                         const value = hasValue ? Math.max(0, Math.min(Number(metric.cpu_usage), 100)) : 0;
                         return <div key={metric.id || metric.timestamp || index} className="chart-column" title={hasValue ? formatNumber(value) + '% CPU' : 'CPU not recorded'}>
                           {hasValue && <div className="bar" style={{ height: Math.max(value, 2) + '%' }} />}
-                          <span>{metric.timestamp ? new Date(metric.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : index + 1}</span>
+                          <span>{metric.timestamp ? formatTelemetryTimestamp(metric.timestamp, { hour: '2-digit', minute: '2-digit' }, 'time') : index + 1}</span>
                         </div>;
                       })}
                     </div>
