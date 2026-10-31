@@ -1,5 +1,6 @@
 import { buildWorkspaceExport, validateWorkspaceBackup } from './workspaceExport.js';
 import { summarizeMetrics } from './metricsSummary.js';
+import { compareNewestFirst } from './recordOrdering.js';
 
 const STORAGE_KEY = 'orbit.pages.demo.data.v2';
 const DEMO_EMAIL = 'demo@orbit.local';
@@ -273,7 +274,7 @@ function visibleDeployments(state) {
   const projectIds = new Set(ownedProjects(state).map(project => Number(project.id)));
   return state.deployments
     .filter(deployment => projectIds.has(Number(deployment.project_id)))
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .sort((a, b) => compareNewestFirst(a, b, 'created_at'))
     .map(deployment => ({
       ...deployment,
       project_name: deployment.project_name || state.projects.find(project => Number(project.id) === Number(deployment.project_id))?.name || 'Unknown project'
@@ -415,7 +416,7 @@ export function createDemoApi() {
         capabilities: { project_management: true, deployment_tracking: true, metrics_reporting: true, cloud_resource_provisioning: false, build_execution: false }
       });
       if (route === '/projects') return response({
-        projects: ownedProjects(state).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        projects: ownedProjects(state).sort((a, b) => compareNewestFirst(a, b, 'created_at'))
       });
       if (route === '/deployments') return response({ deployments: visibleDeployments(state) });
       if (route === '/auth/me') {
@@ -435,7 +436,7 @@ export function createDemoApi() {
         if (!ownedProject(state, metricsMatch[1])) fail('Project not found.', 404);
         const metrics = state.metrics[metricsMatch[1]] || [];
         const returnedMetrics = [...metrics]
-          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+          .sort((a, b) => compareNewestFirst(a, b, 'timestamp'))
           .slice(0, 100);
         return response({
           metrics: returnedMetrics,
@@ -447,7 +448,7 @@ export function createDemoApi() {
         const projectIds = new Set(ownedProjects(state).map(project => Number(project.id)));
         const instances = (state.instances || [])
           .filter(instance => projectIds.has(Number(instance.project_id)))
-          .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+          .sort((a, b) => compareNewestFirst(a, b, 'created_at'))
           .map(instance => ({
             ...instance,
             project_name: instance.project_name || state.projects.find(project => Number(project.id) === Number(instance.project_id))?.name || 'Unknown project'

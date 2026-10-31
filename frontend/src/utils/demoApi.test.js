@@ -290,3 +290,26 @@ test('requires a team before creating a project after an empty workspace restore
   assert.equal(project.data.project.team_id, team.data.team.id);
   assert.equal(project.data.project.team_name, 'Restored team');
 });
+
+ 
+test('orders same-timestamp demo collections by descending ID like PostgreSQL', async () => {
+  await api.get('/projects');
+  const state = JSON.parse(storage.getItem(demoStorageKey));
+  const timestamp = '2026-10-31T12:00:00.000Z';
+  state.projects.forEach(project => { project.created_at = timestamp; });
+  state.deployments.forEach(deployment => { deployment.created_at = timestamp; });
+  state.instances = [
+    { id: 1, project_id: 1, deployment_id: 1, name: 'worker-1', created_at: timestamp },
+    { id: 2, project_id: 1, deployment_id: 1, name: 'worker-2', created_at: timestamp }
+  ];
+  state.metrics['1'] = [
+    { id: 1, project_id: 1, cpu_usage: 10, memory_usage: 100, requests_total: 1, timestamp },
+    { id: 2, project_id: 1, cpu_usage: 20, memory_usage: 200, requests_total: 2, timestamp }
+  ];
+  storage.setItem(demoStorageKey, JSON.stringify(state));
+
+  assert.deepEqual((await api.get('/projects')).data.projects.map(item => item.id), [3, 2, 1]);
+  assert.deepEqual((await api.get('/deployments')).data.deployments.map(item => item.id), [2, 1]);
+  assert.deepEqual((await api.get('/instances')).data.instances.map(item => item.id), [2, 1]);
+  assert.deepEqual((await api.get('/metrics/1')).data.metrics.map(item => item.id), [2, 1]);
+});
