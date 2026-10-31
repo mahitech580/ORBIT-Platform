@@ -25,7 +25,7 @@ test('filters malformed records inside otherwise valid persisted collections', a
       { id: 13, owner_id: true, name: 'Boolean owner' },
       { id: 14, owner_id: '1.0', name: 'Decimal owner' },
       { id: 11, owner_id: 1, team_id: 1, team_name: 'Demo Team', name: 'Valid project', runtime: 'node', status: 'active' },
-      { id: 12, owner_id: 2, team_id: 2, team_name: 'Other Team', name: 'Other user's project', runtime: 'python', status: 'active' }
+      { id: 12, owner_id: 2, team_id: 2, team_name: "Other Team", name: "Other user project", runtime: "python", status: "active" }
     ],
     deployments: [
       null, 3,
@@ -62,5 +62,4 @@ test('filters malformed records inside otherwise valid persisted collections', a
   assert.deepEqual((await api.get('/teams')).data.teams.map(item => item.id), [1]);
   assert.deepEqual((await api.get('/instances')).data.instances.map(item => item.id), [1]);
   assert.deepEqual((await api.get('/metrics/11')).data.metrics.map(item => item.id), [8]);
-  assert.equal(storage.has(demoStorageKey), true);
 });

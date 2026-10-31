@@ -31,6 +31,7 @@ test('repairs malformed optional collections and next-ID counters in saved brows
 
   const api = createDemoApi();
   assert.deepEqual((await api.get('/teams')).data.teams, []);
+  await api.post('/teams', { name: 'Recovered workspace team' });
   const created = await api.post('/projects', {
     name: 'After recovery',
     description: 'Checks repaired ID counters',

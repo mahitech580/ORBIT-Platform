@@ -293,6 +293,8 @@ test('requires a team before creating a project after an empty workspace restore
 
  
 test('orders same-timestamp demo collections by descending ID like PostgreSQL', async () => {
+  storage.setItem('token', 'orbit-pages-demo-1-test');
+  storage.setItem('orbit.user', JSON.stringify({ id: 1, email: 'demo@orbit.local', username: 'demo' }));
   await api.get('/projects');
   const state = JSON.parse(storage.getItem(demoStorageKey));
   const timestamp = '2026-10-31T12:00:00.000Z';

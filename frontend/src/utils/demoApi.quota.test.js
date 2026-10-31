@@ -29,6 +29,7 @@ test('retains updates in memory instead of resurrecting stale storage after quot
   };
 
   const api = createDemoApi();
+  await api.post('/teams', { name: 'Volatile workspace team' });
   const created = await api.post('/projects', { name: 'Volatile project', runtime: 'python' });
   assert.equal(created.status, 201);
 
