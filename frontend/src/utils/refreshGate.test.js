@@ -37,3 +37,37 @@ test('rejects missing callbacks and ignores invalid clock readings', () => {
   assert.equal(run(), false);
   assert.equal(calls, 0);
 });
+
+
+test('does not overlap a refresh while its asynchronous request is pending', async () => {
+  let now = 1000;
+  let calls = 0;
+  let finish;
+  const run = createRefreshGate(() => {
+    calls += 1;
+    return new Promise(resolve => { finish = resolve; });
+  }, 0, () => now);
+
+  assert.equal(run(), true);
+  now += 100;
+  assert.equal(run(), false);
+  assert.equal(calls, 1);
+
+  finish();
+  await Promise.resolve();
+  assert.equal(run(), true);
+  assert.equal(calls, 2);
+});
+
+test('releases the in-flight gate after a rejected refresh promise', async () => {
+  let calls = 0;
+  const run = createRefreshGate(() => {
+    calls += 1;
+    return Promise.reject(new Error('temporary failure'));
+  }, 0, () => 1000);
+
+  assert.equal(run(), true);
+  await Promise.resolve();
+  assert.equal(run(), true);
+  assert.equal(calls, 2);
+});
