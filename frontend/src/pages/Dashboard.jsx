@@ -159,6 +159,7 @@ export default function Dashboard({
   const completedLine = weekly.map(item => item.completed);
   const failedLine = weekly.map(item => item.failed);
   const pendingLine = weekly.map(item => item.pending);
+  const otherLine = weekly.map(item => item.other);
   const maxDaily = Math.max(1, ...weekly.map(item => item.total));
   const syncedLabel = lastSyncedAt ? lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Not synced yet';
 
@@ -224,7 +225,7 @@ export default function Dashboard({
               <span className="range-select-label">Last 7 days <span>⌄</span></span>
             </div>
             <div className="chart-legend">
-              <span><i className="legend-green" /> Completed</span><span><i className="legend-red" /> Failed</span><span><i className="legend-blue" /> Pending / in progress</span>
+              <span><i className="legend-green" /> Completed</span><span><i className="legend-red" /> Failed</span><span><i className="legend-blue" /> Pending / in progress</span><span><i className="legend-gray" /> Other / unclassified</span>
             </div>
             {noReleaseData ? <div className="chart-empty-state"><span className="chart-empty-glyph">⌁</span><strong>No deployment activity yet</strong><small>Record a deployment to start building your history chart.</small><button className="text-link" type="button" onClick={() => onPageChange('deployments')}>Record deployment →</button></div> : <div className="activity-chart-shell">
               <div className="chart-y-labels"><span>{maxDaily}</span><span>{Math.ceil(maxDaily * .66)}</span><span>{Math.ceil(maxDaily * .33)}</span><span>0</span></div>
@@ -237,7 +238,8 @@ export default function Dashboard({
                 {[
                   { values: completedLine, color: '#20c997', fill: 'url(#completedFill)' },
                   { values: pendingLine, color: '#3b91ff', fill: 'url(#pendingFill)' },
-                  { values: failedLine, color: '#ff637d', fill: '' }
+                  { values: failedLine, color: '#ff637d', fill: '' },
+                  { values: otherLine, color: '#8b9bb0', fill: '' }
                 ].map(series => {
                   const path = linePath(series.values, 700, 175, 18, 12, maxDaily);
                   const fillPath = path ? path + ' L688,175 L12,175 Z' : '';
