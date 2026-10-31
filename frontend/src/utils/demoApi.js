@@ -127,7 +127,9 @@ function readState() {
     const hasValidId = value => normalizePositiveId(value) !== null;
     state.projects = state.projects.filter(item => isRecord(item) && hasValidId(item.id) &&
       (item.owner_id == null || hasValidId(item.owner_id)) && typeof item.name === 'string');
-    state.deployments = state.deployments.filter(item => isRecord(item) && hasValidId(item.id) && hasValidId(item.project_id));
+    const projectIds = new Set(state.projects.map(item => Number(item.id)));
+    state.deployments = state.deployments.filter(item => isRecord(item) && hasValidId(item.id) &&
+      hasValidId(item.project_id) && projectIds.has(Number(item.project_id)));
     if (!Array.isArray(state.accounts)) state.accounts = [];
     else state.accounts = state.accounts.filter(item => isRecord(item) &&
       hasValidId(item.id) && typeof item.email === 'string' &&
@@ -135,17 +137,25 @@ function readState() {
     if (!Array.isArray(state.teams)) state.teams = [];
     else state.teams = state.teams.filter(item => isRecord(item) &&
       hasValidId(item.id) && hasValidId(item.owner_id) && typeof item.name === 'string');
+    const deploymentProjectById = new Map(state.deployments.map(item => [
+      Number(item.id), Number(item.project_id)
+    ]));
     if (!Array.isArray(state.instances)) state.instances = [];
     else state.instances = state.instances.filter(item => isRecord(item) &&
       hasValidId(item.id) && hasValidId(item.project_id) &&
-      hasValidId(item.deployment_id) && typeof item.name === 'string');
+      hasValidId(item.deployment_id) && typeof item.name === 'string' &&
+      projectIds.has(Number(item.project_id)) &&
+      deploymentProjectById.get(Number(item.deployment_id)) === Number(item.project_id));
     if (!state.metrics || typeof state.metrics !== 'object' || Array.isArray(state.metrics)) {
       state.metrics = {};
     } else {
-      state.metrics = Object.fromEntries(Object.entries(state.metrics).map(([projectId, rows]) => [
-        projectId,
-        Array.isArray(rows) ? rows.filter(isRecord) : []
-      ]));
+      state.metrics = Object.fromEntries(Object.entries(state.metrics)
+        .filter(([projectId]) => projectIds.has(Number(projectId)))
+        .map(([projectId, rows]) => [
+          projectId,
+          Array.isArray(rows) ? rows.filter(item => isRecord(item) &&
+            (item.project_id == null || Number(item.project_id) === Number(projectId))) : []
+        ]));
     }
 
     const nextIdAbove = (candidate, records) => {
