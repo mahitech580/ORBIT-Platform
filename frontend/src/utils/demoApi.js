@@ -180,21 +180,38 @@ function readDemoString(payload, key, { defaultValue = "", required = false, max
   return value;
 }
 
+// Keep the active account identity in memory as well as browser storage.
+// Private browsing and quota failures must not silently switch a new account to user 1.
+let volatileActiveUserId = 1;
+
+function rememberActiveUser(userId) {
+  const normalized = Number(userId);
+  if (Number.isSafeInteger(normalized) && normalized > 0) {
+    volatileActiveUserId = normalized;
+  }
+}
+
 function currentUserId() {
   try {
-    return Number(JSON.parse(localStorage.getItem('orbit.user') || 'null')?.id || 1);
+    const storedUser = JSON.parse(localStorage.getItem('orbit.user') || 'null');
+    const userId = Number(storedUser?.id);
+    if (Number.isSafeInteger(userId) && userId > 0) return userId;
   } catch {
-    return 1;
+    // Continue with the in-memory identity when storage is unavailable.
   }
+  return volatileActiveUserId;
 }
 
 function activeUserId() {
   try {
     const token = localStorage.getItem('token') || '';
     const prefix = 'orbit-pages-demo-';
-    if (token.startsWith(prefix)) return Number(token.slice(prefix.length).split('-')[0]) || 1;
+    if (token.startsWith(prefix)) {
+      const userId = Number(token.slice(prefix.length).split('-')[0]);
+      if (Number.isSafeInteger(userId) && userId > 0) return userId;
+    }
   } catch {
-    // Storage may be blocked; use the current demo-user fallback.
+    // Continue with the in-memory identity when storage is unavailable.
   }
   return currentUserId();
 }
@@ -233,6 +250,7 @@ function userView(account) {
 
 function tokenFor(user) {
   // This is only a client-side demo identifier, not a JWT or secure session.
+  rememberActiveUser(user?.id);
   return 'orbit-pages-demo-' + user.id + '-' + Date.now().toString(36);
 }
 
