@@ -167,12 +167,12 @@ export default function Dashboard({
   const apiHealthy = demoMode ? null : health?.status === 'ok' ? true : health?.status === 'degraded' ? 'degraded' : health?.status === 'unavailable' ? false : null;
   const dbHealthy = demoMode ? null : health?.database === 'connected';
   const noReleaseData = deployments.length === 0;
-  const successPercent = deployments.length ? stats.completed / deployments.length * 100 : 0;
-  const failedPercent = deployments.length ? stats.failed / deployments.length * 100 : 0;
-  const pendingPercent = deployments.length ? stats.pending / deployments.length * 100 : 0;
-  const otherPercent = deployments.length ? stats.other / deployments.length * 100 : 0;
+  const successPercent = stats.releases ? stats.completed / stats.releases * 100 : 0;
+  const failedPercent = stats.releases ? stats.failed / stats.releases * 100 : 0;
+  const pendingPercent = stats.releases ? stats.pending / stats.releases * 100 : 0;
+  const otherPercent = stats.releases ? stats.other / stats.releases * 100 : 0;
   const pendingEnd = successPercent + failedPercent + pendingPercent;
-  const donutStyle = deployments.length ? {
+  const donutStyle = stats.releases ? {
     background: 'conic-gradient(#20c997 0 ' + successPercent + '%, #ff637d ' + successPercent + '% ' + (successPercent + failedPercent) + '%, #3b91ff ' + (successPercent + failedPercent) + '% ' + pendingEnd + '%, #8b9bb0 ' + pendingEnd + '% 100%)'
   } : { background: 'conic-gradient(#334360 0 100%)' };
   const name = user?.name || user?.username || user?.email?.split('@')[0] || 'there';
