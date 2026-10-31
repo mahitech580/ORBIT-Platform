@@ -481,6 +481,15 @@ def payload_too_large(error):
     return jsonify({"error": "Request body is too large."}), 413
 
 
+@app.errorhandler(psycopg2.OperationalError)
+def handle_database_unavailable(error):
+    request_id = getattr(request, "orbit_request_id", "unknown") if has_request_context() else "unknown"
+    app.logger.exception("Database operation unavailable (request_id=%s).", request_id)
+    return jsonify({
+        "error": "The database is temporarily unavailable.",
+        "status": 503,
+    }), 503
+
 
 @app.errorhandler(HTTPException)
 def handle_http_error(error):
@@ -574,7 +583,10 @@ def register():
     except IntegrityError:
         return jsonify({"error": "That email address or username is already registered."}), 409
     except psycopg2.Error:
-        app.logger.exception("Registration database error")
+        app.logger.exception(
+            "Registration database error (request_id=%s).",
+            getattr(request, "orbit_request_id", "unknown"),
+        )
         return jsonify({"error": "Registration is temporarily unavailable."}), 503
     finally:
         if conn is not None:
@@ -626,7 +638,10 @@ def login():
             user["password_hash"] = upgraded_hash
         return jsonify({"token": issue_token(user), "user": public_user(user)})
     except psycopg2.Error:
-        app.logger.exception("Login database error")
+        app.logger.exception(
+            "Login database error (request_id=%s).",
+            getattr(request, "orbit_request_id", "unknown"),
+        )
         return jsonify({"error": "Sign-in is temporarily unavailable."}), 503
 
 
