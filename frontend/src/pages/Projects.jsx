@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { getDialogFocusWrapIndex } from '../utils/dialogFocus.js';
 import { buildProjectCsv } from '../utils/projectExport.js';
+import { formatWorkspaceDate } from '../utils/formatWorkspaceDate.js';
 
 const EMPTY_FORM = { name: '', description: '', runtime: 'node', status: 'active' };
 
@@ -122,7 +123,7 @@ export default function Projects({ projects, loading, onCreateProject, onUpdateP
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
-  const formatDate = value => value ? new Date(value).toLocaleDateString() : '—';
+  const formatDate = value => formatWorkspaceDate(value, { dateOnly: true });
 
   return (
     <div className="page projects-page">
@@ -265,8 +266,8 @@ export default function Projects({ projects, loading, onCreateProject, onUpdateP
               <div><dt>Project ID</dt><dd>{selectedProject.id}</dd></div>
               <div><dt>Runtime</dt><dd>{selectedProject.runtime}</dd></div>
               <div><dt>Team</dt><dd>{selectedProject.team_name || 'Default Team'}</dd></div>
-              <div><dt>Created</dt><dd>{selectedProject.created_at ? new Date(selectedProject.created_at).toLocaleString() : '—'}</dd></div>
-              <div><dt>Last updated</dt><dd>{selectedProject.updated_at ? new Date(selectedProject.updated_at).toLocaleString() : '—'}</dd></div>
+              <div><dt>Created</dt><dd>{formatWorkspaceDate(selectedProject.created_at)}</dd></div>
+              <div><dt>Last updated</dt><dd>{formatWorkspaceDate(selectedProject.updated_at)}</dd></div>
             </dl>
             <div className="form-actions">
               <button type="button" className="btn btn-secondary" onClick={() => setSelectedProject(null)}>Close</button>

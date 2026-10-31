@@ -122,7 +122,7 @@ export default function Dashboard({
   }, [deployments]);
 
   const recentProjects = useMemo(() => [...projects]
-    .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))
+    .sort((a, b) => (safeDate(b.updated_at || b.created_at)?.getTime() || 0) - (safeDate(a.updated_at || a.created_at)?.getTime() || 0))
     .slice(0, 5), [projects]);
 
   const activity = useMemo(() => {
