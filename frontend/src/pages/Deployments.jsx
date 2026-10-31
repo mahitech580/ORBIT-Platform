@@ -3,23 +3,25 @@ import { resolveDeploymentProjectId } from '../utils/deploymentProjectSelection.
 import { filterDeployments } from '../utils/deploymentFilters.js';
 import { buildDeploymentCsv } from '../utils/deploymentExport.js';
 
-export default function Deployments({ deployments, projects, loading, onDeploy }) {
+export default function Deployments({ deployments = [], projects = [], loading, onDeploy }) {
   const [showForm, setShowForm] = useState(false);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [projectFilter, setProjectFilter] = useState('all');
   const [formData, setFormData] = useState({
-    project_id: projects.length > 0 ? projects[0].id : '',
+    project_id: resolveDeploymentProjectId('', projects),
     version: '1.0.0',
     branch: 'main'
   });
 
+  const availableProjects = useMemo(() => projects.filter(project => project && project.status !== 'archived'), [projects]);
+
   useEffect(() => {
     setFormData(previous => {
-      const projectId = resolveDeploymentProjectId(previous.project_id, projects);
+      const projectId = resolveDeploymentProjectId(previous.project_id, availableProjects);
       return previous.project_id === projectId ? previous : { ...previous, project_id: projectId };
     });
-  }, [projects]);
+  }, [availableProjects]);
 
   const filteredDeployments = useMemo(() => filterDeployments(deployments, {
     query,
@@ -66,7 +68,7 @@ export default function Deployments({ deployments, projects, loading, onDeploy }
     });
     if (success) {
       setShowForm(false);
-      setFormData({ project_id: projects.length ? projects[0].id : '', version: '1.0.0', branch: 'main' });
+      setFormData({ project_id: availableProjects[0]?.id ?? '', version: '1.0.0', branch: 'main' });
     }
   };
 
@@ -90,7 +92,7 @@ export default function Deployments({ deployments, projects, loading, onDeploy }
           <h1>Deployments</h1>
           <p className="page-subtitle">Review versioned deployment records and their recorded status.</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => setShowForm(previous => !previous)} disabled={!projects.length}>
+        <button type="button" className="btn btn-primary" onClick={() => setShowForm(previous => !previous)} disabled={!availableProjects.length && !showForm}>
           {showForm ? 'Cancel' : '＋ Record deployment'}
         </button>
       </div>
@@ -101,8 +103,9 @@ export default function Deployments({ deployments, projects, loading, onDeploy }
       </div>
 
       {!projects.length && <div className="warning-banner">Create a project before recording a deployment.</div>}
+      {projects.length > 0 && !availableProjects.length && <div className="warning-banner">All projects are archived. Reactivate a project before recording a deployment.</div>}
 
-      {showForm && projects.length > 0 && (
+      {showForm && availableProjects.length > 0 && (
         <section className="form-card deploy-form-card">
           <p className="eyebrow">NEW RECORD</p>
           <h2>Record a deployment</h2>
@@ -110,7 +113,7 @@ export default function Deployments({ deployments, projects, loading, onDeploy }
             <div className="form-group">
               <label htmlFor="deployment-project">Project</label>
               <select id="deployment-project" name="project_id" value={formData.project_id} onChange={handleInputChange} required>
-                {projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}
+                {availableProjects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}
               </select>
             </div>
             <div className="form-grid">
