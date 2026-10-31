@@ -107,6 +107,17 @@ def parse_integer_setting(name, value, default, *, minimum=1, maximum=None):
     return parsed
 
 
+def parse_runtime_settings(environment):
+    """Validate the local WSGI debug flag and server listen port."""
+    return {
+        "debug": parse_boolean_setting("FLASK_DEBUG", environment.get("FLASK_DEBUG"), False),
+        "port": parse_integer_setting("PORT", environment.get("PORT"), 5000, maximum=65535),
+    }
+
+
+SERVER_SETTINGS = parse_runtime_settings(os.environ)
+
+
 def validate_database_sslmode(is_production, sslmode):
     """Validate libpq TLS modes and forbid downgrade modes in production."""
     if sslmode is None or (isinstance(sslmode, str) and not sslmode.strip()):
@@ -1051,7 +1062,7 @@ def create_team():
 
 if __name__ == "__main__":
     app.run(
-        debug=os.getenv("FLASK_DEBUG", "0") == "1" and not IS_PRODUCTION,
+        debug=SERVER_SETTINGS["debug"] and not IS_PRODUCTION,
         host=os.getenv("FLASK_HOST", "127.0.0.1"),
-        port=int(os.getenv("PORT", "5000")),
+        port=SERVER_SETTINGS["port"],
     )

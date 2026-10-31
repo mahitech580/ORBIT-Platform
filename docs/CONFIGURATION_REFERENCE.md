@@ -27,9 +27,10 @@ In production, configure either `DATABASE_URL` or all of `DB_HOST`, `DB_NAME`, `
 | `SECRET_KEY` | Required in production; use a long random secret and never commit it |
 | `ENABLE_DEMO_AUTH` | Boolean flag accepting `true`, `false`, `yes`, `no`, `on`, `off`, `1`, or `0` |
 | `CORS_ORIGINS` | Comma-separated list of allowed browser origins; the published GitHub Pages origin is retained by the current app configuration |
-| `FLASK_DEBUG` | Local development only; do not enable the debugger in a public deployment |
+| `FLASK_DEBUG` | `false` | Boolean flag accepting `true`, `false`, `yes`, `no`, `on`, `off`, `1`, or `0`; debugger is always disabled in production |
+| `PORT` | `5000` | ASCII decimal integer from 1 through 65535; hosting platforms may inject this value |
 
-If `ENABLE_DEMO_AUTH` is unset or blank, the default is enabled outside production and disabled in production. An unknown non-empty value fails startup so a typo cannot silently change the deployment's authentication mode.
+If `ENABLE_DEMO_AUTH` is unset or blank, the default is enabled outside production and disabled in production. `FLASK_DEBUG` defaults to false and uses the same explicit boolean vocabulary. Invalid non-empty debug values and invalid `PORT` values fail startup instead of silently changing the server configuration. Production mode always disables the Flask debugger even if `FLASK_DEBUG` is true.
 
 ## Safe operating practices
 

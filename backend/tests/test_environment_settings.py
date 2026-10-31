@@ -134,5 +134,29 @@ class IntegerSettingTests(unittest.TestCase):
                     orbit.parse_boolean_setting("FEATURE_FLAG", value, False)
 
 
+class RuntimeSettingTests(unittest.TestCase):
+    def test_accepts_boolean_debug_values_and_a_valid_server_port(self):
+        self.assertEqual(
+            orbit.parse_runtime_settings({"FLASK_DEBUG": " true ", "PORT": "8080"}),
+            {"debug": True, "port": 8080},
+        )
+
+    def test_defaults_to_safe_debug_and_local_server_port(self):
+        self.assertEqual(
+            orbit.parse_runtime_settings({}),
+            {"debug": False, "port": 5000},
+        )
+
+    def test_rejects_invalid_server_ports(self):
+        for value in ("0", "-1", "65536", "5000.0", "not-a-port"):
+            with self.subTest(value=value):
+                with self.assertRaises(RuntimeError):
+                    orbit.parse_runtime_settings({"PORT": value})
+
+    def test_rejects_unknown_debug_values_instead_of_silently_disabling_debug(self):
+        with self.assertRaisesRegex(RuntimeError, "FLASK_DEBUG"):
+            orbit.parse_runtime_settings({"FLASK_DEBUG": "enabled"})
+
+
 if __name__ == "__main__":
     unittest.main()
