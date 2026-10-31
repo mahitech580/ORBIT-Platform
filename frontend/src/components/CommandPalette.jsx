@@ -80,16 +80,16 @@ export default function CommandPalette({ onClose, onSelect }) {
           aria-label="Search workspace pages"
           role="combobox"
           aria-autocomplete="list"
-          aria-expanded="true"
+          aria-expanded={results.length > 0}
           aria-controls="command-results"
           aria-activedescendant={results[activeIndex] ? 'command-option-' + results[activeIndex].id : undefined}
           autoComplete="off"
         />
         <button type="button" onClick={onClose} className="command-escape">Esc</button>
       </div>
+      <p id="command-title" className="command-section-label">{query ? 'MATCHING PAGES' : 'QUICK NAVIGATION'}</p>
       <div id="command-results" className="command-results" role="listbox" aria-labelledby="command-title">
-        <p id="command-title" className="command-section-label">{query ? 'MATCHING PAGES' : 'QUICK NAVIGATION'}</p>
-        {results.length ? results.map((item, index) => <div
+        {results.map((item, index) => <div
           key={item.id}
           id={'command-option-' + item.id}
           role="option"
@@ -98,8 +98,9 @@ export default function CommandPalette({ onClose, onSelect }) {
           onMouseDown={event => event.preventDefault()}
           onMouseEnter={() => setActiveIndex(index)}
           onClick={() => onSelect(item.id)}
-        ><span className="command-item-icon" aria-hidden="true">{item.icon}</span><span className="command-item-copy"><strong>{item.label}</strong><small>{item.description}</small></span><span className="command-item-enter" aria-hidden="true">{activeIndex === index ? '↵' : ''}</span></div>) : <div className="command-no-results"><strong>No pages found</strong><small>Try projects, deployments, metrics, teams, or instances.</small></div>}
+        ><span className="command-item-icon" aria-hidden="true">{item.icon}</span><span className="command-item-copy"><strong>{item.label}</strong><small>{item.description}</small></span><span className="command-item-enter" aria-hidden="true">{activeIndex === index ? '↵' : ''}</span></div>)}
       </div>
+      {!results.length && <div className="command-no-results" role="status"><strong>No pages found</strong><small>Try projects, deployments, metrics, teams, or instances.</small></div>}
       <div className="command-footer"><span><kbd>↑</kbd><kbd>↓</kbd> to navigate</span><span><kbd>↵</kbd> to open</span><span>ORBIT WORKSPACE</span></div>
     </section>
   </div>;

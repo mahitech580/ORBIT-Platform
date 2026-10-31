@@ -61,3 +61,32 @@ test('the dashboard does not introduce a nested main landmark', async () => {
     await server.close();
   }
 });
+
+
+test('command palette listbox contains only option elements', async () => {
+  const server = await createServer({
+    configFile: viteConfig,
+    root: frontendRoot,
+    server: { middlewareMode: true },
+    appType: 'custom',
+    logLevel: 'silent'
+  });
+
+  try {
+    const { default: CommandPalette } = await server.ssrLoadModule('/src/components/CommandPalette.jsx');
+    const markup = renderToString(React.createElement(CommandPalette, {
+      onClose: () => {},
+      onSelect: () => {}
+    }));
+    const listboxStart = markup.indexOf('id="command-results"');
+    const footerStart = markup.indexOf('<div class="command-footer"', listboxStart);
+    assert.ok(listboxStart >= 0 && footerStart > listboxStart);
+    const listboxMarkup = markup.slice(listboxStart, footerStart);
+    assert.match(markup, /id="command-title"/);
+    assert.match(listboxMarkup, /role="option"/);
+    assert.doesNotMatch(listboxMarkup, /command-section-label|command-no-results/);
+    assert.match(markup, /aria-labelledby="command-title"/);
+  } finally {
+    await server.close();
+  }
+});
