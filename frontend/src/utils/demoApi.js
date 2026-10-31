@@ -96,6 +96,17 @@ function isRecord(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
+function normalizePositiveId(value) {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  if (!normalized || !/^[0-9]+$/.test(normalized)) return null;
+  const parsed = Number(normalized);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
 function readState() {
   try {
     const raw = readStateStorage();
@@ -112,8 +123,9 @@ function readState() {
 
     // Old or partially edited browser snapshots can contain malformed optional
     // collections. Normalize them before any route calls array/object methods.
-    const hasValidId = value => Number.isSafeInteger(Number(value)) && Number(value) > 0;
-    state.projects = state.projects.filter(item => isRecord(item) && hasValidId(item.id) && typeof item.name === 'string');
+    const hasValidId = value => normalizePositiveId(value) !== null;
+    state.projects = state.projects.filter(item => isRecord(item) && hasValidId(item.id) &&
+      (item.owner_id == null || hasValidId(item.owner_id)) && typeof item.name === 'string');
     state.deployments = state.deployments.filter(item => isRecord(item) && hasValidId(item.id) && hasValidId(item.project_id));
     if (!Array.isArray(state.accounts)) state.accounts = [];
     else state.accounts = state.accounts.filter(item => isRecord(item) &&
@@ -185,17 +197,15 @@ function readDemoString(payload, key, { defaultValue = "", required = false, max
 let volatileActiveUserId = 1;
 
 function rememberActiveUser(userId) {
-  const normalized = Number(userId);
-  if (Number.isSafeInteger(normalized) && normalized > 0) {
-    volatileActiveUserId = normalized;
-  }
+  const normalized = normalizePositiveId(userId);
+  if (normalized !== null) volatileActiveUserId = normalized;
 }
 
 function currentUserId() {
   try {
     const storedUser = JSON.parse(localStorage.getItem('orbit.user') || 'null');
-    const userId = Number(storedUser?.id);
-    if (Number.isSafeInteger(userId) && userId > 0) return userId;
+    const userId = normalizePositiveId(storedUser?.id);
+    if (userId !== null) return userId;
   } catch {
     // Continue with the in-memory identity when storage is unavailable.
   }
@@ -207,8 +217,8 @@ function activeUserId() {
     const token = localStorage.getItem('token') || '';
     const prefix = 'orbit-pages-demo-';
     if (token.startsWith(prefix)) {
-      const userId = Number(token.slice(prefix.length).split('-')[0]);
-      if (Number.isSafeInteger(userId) && userId > 0) return userId;
+      const userId = normalizePositiveId(token.slice(prefix.length).split('-')[0]);
+      if (userId !== null) return userId;
     }
   } catch {
     // Continue with the in-memory identity when storage is unavailable.
@@ -218,7 +228,12 @@ function activeUserId() {
 
 function ownedProjects(state) {
   const userId = activeUserId();
-  return state.projects.filter(project => Number(project.owner_id || 1) === userId);
+  return state.projects.filter(project => {
+    // Missing owner IDs belong to the legacy built-in demo account. Invalid
+    // explicit values must not fall through to user 1 or cross account boundaries.
+    const ownerId = project.owner_id == null ? 1 : normalizePositiveId(project.owner_id);
+    return ownerId === userId;
+  });
 }
 
 function ownedProject(state, id) {
