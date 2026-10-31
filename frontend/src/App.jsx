@@ -367,6 +367,7 @@ export default function App() {
 
   return (
     <div className={'app' + (lightMode ? ' light-mode' : ' dark-mode') + (!token ? ' app-auth' : '')}>
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <SmokeBackground lightMode={lightMode} />
       {DEMO_MODE && token && <div className="demo-mode-banner" role="status">
         <span className="demo-banner-dot" /><strong>Browser demo</strong>
@@ -383,7 +384,7 @@ export default function App() {
         health={health}
         demoMode={DEMO_MODE}
       />}
-      <main className="main-content">
+      <main id="main-content" tabIndex="-1" className="main-content">
         {error && <div className="error-banner" role="alert"><span>{error}</span><button type="button" aria-label="Dismiss error" onClick={() => setError('')}>×</button></div>}
         {token && loading && projects.length === 0 && deployments.length === 0 && (
           <div className="workspace-loading" role="status"><span className="loading-pulse" /> Loading workspace records…</div>

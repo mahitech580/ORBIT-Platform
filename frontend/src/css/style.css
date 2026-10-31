@@ -1739,3 +1739,24 @@ textarea { min-height: 85px; resize: vertical; }
 
 .inventory-filter{width:auto;min-width:128px;max-width:200px}
 @media(max-width:560px){.inventory-filter{flex:1 1 130px;min-width:0;max-width:none}}
+
+
+/* Keyboard users can bypass the global chrome and land on the page content. */
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
+  padding: 10px 14px;
+  border: 1px solid var(--orbit-line, #8ab8ef);
+  border-radius: 7px;
+  color: #071328;
+  background: #ffffff;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, .22);
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(calc(-100% - 14px));
+}
+.skip-link:focus {
+  transform: translateY(0);
+}

@@ -22,6 +22,8 @@ test('the application renders its initial login shell without browser globals', 
     const markup = renderToString(React.createElement(App));
     assert.match(markup, /app-auth/);
     assert.match(markup, /Sign in to ORBIT/);
+    assert.match(markup, /href="#main-content">Skip to main content/);
+    assert.match(markup, /id="main-content" tabindex="-1"/);
   } finally {
     await server.close();
   }
