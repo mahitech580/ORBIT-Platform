@@ -179,6 +179,18 @@ DEVELOPMENT_CORS_ORIGINS = (
 )
 
 
+def normalize_cors_origin(parsed):
+    """Canonicalize an origin the same way browsers normalize default ports."""
+    scheme = parsed.scheme.lower()
+    hostname = (parsed.hostname or "").lower()
+    if ":" in hostname and not hostname.startswith("["):
+        hostname = "[" + hostname + "]"
+    port = parsed.port
+    default_port = (scheme == "http" and port == 80) or (scheme == "https" and port == 443)
+    authority = hostname if port is None or default_port else hostname + ":" + str(port)
+    return scheme + "://" + authority
+
+
 def parse_cors_origins(value, *, is_production=False):
     """Parse exact browser origins and fail closed on wildcard or URL paths."""
     if not isinstance(value, str) or not value.strip():
@@ -211,7 +223,7 @@ def parse_cors_origins(value, *, is_production=False):
             raise RuntimeError("CORS_ORIGINS must contain exact HTTP(S) origins without paths or credentials.")
         if is_production and parsed.scheme.lower() != "https":
             raise RuntimeError("Production CORS_ORIGINS must use HTTPS origins.")
-        normalized = parsed.scheme.lower() + "://" + parsed.netloc.lower()
+        normalized = normalize_cors_origin(parsed)
         if normalized not in origins:
             origins.append(normalized)
 

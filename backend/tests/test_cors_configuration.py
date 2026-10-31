@@ -37,6 +37,20 @@ class CorsConfigurationTests(unittest.TestCase):
             ["http://localhost:3000"],
         )
 
+    def test_default_ports_are_removed_and_duplicate_browser_origins_are_deduplicated(self):
+        self.assertEqual(
+            orbit.parse_cors_origins(
+                "https://EXAMPLE.test:443, https://example.test, http://localhost:80"
+            ),
+            ["https://example.test", "http://localhost"],
+        )
+
+    def test_non_default_ports_and_ipv6_authorities_are_preserved(self):
+        self.assertEqual(
+            orbit.parse_cors_origins("http://localhost:8080, http://[::1]:3000"),
+            ["http://localhost:8080", "http://[::1]:3000"],
+        )
+
     def test_explicit_allowlist_includes_only_the_origins_that_were_configured(self):
         self.assertEqual(
             orbit.parse_cors_origins("https://api.example.test, https://mahitech580.github.io"),
