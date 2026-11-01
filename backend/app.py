@@ -1052,36 +1052,42 @@ def get_instances():
 def create_instance():
     data = json_body()
     project_id = positive_int(data.get("project_id"), "Project ID")
-    if not owned_project(project_id, request.user_id):
-        abort(404, description="Project not found.")
     name = read_string(data, "name", required=True, max_length=120)
     instance_type = read_string(data, "instance_type", default="t3.medium", max_length=80)
     deployment_id = data.get("deployment_id")
     if deployment_id is not None:
         deployment_id = positive_int(deployment_id, "Deployment ID")
-        match = db_fetch_all(
-            """SELECT d.id FROM deployments d
-               JOIN projects p ON p.id = d.project_id
-               JOIN teams t ON t.id = p.team_id
-               WHERE d.id = %s AND d.project_id = %s AND t.owner_id = %s""",
-            (deployment_id, project_id, request.user_id),
-        )
-        if not match:
-            abort(400, description="Deployment must belong to the selected project.")
-    else:
-        recent = db_fetch_all(
-            "SELECT id FROM deployments WHERE project_id = %s ORDER BY created_at DESC, id DESC LIMIT 1",
-            (project_id,),
-        )
-        if not recent:
-            abort(400, description="Create a deployment record before adding an instance.")
-        deployment_id = recent[0]["id"]
     rows = db_execute(
-        """INSERT INTO instances (deployment_id, project_id, name, instance_type, status)
-           VALUES (%s, %s, %s, %s, %s) RETURNING id, deployment_id, project_id, name, instance_type, status""",
-        (deployment_id, project_id, name, instance_type, "running"),
+        """WITH eligible_project AS (
+               SELECT p.id
+               FROM projects p
+               JOIN teams t ON t.id = p.team_id
+               WHERE p.id = %s AND t.owner_id = %s
+               FOR UPDATE OF p
+           ),
+           eligible_deployment AS (
+               SELECT d.id, d.project_id
+               FROM deployments d
+               JOIN eligible_project p ON p.id = d.project_id
+               WHERE (%s IS NULL OR d.id = %s)
+               ORDER BY d.created_at DESC, d.id DESC
+               LIMIT 1
+               FOR UPDATE OF d
+           )
+           INSERT INTO instances (deployment_id, project_id, name, instance_type, status)
+           SELECT eligible_deployment.id, eligible_deployment.project_id, %s, %s, %s
+           FROM eligible_deployment
+           RETURNING id, deployment_id, project_id, name, instance_type, status""",
+        (
+            project_id, request.user_id, deployment_id, deployment_id,
+            name, instance_type, "running",
+        ),
         returning=True,
     )
+    if not rows:
+        if not owned_project(project_id, request.user_id):
+            abort(404, description="Project not found.")
+        abort(400, description="Deployment must belong to the selected project.")
     return jsonify({"success": True, "instance": rows[0]}), 201
 
 
