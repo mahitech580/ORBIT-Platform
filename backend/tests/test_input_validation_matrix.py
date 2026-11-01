@@ -29,6 +29,12 @@ class InputValidationMatrixTests(unittest.TestCase):
         value = self.run_helper(orbit.parse_metric_timestamp, "2026-10-22T12:34:56.123456Z")
         self.assertEqual(value, datetime(2026, 10, 22, 12, 34, 56, 123456))
 
+    def test_read_string_rejects_postgresql_nul_characters(self):
+        with orbit.app.test_request_context("/", method="POST", json={}):
+            with self.assertRaises(BadRequest) as caught:
+                orbit.read_string({"label": "valid\\x00invalid"}, "label")
+        self.assertIn("NUL", caught.exception.description)
+
     def test_read_string_rejects_tuple_values(self):
         self.assert_bad_request(orbit.read_string, {"label": ("a", "b")}, "label")
 
