@@ -125,11 +125,6 @@ function readState() {
     // Old or partially edited browser snapshots can contain malformed optional
     // collections. Normalize them before any route calls array/object methods.
     const hasValidId = value => normalizePositiveId(value) !== null;
-    state.projects = state.projects.filter(item => isRecord(item) && hasValidId(item.id) &&
-      (item.owner_id == null || hasValidId(item.owner_id)) && typeof item.name === 'string');
-    const projectIds = new Set(state.projects.map(item => Number(item.id)));
-    state.deployments = state.deployments.filter(item => isRecord(item) && hasValidId(item.id) &&
-      hasValidId(item.project_id) && projectIds.has(Number(item.project_id)));
     if (!Array.isArray(state.accounts)) state.accounts = [];
     else state.accounts = state.accounts.filter(item => isRecord(item) &&
       hasValidId(item.id) && typeof item.email === 'string' &&
@@ -137,6 +132,20 @@ function readState() {
     if (!Array.isArray(state.teams)) state.teams = [];
     else state.teams = state.teams.filter(item => isRecord(item) &&
       hasValidId(item.id) && hasValidId(item.owner_id) && typeof item.name === 'string');
+    const teamById = new Map(state.teams.map(team => [Number(team.id), team]));
+    state.projects = state.projects.filter(item => {
+      if (!isRecord(item) || !hasValidId(item.id) ||
+          (item.owner_id != null && !hasValidId(item.owner_id)) ||
+          typeof item.name !== 'string') return false;
+      const ownerId = item.owner_id == null ? 1 : normalizePositiveId(item.owner_id);
+      if (item.team_id == null) return true; // Preserve legacy personal projects without a team reference.
+      const teamId = normalizePositiveId(item.team_id);
+      const team = teamId === null ? null : teamById.get(teamId);
+      return Boolean(team && normalizePositiveId(team.owner_id) === ownerId);
+    });
+    const projectIds = new Set(state.projects.map(item => Number(item.id)));
+    state.deployments = state.deployments.filter(item => isRecord(item) && hasValidId(item.id) &&
+      hasValidId(item.project_id) && projectIds.has(Number(item.project_id)));
     const deploymentProjectById = new Map(state.deployments.map(item => [
       Number(item.id), Number(item.project_id)
     ]));
