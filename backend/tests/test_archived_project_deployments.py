@@ -13,12 +13,13 @@ class ArchivedProjectDeploymentTests(unittest.TestCase):
 
     def test_archived_project_returns_conflict_without_writing_a_deployment(self):
         with patch.object(orbit, "owned_project", return_value={"id": 7, "status": "archived"}), \
-             patch.object(orbit, "db_execute") as execute:
+             patch.object(orbit, "db_execute", return_value=[]) as execute:
             response = self.client.post("/api/projects/7/deploy", headers=self.headers, json={})
 
         self.assertEqual(response.status_code, 409)
         self.assertIn("archived", response.get_json()["error"].lower())
-        execute.assert_not_called()
+        execute.assert_called_once()
+        self.assertIn("FOR UPDATE OF p", execute.call_args.args[0])
 
     def test_active_project_can_still_create_a_deployment_record(self):
         row = {
@@ -29,13 +30,16 @@ class ArchivedProjectDeploymentTests(unittest.TestCase):
             "branch": "main",
             "created_at": "2026-10-31T12:00:00+00:00",
         }
-        with patch.object(orbit, "owned_project", return_value={"id": 7, "status": "active"}), \
+        with patch.object(orbit, "owned_project") as owned, \
              patch.object(orbit, "db_execute", return_value=[row]) as execute:
             response = self.client.post("/api/projects/7/deploy", headers=self.headers, json={})
 
         self.assertEqual(response.status_code, 201, response.get_json())
         self.assertEqual(response.get_json()["deployment"]["id"], 12)
         execute.assert_called_once()
+        owned.assert_not_called()
+        self.assertIn("FOR UPDATE OF p", execute.call_args.args[0])
+        self.assertEqual(execute.call_args.args[1], (7, 17, "1.0.0", "in-progress", "main", 17))
 
 
 if __name__ == "__main__":

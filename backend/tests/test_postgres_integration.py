@@ -188,6 +188,37 @@ class RealPostgresWorkflowTests(unittest.TestCase):
         self.assertEqual(instances.status_code, 200, instances.get_json())
         self.assertEqual(instances.get_json()["instances"][0]["name"], "integration-instance")
 
+    def test_archived_project_cannot_receive_a_deployment_record(self):
+        user = self.register("archived-project@example.test", "archived_project_user")
+        headers = self.auth(user["token"])
+        created = self.client.post("/api/projects", headers=headers, json={
+            "name": "Archived project",
+            "runtime": "python"
+        })
+        self.assertEqual(created.status_code, 201, created.get_json())
+        project_id = created.get_json()["project"]["id"]
+        archived = self.client.put(
+            f"/api/projects/{project_id}",
+            headers=headers,
+            json={"status": "archived"},
+        )
+        self.assertEqual(archived.status_code, 200, archived.get_json())
+
+        response = self.client.post(
+            f"/api/projects/{project_id}/deploy",
+            headers=headers,
+            json={},
+        )
+        self.assertEqual(response.status_code, 409, response.get_json())
+        self.assertIn("archived", response.get_json()["error"].lower())
+        connection = orbit.get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT COUNT(*) FROM deployments WHERE project_id = %s", (project_id,))
+                self.assertEqual(cursor.fetchone()[0], 0)
+        finally:
+            connection.close()
+
     def test_postgres_rejects_project_runtime_and_status_outside_api_domains(self):
         user = self.register("project-domain@example.test", "project_domain_user")
         user_id = user["user"]["id"]

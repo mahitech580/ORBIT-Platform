@@ -791,20 +791,31 @@ def delete_project(project_id):
 @token_required
 def deploy_project(project_id):
     data = json_body()
-    project = owned_project(project_id, request.user_id)
-    if not project:
-        abort(404, description="Project not found.")
-    if project.get("status") == "archived":
-        abort(409, description="Archived projects cannot receive new deployment records. Reactivate the project first.")
     version = read_string(data, "version", default="1.0.0", required=True, max_length=80)
     branch = read_string(data, "branch", default="main", required=True, max_length=200)
     rows = db_execute(
-        """INSERT INTO deployments (project_id, version, status, branch, deployed_by)
-           VALUES (%s, %s, %s, %s, %s)
+        """WITH eligible_project AS (
+               SELECT p.id
+               FROM projects p
+               JOIN teams t ON t.id = p.team_id
+               WHERE p.id = %s AND t.owner_id = %s
+                 AND p.status IS DISTINCT FROM 'archived'
+               FOR UPDATE OF p
+           )
+           INSERT INTO deployments (project_id, version, status, branch, deployed_by)
+           SELECT eligible_project.id, %s, %s, %s, %s
+           FROM eligible_project
            RETURNING id, project_id, version, status, branch, created_at""",
-        (project_id, version, "in-progress", branch, request.user_id),
+        (project_id, request.user_id, version, "in-progress", branch, request.user_id),
         returning=True,
     )
+    if not rows:
+        project = owned_project(project_id, request.user_id)
+        if not project:
+            abort(404, description="Project not found.")
+        if project.get("status") == "archived":
+            abort(409, description="Archived projects cannot receive new deployment records. Reactivate the project first.")
+        abort(409, description="Project changed before the deployment record could be created. Try again.")
     return jsonify({
         "success": True,
         "message": "Deployment record created. This release tracks deployments but does not provision cloud resources.",
