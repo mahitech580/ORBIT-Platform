@@ -32,7 +32,7 @@ class InputValidationMatrixTests(unittest.TestCase):
     def test_read_string_rejects_postgresql_nul_characters(self):
         with orbit.app.test_request_context("/", method="POST", json={}):
             with self.assertRaises(BadRequest) as caught:
-                orbit.read_string({"label": "valid\\x00invalid"}, "label")
+                orbit.read_string({"label": "valid\x00invalid"}, "label")
         self.assertIn("NUL", caught.exception.description)
 
     def test_read_string_rejects_tuple_values(self):

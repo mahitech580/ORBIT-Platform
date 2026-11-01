@@ -14,7 +14,12 @@ test('filters malformed records inside otherwise valid persisted collections', a
     nextTeamId: 2,
     nextInstanceId: 2,
     accounts: [null, 'bad', { id: 'bad', email: 'broken@example.com', username: 'broken', password_hash: 'hash' }, { id: 2, email: 'member@example.com', username: 'member', password_hash: 'hash' }],
-    teams: [null, false, { id: 'bad', owner_id: 1, name: 'Broken Team' }, { id: 1, owner_id: 1, name: 'Demo Team', description: '' }],
+    teams: [
+      null, false,
+      { id: 'bad', owner_id: 1, name: 'Broken Team' },
+      { id: 1, owner_id: 1, name: 'Demo Team', description: '' },
+      { id: 2, owner_id: 2, name: 'Other Team', description: '' }
+    ],
     projects: [
       null,
       'bad',
@@ -25,14 +30,16 @@ test('filters malformed records inside otherwise valid persisted collections', a
       { id: 13, owner_id: true, name: 'Boolean owner' },
       { id: 14, owner_id: '1.0', name: 'Decimal owner' },
       { id: 11, owner_id: 1, team_id: 1, team_name: 'Demo Team', name: 'Valid project', runtime: 'node', status: 'active' },
-      { id: 12, owner_id: 2, team_id: 2, team_name: "Other Team", name: "Other user project", runtime: "python", status: "active" }
+      { id: 12, owner_id: 2, team_id: 2, team_name: "Other Team", name: "Other user project", runtime: "python", status: "active" },
+      { id: 15, owner_id: 1, team_id: 2, team_name: 'Other Team', name: 'Cross-owner team project', runtime: 'node', status: 'active' }
     ],
     deployments: [
       null, 3,
       { id: 'bad', project_id: 11, version: 'bad' },
       { id: 5, project_id: 11, project_name: 'Valid project', version: '1.0.0', branch: 'main', status: 'completed' },
       { id: 6, project_id: 99, version: 'orphan' },
-      { id: 7, project_id: 12, version: 'other-user' }
+      { id: 7, project_id: 12, version: 'other-user' },
+      { id: 8, project_id: 15, version: 'cross-owner-team' }
     ],
     instances: [
       null, 'bad',

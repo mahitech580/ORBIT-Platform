@@ -424,7 +424,7 @@ def read_string(data, key, default="", required=False, max_length=255):
     if not isinstance(value, str):
         abort(400, description=key.replace("_", " ").capitalize() + " must be text.")
     value = value.strip()
-    if "\\x00" in value:
+    if "\x00" in value:
         abort(400, description=key.replace("_", " ").capitalize() + " must not contain NUL characters.")
     if required and not value:
         abort(400, description=key.replace("_", " ").capitalize() + " is required.")

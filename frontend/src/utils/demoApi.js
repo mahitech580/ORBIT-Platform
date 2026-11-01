@@ -207,6 +207,7 @@ function readDemoString(payload, key, { defaultValue = "", required = false, max
   if (value == null) value = defaultValue;
   if (typeof value !== 'string') fail(label + " must be text.");
   value = value.trim();
+  if (value.includes('\\u0000')) fail(label + " must not contain NUL characters.");
   if (required && !value) fail(label + " is required.");
   if (value.length > maxLength) fail(label + " must be at most " + maxLength + " characters.");
   return value;

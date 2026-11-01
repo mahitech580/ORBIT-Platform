@@ -121,6 +121,18 @@ test('rejects invalid project payloads', async () => {
   await assert.rejects(() => api.post('/projects', { name: '', runtime: 'fortran' }), error => error.response.status === 400);
 });
 
+test('rejects PostgreSQL-incompatible NUL characters in demo text fields', async () => {
+  const nul = String.fromCharCode(0);
+  await assert.rejects(
+    () => api.post('/projects', { name: 'Invalid' + nul + ' project' }),
+    error => error.response.status === 400
+  );
+  await assert.rejects(
+    () => api.post('/teams', { name: 'Invalid' + nul + ' team' }),
+    error => error.response.status === 400
+  );
+});
+
 test('demo sign-in accepts the documented credentials and rejects bad passwords', async () => {
   const result = await api.post('/auth/login', { email: 'demo@orbit.local', password: 'demo123' });
   assert.ok(result.data.token.startsWith('orbit-pages-demo-'));
