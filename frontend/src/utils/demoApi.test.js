@@ -33,6 +33,27 @@ test('seeds a demo workspace and sample metrics', async () => {
   assert.ok(storage.getItem(demoStorageKey));
 });
 
+test('sanitizes invalid persisted telemetry before returning demo API rows', async () => {
+  await api.get('/projects');
+  const state = JSON.parse(storage.getItem(demoStorageKey));
+  state.metrics['1'] = [{
+    id: 99, project_id: 1, cpu_usage: 101, memory_usage: -1,
+    requests_total: 10, errors_total: 11, response_time_ms: 1000000,
+    timestamp: '2026-10-14T11:00:00.000Z'
+  }];
+  storage.setItem(demoStorageKey, JSON.stringify(state));
+
+  const result = await api.get('/metrics/1');
+  assert.equal(result.data.metrics[0].cpu_usage, null);
+  assert.equal(result.data.metrics[0].memory_usage, null);
+  assert.equal(result.data.metrics[0].requests_total, 10);
+  assert.equal(result.data.metrics[0].errors_total, null);
+  assert.equal(result.data.metrics[0].response_time_ms, null);
+  assert.deepEqual(result.data.summary, {
+    avg_cpu: null, avg_memory: null, total_requests: 10
+  });
+});
+
 test('reports missing demo telemetry as unavailable rather than zero', async () => {
   const result = await api.get('/metrics/2');
   assert.deepEqual(result.data.metrics, []);

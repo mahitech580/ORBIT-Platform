@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { filterMetricsByRange } from '../utils/metricsFilters.js';
-import { summarizeMetrics } from '../utils/metricsSummary.js';
+import { sanitizeMetricRecords, summarizeMetrics } from '../utils/metricsSummary.js';
 import { buildMetricsCsv } from '../utils/metricsExport.js';
 import { getApiErrorMessage } from '../utils/apiError.js';
 import { formatTelemetryTimestamp } from '../utils/formatTelemetryTimestamp.js';
@@ -36,7 +36,7 @@ export default function Metrics({ projects, api, refreshSeconds = 30 }) {
     try {
       const response = await api.get('/metrics/' + selectedProject);
       if (requestId !== requestSequence.current) return;
-      setMetrics(response.data.metrics || []);
+      setMetrics(sanitizeMetricRecords(response.data.metrics));
       setSummary(response.data.summary || { avg_cpu: 0, avg_memory: 0, total_requests: 0 });
     } catch (requestError) {
       if (requestId !== requestSequence.current) return;

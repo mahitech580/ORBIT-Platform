@@ -1,5 +1,5 @@
 import { buildWorkspaceExport, validateWorkspaceBackup } from './workspaceExport.js';
-import { summarizeMetrics } from './metricsSummary.js';
+import { sanitizeMetricRecords, summarizeMetrics } from './metricsSummary.js';
 import { compareNewestFirst } from './recordOrdering.js';
 
 const STORAGE_KEY = 'orbit.pages.demo.data.v2';
@@ -207,7 +207,7 @@ function readDemoString(payload, key, { defaultValue = "", required = false, max
   if (value == null) value = defaultValue;
   if (typeof value !== 'string') fail(label + " must be text.");
   value = value.trim();
-  if (value.includes('\\u0000')) fail(label + " must not contain NUL characters.");
+  if (value.includes(String.fromCharCode(0))) fail(label + " must not contain NUL characters.");
   if (required && !value) fail(label + " is required.");
   if (value.length > maxLength) fail(label + " must be at most " + maxLength + " characters.");
   return value;
@@ -458,9 +458,10 @@ export function createDemoApi() {
         const returnedMetrics = [...metrics]
           .sort((a, b) => compareNewestFirst(a, b, 'timestamp'))
           .slice(0, 100);
+        const safeMetrics = sanitizeMetricRecords(returnedMetrics);
         return response({
-          metrics: returnedMetrics,
-          summary: summarizeMetrics(returnedMetrics)
+          metrics: safeMetrics,
+          summary: summarizeMetrics(safeMetrics)
         });
       }
       if (route === '/teams') return response({ teams: state.teams.filter(team => Number(team.owner_id) === activeUserId()) });

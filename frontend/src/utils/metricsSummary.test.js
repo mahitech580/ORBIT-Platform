@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { summarizeMetrics } from './metricsSummary.js';
+import { sanitizeMetricRecords, summarizeMetrics } from './metricsSummary.js';
 
 test('computes average CPU and memory from numeric measurements', () => {
   assert.deepEqual(summarizeMetrics([
@@ -21,6 +21,40 @@ test('handles strings containing numeric values and ignores malformed values', (
     { cpu_usage: '10.5', memory_usage: '512', requests_total: '8' },
     { cpu_usage: 'bad', memory_usage: undefined, requests_total: 'NaN' }
   ]), { avg_cpu: 10.5, avg_memory: 512, total_requests: 8 });
+});
+
+test('normalizes invalid legacy fields to null without mutating source rows', () => {
+  const source = [{
+    id: 9, cpu_usage: 101, memory_usage: -1, requests_total: 10,
+    errors_total: 11, response_time_ms: 1000000, timestamp: '2026-10-31T12:00:00Z'
+  }];
+  const [row] = sanitizeMetricRecords(source);
+  assert.deepEqual({
+    cpu_usage: row.cpu_usage,
+    memory_usage: row.memory_usage,
+    requests_total: row.requests_total,
+    errors_total: row.errors_total,
+    response_time_ms: row.response_time_ms,
+    timestamp: row.timestamp
+  }, {
+    cpu_usage: null,
+    memory_usage: null,
+    requests_total: 10,
+    errors_total: null,
+    response_time_ms: null,
+    timestamp: '2026-10-31T12:00:00Z'
+  });
+  assert.equal(source[0].cpu_usage, 101);
+});
+
+test('preserves valid telemetry values and nulls only unavailable fields', () => {
+  assert.deepEqual(sanitizeMetricRecords([{
+    cpu_usage: 23.5, memory_usage: 512, requests_total: 80,
+    errors_total: 3, response_time_ms: 47.25
+  }]), [{
+    cpu_usage: 23.5, memory_usage: 512, requests_total: 80,
+    errors_total: 3, response_time_ms: 47.25
+  }]);
 });
 
 test('returns a zeroed summary for empty and malformed input', () => {

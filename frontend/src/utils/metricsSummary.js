@@ -14,17 +14,44 @@ function averageOf(records, key, isValid = () => true) {
   return values.length ? Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(2)) : null;
 }
 
-/** Summarize only values that satisfy the API's telemetry field domains. */
-export function summarizeMetrics(metrics) {
+function validIntegerMeasurement(value) {
+  const number = finiteMeasurement(value);
+  return number !== null && Number.isSafeInteger(number) && number >= 0 && number <= POSTGRES_INTEGER_MAX
+    ? number
+    : null;
+}
+
+/** Normalize legacy rows before either rendering or summarizing telemetry. */
+export function sanitizeMetricRecords(metrics) {
   const records = Array.isArray(metrics)
     ? metrics.filter(item => item && typeof item === 'object' && !Array.isArray(item))
     : [];
-  const requestValues = records
-    .map(item => finiteMeasurement(item.requests_total))
-    .filter(value => value !== null && Number.isSafeInteger(value) && value >= 0 && value <= POSTGRES_INTEGER_MAX);
+  return records.map(record => {
+    const cpu = finiteMeasurement(record.cpu_usage);
+    const requests = validIntegerMeasurement(record.requests_total);
+    const errors = validIntegerMeasurement(record.errors_total);
+    const memory = validIntegerMeasurement(record.memory_usage);
+    const responseTime = finiteMeasurement(record.response_time_ms);
+    return {
+      ...record,
+      cpu_usage: cpu !== null && cpu >= 0 && cpu <= 100 ? cpu : null,
+      memory_usage: memory,
+      requests_total: requests,
+      errors_total: errors !== null && (requests === null || errors <= requests) ? errors : null,
+      response_time_ms: responseTime !== null && responseTime >= 0 && responseTime <= 999999.99
+        ? responseTime
+        : null
+    };
+  });
+}
+
+/** Summarize only values that satisfy the API's telemetry field domains. */
+export function summarizeMetrics(metrics) {
+  const records = sanitizeMetricRecords(metrics);
+  const requestValues = records.map(item => item.requests_total).filter(value => value !== null);
   return {
-    avg_cpu: averageOf(records, 'cpu_usage', value => value >= 0 && value <= 100),
-    avg_memory: averageOf(records, 'memory_usage', value => Number.isSafeInteger(value) && value >= 0 && value <= POSTGRES_INTEGER_MAX),
+    avg_cpu: averageOf(records, 'cpu_usage'),
+    avg_memory: averageOf(records, 'memory_usage'),
     total_requests: requestValues.length ? requestValues.reduce((sum, value) => sum + value, 0) : null
   };
 }
