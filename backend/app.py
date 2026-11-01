@@ -878,6 +878,32 @@ def summarize_metric_rows(metrics):
     }
 
 
+def sanitize_metric_row(row):
+    """Replace out-of-domain legacy measurements with null before returning API data."""
+    sanitized = dict(row)
+    sanitized["cpu_usage"] = summary_measurement(row.get("cpu_usage"), maximum=100)
+    sanitized["memory_usage"] = summary_measurement(
+        row.get("memory_usage"), integer=True, maximum=POSTGRES_INTEGER_MAX
+    )
+    sanitized["requests_total"] = summary_measurement(
+        row.get("requests_total"), integer=True, maximum=POSTGRES_INTEGER_MAX
+    )
+    errors_total = summary_measurement(
+        row.get("errors_total"), integer=True, maximum=POSTGRES_INTEGER_MAX
+    )
+    if (
+        errors_total is not None
+        and sanitized["requests_total"] is not None
+        and errors_total > sanitized["requests_total"]
+    ):
+        errors_total = None
+    sanitized["errors_total"] = errors_total
+    sanitized["response_time_ms"] = summary_measurement(
+        row.get("response_time_ms"), maximum=999999.99
+    )
+    return sanitized
+
+
 @app.route("/api/metrics/<int:project_id>", methods=["GET"])
 @token_required
 def get_metrics(project_id):
@@ -889,6 +915,7 @@ def get_metrics(project_id):
            ORDER BY timestamp DESC, id DESC LIMIT 100""",
         (project_id,),
     )
+    metrics = [sanitize_metric_row(row) for row in metrics]
     summary = summarize_metric_rows(metrics)
     return jsonify({"metrics": metrics, "summary": summary})
 

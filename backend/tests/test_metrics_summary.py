@@ -39,6 +39,35 @@ class MetricSummaryTests(unittest.TestCase):
             {"avg_cpu": 30, "avg_memory": None, "total_requests": 8},
         )
 
+    def test_invalid_legacy_measurements_are_null_in_api_rows(self):
+        source = {
+            "id": 7,
+            "cpu_usage": 101,
+            "memory_usage": -1,
+            "requests_total": 10,
+            "errors_total": 11,
+            "response_time_ms": 1000000,
+            "timestamp": "2026-10-31T12:00:00",
+        }
+        sanitized = orbit.sanitize_metric_row(source)
+        self.assertEqual(sanitized["cpu_usage"], None)
+        self.assertEqual(sanitized["memory_usage"], None)
+        self.assertEqual(sanitized["requests_total"], 10)
+        self.assertEqual(sanitized["errors_total"], None)
+        self.assertEqual(sanitized["response_time_ms"], None)
+        self.assertEqual(sanitized["timestamp"], source["timestamp"])
+        self.assertEqual(source["cpu_usage"], 101)
+
+    def test_valid_legacy_measurements_are_preserved_in_api_rows(self):
+        source = {
+            "cpu_usage": 23.5,
+            "memory_usage": 512,
+            "requests_total": 80,
+            "errors_total": 3,
+            "response_time_ms": 47.25,
+        }
+        self.assertEqual(orbit.sanitize_metric_row(source), source)
+
     def test_invalid_legacy_measurements_are_ignored(self):
         self.assertEqual(
             orbit.summarize_metric_rows([
