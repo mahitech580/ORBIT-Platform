@@ -756,15 +756,20 @@ def update_project(project_id):
         abort(400, description="Runtime must be one of: node, python, java, go.")
     if status not in PROJECT_STATUSES:
         abort(400, description="Status must be active or archived.")
-    db_execute(
+    rows = db_execute(
         """UPDATE projects AS p
            SET name = %s, description = %s, runtime = %s, status = %s,
                updated_at = CURRENT_TIMESTAMP
            FROM teams AS t
-           WHERE p.id = %s AND p.team_id = t.id AND t.owner_id = %s""",
+           WHERE p.id = %s AND p.team_id = t.id AND t.owner_id = %s
+           RETURNING p.id, p.team_id, p.name, p.description, p.runtime, p.status,
+                     p.created_at, p.updated_at, t.name AS team_name""",
         (name, description, runtime, status, project_id, request.user_id),
+        returning=True,
     )
-    return jsonify({"success": True, "project": owned_project(project_id, request.user_id)})
+    if not rows:
+        abort(404, description="Project not found.")
+    return jsonify({"success": True, "project": rows[0]})
 
 
 @app.route("/api/projects/<int:project_id>", methods=["DELETE"])
