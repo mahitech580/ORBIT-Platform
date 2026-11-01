@@ -148,7 +148,7 @@ export default function Metrics({ projects, api, refreshSeconds = 30 }) {
             </div>
           </div>
 
-          {loading && <p className="inline-loading">Loading telemetry…</p>}
+          {loading && <p className="inline-loading" role="status" aria-live="polite">Loading telemetry…</p>}
           {!loading && visibleMetrics.length === 0 && (
             <div className="empty-message enhanced-empty compact-empty">
               <h3>{metrics.length ? 'No measurements in this time window' : 'No telemetry recorded'}</h3>

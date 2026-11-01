@@ -80,7 +80,8 @@ export default function CommandPalette({ onClose, onSelect }) {
           aria-label="Search workspace pages"
           role="combobox"
           aria-autocomplete="list"
-          aria-expanded={results.length > 0}
+          aria-haspopup="listbox"
+          aria-expanded={true}
           aria-controls="command-results"
           aria-activedescendant={results[activeIndex] ? 'command-option-' + results[activeIndex].id : undefined}
           autoComplete="off"
