@@ -3,6 +3,7 @@ import { shouldTrackBackgroundPointer } from '../utils/backgroundPointer.js';
 import { subscribeMediaQuery } from '../utils/mediaQueryListener.js';
 import { getCanvasBackingSize } from '../utils/canvasResolution.js';
 import { canRenderSmokeFrame } from '../utils/smokePlayback.js';
+import { getSmokeFrameDelay } from '../utils/smokeFrameTiming.js';
 
 const VERTEX_SHADER = [
   'attribute vec2 a_position;',
@@ -111,6 +112,7 @@ export default function SmokeBackground({ lightMode = true }) {
     let program = null;
     let buffer = null;
     let raf = 0;
+    let frameTimer = 0;
     let disposed = false;
     let visible = document.visibilityState !== 'hidden';
     let width = 1;
@@ -177,17 +179,31 @@ export default function SmokeBackground({ lightMode = true }) {
       };
       const leavePointer = () => { targetPointer = { x: 0.5, y: 0.5 }; };
 
+      const cancelScheduledFrame = () => {
+        if (raf) window.cancelAnimationFrame(raf);
+        if (frameTimer) window.clearTimeout(frameTimer);
+        raf = 0;
+        frameTimer = 0;
+      };
       const scheduleFrame = () => {
-        if (canRenderSmokeFrame(disposed, visible, intersecting) && !raf) raf = window.requestAnimationFrame(draw);
+        if (!canRenderSmokeFrame(disposed, visible, intersecting) || raf || frameTimer) return;
+        if (!reducedMotion) {
+          const now = window.performance?.now?.() ?? Date.now();
+          const delay = getSmokeFrameDelay(now, lastFrame);
+          if (delay > 0) {
+            frameTimer = window.setTimeout(() => {
+              frameTimer = 0;
+              scheduleFrame();
+            }, delay);
+            return;
+          }
+        }
+        raf = window.requestAnimationFrame(draw);
       };
       scheduleFrameRef.current = scheduleFrame;
       const draw = now => {
         raf = 0;
         if (!canRenderSmokeFrame(disposed, visible, intersecting)) return;
-        if (!reducedMotion && now - lastFrame < 30) {
-          scheduleFrame();
-          return;
-        }
         lastFrame = now;
         if (!startTime) startTime = now;
         const elapsed = reducedMotion ? 0.4 : (now - startTime) / 1000;
@@ -205,15 +221,13 @@ export default function SmokeBackground({ lightMode = true }) {
       const onContextLost = () => {
         // The CSS background remains available if the browser or GPU drops WebGL.
         disposed = true;
-        if (raf) window.cancelAnimationFrame(raf);
-        raf = 0;
+        cancelScheduledFrame();
         canvas.dataset.fallback = 'true';
       };
       const onIntersectionChange = entries => {
         intersecting = Boolean(entries[0]?.isIntersecting);
         if (!intersecting) {
-          if (raf) window.cancelAnimationFrame(raf);
-          raf = 0;
+          cancelScheduledFrame();
           return;
         }
         scheduleFrame();
@@ -232,8 +246,7 @@ export default function SmokeBackground({ lightMode = true }) {
         lastFrame = 0;
         startTime = 0;
         if (reducedMotion) {
-          if (raf) window.cancelAnimationFrame(raf);
-          raf = 0;
+          cancelScheduledFrame();
           currentPointer = { x: 0.5, y: 0.5 };
           targetPointer = { x: 0.5, y: 0.5 };
         }
@@ -261,7 +274,7 @@ export default function SmokeBackground({ lightMode = true }) {
 
       return () => {
         disposed = true;
-        window.cancelAnimationFrame(raf);
+        cancelScheduledFrame();
         window.removeEventListener('resize', onResize);
         if (resizeObserver) resizeObserver.disconnect();
         if (intersectionObserver) intersectionObserver.disconnect();
@@ -277,6 +290,7 @@ export default function SmokeBackground({ lightMode = true }) {
     } catch {
       canvas.dataset.fallback = 'true';
       if (raf) window.cancelAnimationFrame(raf);
+      if (frameTimer) window.clearTimeout(frameTimer);
       if (resizeObserver) resizeObserver.disconnect();
       if (intersectionObserver) intersectionObserver.disconnect();
       if (buffer) gl.deleteBuffer(buffer);
