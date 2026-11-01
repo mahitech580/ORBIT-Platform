@@ -182,11 +182,11 @@ class MetricsIngestionContractTests(unittest.TestCase):
             self.calls.append((query, params, returning))
             if "INSERT INTO metrics" not in query or not returning:
                 return []
-            timestamp = params[6].isoformat() if params[6] else "2026-10-14T09:00:00"
+            timestamp = params[7].isoformat() if params[7] else "2026-10-14T09:00:00"
             return [{
-                "id": 91, "project_id": params[0], "cpu_usage": params[1],
-                "memory_usage": params[2], "requests_total": params[3],
-                "errors_total": params[4], "response_time_ms": params[5],
+                "id": 91, "project_id": params[0], "cpu_usage": params[2],
+                "memory_usage": params[3], "requests_total": params[4],
+                "errors_total": params[5], "response_time_ms": params[6],
                 "timestamp": timestamp
             }]
 
@@ -224,7 +224,7 @@ class MetricsIngestionContractTests(unittest.TestCase):
         query, params, returning = self.calls[0]
         self.assertIn("INSERT INTO metrics", query)
         self.assertTrue(returning)
-        self.assertEqual(params[:6], (12, 28.5, 768, 1200, 4, 125.5))
+        self.assertEqual(params, (12, 7, 28.5, 768, 1200, 4, 125.5, datetime(2026, 10, 14, 2, 30)))
 
     def test_accepts_postgres_integer_maximum_without_float_rounding(self):
         maximum = 2147483647
@@ -234,7 +234,14 @@ class MetricsIngestionContractTests(unittest.TestCase):
             "errors_total": maximum,
         })
         self.assertEqual(response.status_code, 201, response.get_json())
-        self.assertEqual(self.calls[0][1][2:5], (maximum, maximum, maximum))
+        self.assertEqual(self.calls[0][1][3:6], (maximum, maximum, maximum))
+
+    def test_project_deleted_after_initial_check_returns_not_found(self):
+        from unittest.mock import patch
+        with patch.object(orbit, "db_execute", return_value=[]):
+            response = self.post_metric({"cpu_usage": 10})
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("Project not found", response.get_json()["error"])
 
     def test_rejects_invalid_measurements_without_writing(self):
         invalid_payloads = [

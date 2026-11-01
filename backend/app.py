@@ -1007,12 +1007,24 @@ def ingest_metrics(project_id):
 
     try:
         rows = db_execute(
-            """INSERT INTO metrics
+            """WITH eligible_project AS (
+                   SELECT p.id
+                   FROM projects p
+                   JOIN teams t ON t.id = p.team_id
+                   WHERE p.id = %s AND t.owner_id = %s
+                   FOR UPDATE OF p
+               )
+               INSERT INTO metrics
                    (project_id, cpu_usage, memory_usage, requests_total, errors_total, response_time_ms, timestamp)
-               VALUES (%s, %s, %s, %s, %s, %s, COALESCE(%s::timestamp, CURRENT_TIMESTAMP))
+               SELECT eligible_project.id, %s, %s, %s, %s, %s,
+                      COALESCE(%s::timestamp, CURRENT_TIMESTAMP)
+               FROM eligible_project
                RETURNING id, project_id, cpu_usage, memory_usage, requests_total,
                          errors_total, response_time_ms, timestamp""",
-            (project_id, cpu_usage, memory_usage, requests_total, errors_total, response_time_ms, recorded_at),
+            (
+                project_id, request.user_id, cpu_usage, memory_usage,
+                requests_total, errors_total, response_time_ms, recorded_at,
+            ),
             returning=True,
         )
     except psycopg2.Error:
@@ -1023,12 +1035,12 @@ def ingest_metrics(project_id):
         )
         return jsonify({"error": "Telemetry could not be stored right now."}), 503
     if not rows:
-        app.logger.error(
-            "Telemetry insert returned no row for project %s (request_id=%s).",
+        app.logger.info(
+            "Telemetry insert skipped because project %s is no longer available (request_id=%s).",
             project_id,
             getattr(request, "orbit_request_id", "unknown"),
         )
-        return jsonify({"error": "Telemetry could not be stored right now."}), 503
+        abort(404, description="Project not found.")
     return jsonify({"success": True, "metric": rows[0]}), 201
 
 
