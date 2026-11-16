@@ -64,3 +64,18 @@ test('keeps demo workflows usable when browser storage throws on every access', 
   const after = await api.get('/projects');
   assert.ok(after.data.projects.some(project => project.name === 'Private-window project'));
 });
+
+
+test('returns per-team project counts from the owned browser-demo workspace', async () => {
+  const storage = new MemoryStorage();
+  globalThis.localStorage = storage;
+  storage.setItem('token', 'orbit-pages-demo-1-test');
+  storage.setItem('orbit.user', JSON.stringify({
+    id: 1, email: 'demo@orbit.local', username: 'demo', name: 'Demo User'
+  }));
+
+  const api = createDemoApi();
+  const teams = (await api.get('/teams')).data.teams;
+  assert.equal(teams.length, 1);
+  assert.equal(teams[0].project_count, 3);
+});

@@ -1107,7 +1107,8 @@ def create_instance():
 @token_required
 def get_teams():
     rows = db_fetch_all(
-        """SELECT t.*, u.username AS owner_name
+        """SELECT t.*, u.username AS owner_name,
+                  (SELECT COUNT(*)::INTEGER FROM projects p WHERE p.team_id = t.id) AS project_count
            FROM teams t JOIN users u ON u.id = t.owner_id
            WHERE t.owner_id = %s ORDER BY t.created_at DESC, t.id DESC""",
         (request.user_id,),

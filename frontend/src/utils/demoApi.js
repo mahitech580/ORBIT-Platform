@@ -464,7 +464,21 @@ export function createDemoApi() {
           summary: summarizeMetrics(safeMetrics)
         });
       }
-      if (route === '/teams') return response({ teams: state.teams.filter(team => Number(team.owner_id) === activeUserId()) });
+      if (route === '/teams') {
+        const projectsByTeam = new Map();
+        ownedProjects(state).forEach(project => {
+          if (project.team_id == null) return;
+          const key = String(project.team_id);
+          projectsByTeam.set(key, (projectsByTeam.get(key) || 0) + 1);
+        });
+        const teams = state.teams
+          .filter(team => Number(team.owner_id) === activeUserId())
+          .map(team => ({
+            ...team,
+            project_count: projectsByTeam.get(String(team.id)) || 0
+          }));
+        return response({ teams });
+      }
       if (route === '/instances') {
         const projectIds = new Set(ownedProjects(state).map(project => Number(project.id)));
         const instances = (state.instances || [])

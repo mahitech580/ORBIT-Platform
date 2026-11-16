@@ -348,7 +348,7 @@ export default function App() {
       case 'metrics':
         return <Metrics projects={projects} api={api} refreshSeconds={refreshSeconds} />;
       case 'teams':
-        return <Teams teams={teams} loading={loading} onCreateTeam={createTeam} onRefresh={refreshNow} />;
+        return <Teams teams={teams} projects={projects} loading={loading} onCreateTeam={createTeam} onRefresh={refreshNow} />;
       case 'instances':
         return <Instances instances={instances} projects={projects} deployments={deployments} loading={loading} onCreateInstance={createInstance} />;
       case 'settings':

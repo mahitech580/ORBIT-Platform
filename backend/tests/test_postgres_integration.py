@@ -478,3 +478,40 @@ class RealPostgresWorkflowTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+    def test_team_listing_includes_project_counts_scoped_to_each_owned_team(self):
+        owner = self.register("team-counts@example.test", "team_counts_owner")
+        headers = self.auth(owner["token"])
+        first_team = self.client.get("/api/teams", headers=headers).get_json()["teams"][0]
+
+        for index in range(2):
+            response = self.client.post("/api/projects", headers=headers, json={
+                "name": "First team project " + str(index + 1),
+                "team_id": first_team["id"],
+            })
+            self.assertEqual(response.status_code, 201, response.get_json())
+
+        second_team_response = self.client.post("/api/teams", headers=headers, json={
+            "name": "Secondary team",
+        })
+        self.assertEqual(second_team_response.status_code, 201, second_team_response.get_json())
+        second_team_id = second_team_response.get_json()["team"]["id"]
+        secondary_project = self.client.post("/api/projects", headers=headers, json={
+            "name": "Secondary team project",
+            "team_id": second_team_id,
+        })
+        self.assertEqual(secondary_project.status_code, 201, secondary_project.get_json())
+
+        other_owner = self.register("other-team-counts@example.test", "other_team_counts")
+        other_project = self.client.post("/api/projects", headers=self.auth(other_owner["token"]), json={
+            "name": "Another owner's project",
+        })
+        self.assertEqual(other_project.status_code, 201, other_project.get_json())
+
+        response = self.client.get("/api/teams", headers=headers)
+        self.assertEqual(response.status_code, 200, response.get_json())
+        counts = {team["id"]: team["project_count"] for team in response.get_json()["teams"]}
+        self.assertEqual(counts[first_team["id"]], 2)
+        self.assertEqual(counts[second_team_id], 1)
+        self.assertEqual(len(counts), 2)
