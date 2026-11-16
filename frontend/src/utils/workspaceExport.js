@@ -1,4 +1,4 @@
-const SENSITIVE_FIELD = /(?:password|passphrase|secret|token|authorization|api[_-]?key|private[_-]?key|cookie|credential)/i;
+const SENSITIVE_FIELD = /(?:password|passphrase|secret|token|authorization|api[_-]?key|access[_-]?key|private[_-]?key|cookie|credential|connection[_-]?string|database[_-]?url|webhook[_-]?(?:url|secret))/i;
 
 // Browser restore is intended for workspace snapshots, not unbounded bulk imports.
 

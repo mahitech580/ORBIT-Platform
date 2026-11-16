@@ -40,3 +40,53 @@ test('redacts Basic authorization assignments without keeping encoded credential
   assert.equal(JSON.stringify(backup).includes(encoded), false);
   assert.match(backup.records.projects[0].description, /REDACTED: credential assignment/);
 });
+
+
+test('redacts database and connection-string values embedded in operational text', () => {
+  const databaseUrl = 'postgresql://orbit-user:database-password@db.example.test:5432/orbit';
+  const backup = buildWorkspaceExport({
+    projects: [{
+      id: 1,
+      name: 'Database connector',
+      description: 'DATABASE_URL=' + databaseUrl + '; connection_string="mongodb+srv://user:pass@cluster.example.test/app"'
+    }]
+  }, 'fixed-time');
+  const exported = JSON.stringify(backup);
+  assert.equal(exported.includes('database-password'), false);
+  assert.equal(exported.includes('mongodb+srv://user:pass@cluster.example.test'), false);
+  assert.match(backup.records.projects[0].description, /REDACTED: credential assignment/);
+});
+
+test('redacts generic URL user-info but preserves ordinary documentation URLs', () => {
+  const backup = buildWorkspaceExport({
+    projects: [{
+      id: 1,
+      name: 'Webhook integration',
+      description: 'Source https://docs.example.test/setup and endpoint https://operator:private-value@api.example.test/hooks'
+    }]
+  }, 'fixed-time');
+  const description = backup.records.projects[0].description;
+  assert.match(description, /https:\/\/docs\.example\.test\/setup/);
+  assert.match(description, /https:\/\/\[REDACTED\]@api\.example\.test\/hooks/);
+  assert.equal(description.includes('private-value'), false);
+});
+
+test('removes connection, database URL, webhook and access-key fields by name', () => {
+  const backup = buildWorkspaceExport({
+    projects: [{
+      id: 1,
+      name: 'Sensitive connector',
+      database_url: 'postgresql://secret',
+      connection_string: 'mongodb://secret',
+      webhook_url: 'https://hooks.example.test/private',
+      aws_access_key_id: 'AKIAIOSFODNN7EXAMPLE',
+      public_documentation_url: 'https://docs.example.test'
+    }]
+  }, 'fixed-time');
+  const record = backup.records.projects[0];
+  assert.equal(Object.hasOwn(record, 'database_url'), false);
+  assert.equal(Object.hasOwn(record, 'connection_string'), false);
+  assert.equal(Object.hasOwn(record, 'webhook_url'), false);
+  assert.equal(Object.hasOwn(record, 'aws_access_key_id'), false);
+  assert.equal(record.public_documentation_url, 'https://docs.example.test');
+});
