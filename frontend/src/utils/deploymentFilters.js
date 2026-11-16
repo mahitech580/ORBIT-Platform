@@ -1,3 +1,5 @@
+import { normalizeSearchText } from './searchText.js';
+
 /**
  * Pure deployment filtering shared by the UI and regression tests.
  * The result preserves source order because the API is responsible for recency ordering.
@@ -10,7 +12,7 @@ export function filterDeployments(deployments, {
 } = {}) {
   const records = Array.isArray(deployments) ? deployments : [];
   const projectRecords = Array.isArray(projects) ? projects : [];
-  const needle = String(query ?? '').trim().toLowerCase();
+  const needle = normalizeSearchText(query);
 
   return records.filter(deployment => {
     if (!deployment || typeof deployment !== 'object' || Array.isArray(deployment)) return false;
@@ -33,7 +35,7 @@ export function filterDeployments(deployments, {
       deployment.version,
       deployment.branch,
       deployment.status
-    ].map(value => String(value ?? '')).join(' ').toLowerCase();
+    ].map(normalizeSearchText).join(' ');
 
     return searchable.includes(needle);
   });

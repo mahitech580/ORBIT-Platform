@@ -1,12 +1,14 @@
+import { normalizeSearchText } from './searchText.js';
+
 function searchable(value) {
-  return String(value ?? '').toLocaleLowerCase();
+  return normalizeSearchText(value);
 }
 
 export function filterTeams(teams, query = '') {
   const records = Array.isArray(teams)
     ? teams.filter(item => item && typeof item === 'object' && !Array.isArray(item))
     : [];
-  const needle = String(query ?? '').trim().toLocaleLowerCase();
+  const needle = normalizeSearchText(query);
   if (!needle) return records;
   return records.filter(team => [
     team.id, team.name, team.description, team.owner_id, team.owner_name
@@ -18,7 +20,7 @@ export function filterInstances(instances, projects = [], query = '', filters = 
     ? instances.filter(item => item && typeof item === 'object' && !Array.isArray(item))
     : [];
   const projectRecords = Array.isArray(projects) ? projects : [];
-  const needle = String(query ?? '').trim().toLocaleLowerCase();
+  const needle = normalizeSearchText(query);
   const status = String(filters.status ?? 'all');
   const projectId = String(filters.projectId ?? 'all');
   const instanceType = String(filters.instanceType ?? 'all');

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { nextCommandIndex } from '../utils/commandPaletteNavigation.js';
+import { normalizeSearchText } from '../utils/searchText.js';
 
 const commands = [
   { id: 'dashboard', label: 'Open dashboard', description: 'Workspace summary and live record activity', icon: '⌂' },
@@ -16,9 +17,9 @@ export default function CommandPalette({ onClose, onSelect }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef(null);
   const results = useMemo(() => {
-    const needle = query.trim().toLowerCase();
+    const needle = normalizeSearchText(query);
     return needle
-      ? commands.filter(command => (command.label + ' ' + command.description + ' ' + command.id).toLowerCase().includes(needle))
+      ? commands.filter(command => [command.label, command.description, command.id].some(value => normalizeSearchText(value).includes(needle)))
       : commands;
   }, [query]);
 

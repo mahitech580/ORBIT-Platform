@@ -47,3 +47,14 @@ test('filtering preserves original order and does not mutate source arrays', () 
   assert.deepEqual(source, deployments);
   assert.equal(result[0], deployments[2]);
 });
+
+
+test('deployment search matches accented project names without accents', () => {
+  const localizedProjects = [{ id: 3, name: 'Café Operações' }];
+  const localizedDeployments = [{
+    id: 31, project_id: 3, version: '3.0.0', branch: 'main', status: 'completed'
+  }];
+  assert.deepEqual(filterDeployments(localizedDeployments, {
+    query: 'cafe operacoes', projects: localizedProjects
+  }).map(item => item.id), [31]);
+});

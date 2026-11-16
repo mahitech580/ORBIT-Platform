@@ -110,3 +110,14 @@ test('sorts teams by owner when owner metadata is available', () => {
   ];
   assert.deepEqual(sortTeams(teams, 'owner').map(item => item.id), [3, 2, 1]);
 });
+
+
+test('team and instance searches match decomposed and accented text consistently', () => {
+  const teams = [{ id: 1, name: 'Café Operações', description: 'Equipe Núcleo' }];
+  const instances = [{ id: 2, name: 'worker-café', project_id: 7, instance_type: 't3.medium', status: 'running' }];
+  const projects = [{ id: 7, name: 'Serviços Centrais' }];
+  assert.deepEqual(filterTeams(teams, 'cafe operacoes').map(item => item.id), [1]);
+  assert.deepEqual(filterTeams(teams, 'EQUIPE NUCLEO').map(item => item.id), [1]);
+  assert.deepEqual(filterInstances(instances, projects, 'servicos centrais').map(item => item.id), [2]);
+  assert.deepEqual(filterInstances(instances, projects, 'worker-cafe').map(item => item.id), [2]);
+});

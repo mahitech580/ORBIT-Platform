@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { getDialogFocusWrapIndex } from '../utils/dialogFocus.js';
 import { buildProjectCsv } from '../utils/projectExport.js';
 import { formatWorkspaceDate } from '../utils/formatWorkspaceDate.js';
+import { normalizeSearchText } from '../utils/searchText.js';
 
 const EMPTY_FORM = { name: '', description: '', runtime: 'node', status: 'active' };
 
@@ -49,10 +50,10 @@ export default function Projects({ projects, loading, onCreateProject, onUpdateP
   }, [selectedProject]);
 
   const filteredProjects = useMemo(() => {
-    const needle = query.trim().toLowerCase();
+    const needle = normalizeSearchText(query);
     return projects.filter(project => {
       const matchesText = !needle || [project.name, project.description, project.team_name]
-        .some(value => String(value || '').toLowerCase().includes(needle));
+        .some(value => normalizeSearchText(value).includes(needle));
       const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
       const matchesRuntime = runtimeFilter === 'all' || project.runtime === runtimeFilter;
       return matchesText && matchesStatus && matchesRuntime;
