@@ -17,7 +17,9 @@ function normalizeRecordId(value) {
 }
 
 const SENSITIVE_TEXT_PATTERNS = [
-  [/\b[A-Z0-9_-]*(?:password|passwd|passphrase|secret|token|authorization|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret)\b\s*[:=]\s*(?:Bearer\s+[^\s,;]+|Basic\s+[^\s,;]+|"[^"]*"|'[^']*'|[^\s,;]+)/gi, '[REDACTED: credential assignment'],
+  // Strip URL user-info without touching safe URL schemes, hosts, paths or query strings.
+  [/\\b([a-z][a-z0-9+.-]*:\\/\\/)[^/\\s@]+@/gi, '$1[REDACTED]@'],
+  [/\\b[A-Z0-9_-]*(?:password|passwd|passphrase|secret|token|authorization|api[_-]?key|access[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|database[_-]?url|connection[_\\s-]?string|webhook[_-]?(?:url|secret))\\b\\s*[:=]\\s*(?:Bearer\\s+[^\\s,;]+|Basic\\s+[^\\s,;]+|"[^"]*"|'[^']*'|[^\\s,;]+)/gi, '[REDACTED: credential assignment'],  [/\b[A-Z0-9_-]*(?:password|passwd|passphrase|secret|token|authorization|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret)\b\s*[:=]\s*(?:Bearer\s+[^\s,;]+|Basic\s+[^\s,;]+|"[^"]*"|'[^']*'|[^\s,;]+)/gi, '[REDACTED: credential assignment'],
   [/-----BEGIN (?:RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----[\s\S]*?(?:-----END (?:RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----|$)/g, '[REDACTED: private-key block]'],
   [/Bearer\s+[A-Za-z0-9._~+\/-]{16,}={0,2}/gi, '[REDACTED: bearer token]'],
   [/(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{30,})/g, '[REDACTED: GitHub token]'],
