@@ -58,3 +58,17 @@ test('deployment search matches accented project names without accents', () => {
     query: 'cafe operacoes', projects: localizedProjects
   }).map(item => item.id), [31]);
 });
+
+
+test('uses the first matching project name when legacy project IDs are duplicated', () => {
+  const duplicateProjects = [
+    { id: 1, name: 'Café Console' },
+    { id: '1', name: 'Ignored duplicate' }
+  ];
+  assert.deepEqual(filterDeployments([{
+    id: 40, project_id: '1', version: '1.0.0', status: 'completed'
+  }], { query: 'cafe', projects: duplicateProjects }).map(item => item.id), [40]);
+  assert.deepEqual(filterDeployments([{
+    id: 41, project_id: '1', version: '1.0.0', status: 'completed'
+  }], { query: 'ignored', projects: duplicateProjects }), []);
+});

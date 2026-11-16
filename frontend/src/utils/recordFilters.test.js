@@ -121,3 +121,14 @@ test('team and instance searches match decomposed and accented text consistently
   assert.deepEqual(filterInstances(instances, projects, 'servicos centrais').map(item => item.id), [2]);
   assert.deepEqual(filterInstances(instances, projects, 'worker-cafe').map(item => item.id), [2]);
 });
+
+
+test('uses the first matching project when legacy project IDs are duplicated', () => {
+  const duplicateProjects = [
+    { id: 7, name: 'Café Payments' },
+    { id: '7', name: 'Ignored duplicate' }
+  ];
+  const instances = [{ id: 9, project_id: '7', name: 'worker', status: 'running' }];
+  assert.deepEqual(filterInstances(instances, duplicateProjects, 'cafe payments').map(item => item.id), [9]);
+  assert.deepEqual(filterInstances(instances, duplicateProjects, 'ignored duplicate'), []);
+});

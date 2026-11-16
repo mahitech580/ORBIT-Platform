@@ -20,6 +20,13 @@ export function filterInstances(instances, projects = [], query = '', filters = 
     ? instances.filter(item => item && typeof item === 'object' && !Array.isArray(item))
     : [];
   const projectRecords = Array.isArray(projects) ? projects : [];
+  const projectNames = new Map();
+  for (const project of projectRecords) {
+    if (!project || typeof project !== 'object' || Array.isArray(project)) continue;
+    const id = String(project.id);
+    // Keep the first match to retain the previous find() behavior for legacy IDs.
+    if (!projectNames.has(id)) projectNames.set(id, project.name);
+  }
   const needle = normalizeSearchText(query);
   const status = String(filters.status ?? 'all');
   const projectId = String(filters.projectId ?? 'all');
@@ -29,8 +36,7 @@ export function filterInstances(instances, projects = [], query = '', filters = 
     if (projectId !== 'all' && String(instance.project_id ?? '') !== projectId) return false;
     if (instanceType !== 'all' && String(instance.instance_type ?? '') !== instanceType) return false;
     if (!needle) return true;
-    const project = projectRecords.find(item => item && String(item.id) === String(instance.project_id));
-    const projectName = instance.project_name || project?.name || '';
+    const projectName = instance.project_name || projectNames.get(String(instance.project_id)) || '';
     return [
       instance.id, instance.name, instance.project_id, projectName,
       instance.instance_type, instance.status, instance.deployment_id

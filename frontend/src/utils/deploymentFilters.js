@@ -12,6 +12,13 @@ export function filterDeployments(deployments, {
 } = {}) {
   const records = Array.isArray(deployments) ? deployments : [];
   const projectRecords = Array.isArray(projects) ? projects : [];
+  const projectNames = new Map();
+  for (const project of projectRecords) {
+    if (!project || typeof project !== 'object' || Array.isArray(project)) continue;
+    const id = String(project.id);
+    // Preserve Array.find's first-match behavior if legacy input contains duplicate IDs.
+    if (!projectNames.has(id)) projectNames.set(id, project.name);
+  }
   const needle = normalizeSearchText(query);
 
   return records.filter(deployment => {
@@ -26,12 +33,10 @@ export function filterDeployments(deployments, {
 
     if (!needle) return true;
 
-    const project = projectRecords.find(item =>
-      item && String(item.id) === String(deployment.project_id)
-    );
+    const projectName = projectNames.get(String(deployment.project_id));
     const searchable = [
       deployment.id,
-      deployment.project_name || project?.name || 'Unknown project',
+      deployment.project_name || projectName || 'Unknown project',
       deployment.version,
       deployment.branch,
       deployment.status
