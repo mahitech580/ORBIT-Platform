@@ -2,12 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { resolveDeploymentProjectId } from '../utils/deploymentProjectSelection.js';
 import { filterDeployments } from '../utils/deploymentFilters.js';
 import { buildDeploymentCsv } from '../utils/deploymentExport.js';
+import { requiredTextError } from '../utils/requiredText.js';
 
 export default function Deployments({ deployments = [], projects = [], loading, onDeploy }) {
   const [showForm, setShowForm] = useState(false);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [projectFilter, setProjectFilter] = useState('all');
+  const [formError, setFormError] = useState('');
   const [formData, setFormData] = useState({
     project_id: resolveDeploymentProjectId('', projects),
     version: '1.0.0',
@@ -53,6 +55,7 @@ export default function Deployments({ deployments = [], projects = [], loading, 
 
   const handleInputChange = event => {
     const { name, value } = event.target;
+    setFormError('');
     setFormData(previous => ({
       ...previous,
       [name]: name === 'project_id' ? (value ? Number(value) : '') : value
@@ -61,14 +64,21 @@ export default function Deployments({ deployments = [], projects = [], loading, 
 
   const handleSubmit = async event => {
     event.preventDefault();
-    if (!formData.project_id) return;
+    const validationError = requiredTextError(formData.version, 'Version') ||
+      requiredTextError(formData.branch, 'Source branch');
+    if (validationError) { setFormError(validationError); return; }
+    if (!formData.project_id) { setFormError('Choose a project before recording a deployment.'); return; }
+    setFormError('');
     const success = await onDeploy(formData.project_id, {
       version: formData.version.trim(),
       branch: formData.branch.trim()
     });
     if (success) {
+      setFormError('');
       setShowForm(false);
       setFormData({ project_id: availableProjects[0]?.id ?? '', version: '1.0.0', branch: 'main' });
+    } else {
+      setFormError('The deployment record could not be saved. Review the workspace error and try again.');
     }
   };
 
@@ -126,6 +136,7 @@ export default function Deployments({ deployments = [], projects = [], loading, 
                 <input id="deployment-branch" type="text" name="branch" value={formData.branch} onChange={handleInputChange} maxLength={200} placeholder="main" required />
               </div>
             </div>
+            {formError && <p className="inline-form-error" role="alert">{formError}</p>}
             <div className="form-actions">
               <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
               <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Saving…' : 'Create deployment record'}</button>

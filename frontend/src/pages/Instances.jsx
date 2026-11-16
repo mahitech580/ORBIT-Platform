@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { buildInstanceCsv } from '../utils/instanceExport.js';
 import { filterInstances, sortInstances } from '../utils/recordFilters.js';
+import { requiredTextError } from '../utils/requiredText.js';
 
 export default function Instances({ instances = [], projects = [], deployments = [], loading, onCreateInstance }) {
   const [showForm, setShowForm] = useState(false);
@@ -58,6 +59,8 @@ export default function Instances({ instances = [], projects = [], deployments =
     event.preventDefault();
     setError('');
     if (!projectId || !deploymentId) { setError('Choose a project with a deployment record first.'); return; }
+    const validationError = requiredTextError(name, 'Record name');
+    if (validationError) { setError(validationError); return; }
     setSaving(true);
     try {
       const ok = await onCreateInstance({ project_id: Number(projectId), deployment_id: Number(deploymentId), name: name.trim(), instance_type: instanceType });

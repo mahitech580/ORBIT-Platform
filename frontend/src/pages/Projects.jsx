@@ -3,6 +3,7 @@ import { getDialogFocusWrapIndex } from '../utils/dialogFocus.js';
 import { buildProjectCsv } from '../utils/projectExport.js';
 import { formatWorkspaceDate } from '../utils/formatWorkspaceDate.js';
 import { normalizeSearchText } from '../utils/searchText.js';
+import { requiredTextError } from '../utils/requiredText.js';
 
 const EMPTY_FORM = { name: '', description: '', runtime: 'node', status: 'active' };
 
@@ -14,6 +15,7 @@ export default function Projects({ projects, loading, onCreateProject, onUpdateP
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [runtimeFilter, setRuntimeFilter] = useState('all');
+  const [formError, setFormError] = useState('');
   const detailsDialogRef = useRef(null);
 
   useEffect(() => {
@@ -62,6 +64,7 @@ export default function Projects({ projects, loading, onCreateProject, onUpdateP
 
   const startCreate = () => {
     setEditingId(null);
+    setFormError('');
     setFormData(EMPTY_FORM);
     setSelectedProject(null);
     setShowForm(true);
@@ -69,6 +72,7 @@ export default function Projects({ projects, loading, onCreateProject, onUpdateP
 
   const startEdit = project => {
     setEditingId(project.id);
+    setFormError('');
     setFormData({
       name: project.name || '',
       description: project.description || '',
@@ -81,11 +85,15 @@ export default function Projects({ projects, loading, onCreateProject, onUpdateP
 
   const handleInputChange = event => {
     const { name, value } = event.target;
+    if (name === 'name') setFormError('');
     setFormData(previous => ({ ...previous, [name]: value }));
   };
 
   const handleSubmit = async event => {
     event.preventDefault();
+    const validationError = requiredTextError(formData.name, 'Project name');
+    if (validationError) { setFormError(validationError); return; }
+    setFormError('');
     const payload = {
       name: formData.name.trim(),
       description: formData.description.trim(),
@@ -198,6 +206,7 @@ export default function Projects({ projects, loading, onCreateProject, onUpdateP
               <label htmlFor="project-description">Description</label>
               <textarea id="project-description" name="description" value={formData.description} onChange={handleInputChange} maxLength={2000} placeholder="What does this project do?" rows={3} />
             </div>
+            {formError && <p className="inline-form-error" role="alert">{formError}</p>}
             <div className="form-actions">
               <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
               <button type="submit" className="btn btn-primary" disabled={loading}>

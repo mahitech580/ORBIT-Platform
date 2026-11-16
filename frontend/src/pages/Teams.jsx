@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { buildTeamCsv } from '../utils/teamExport.js';
 import { filterTeams, sortTeams } from '../utils/recordFilters.js';
+import { requiredTextError } from '../utils/requiredText.js';
 
 export default function Teams({ teams = [], loading, onCreateTeam }) {
   const [showForm, setShowForm] = useState(false);
@@ -30,6 +31,8 @@ export default function Teams({ teams = [], loading, onCreateTeam }) {
 
   const submit = async event => {
     event.preventDefault();
+    const validationError = requiredTextError(name, 'Team name');
+    if (validationError) { setError(validationError); return; }
     setError('');
     setSaving(true);
     try {
