@@ -36,3 +36,10 @@ test('treats date-only ISO values as local calendar dates across time zones', ()
     else process.env.TZ = previousTimezone;
   }
 });
+
+
+test('formats missing or malformed deployment timestamps without exposing Invalid Date', () => {
+  assert.equal(formatWorkspaceDate('not-a-date'), '—');
+  assert.equal(formatWorkspaceDate('2026-15-70'), '—');
+  assert.equal(formatWorkspaceDate('2026-11-16T06:30:00.000Z'), new Date('2026-11-16T06:30:00.000Z').toLocaleString());
+});

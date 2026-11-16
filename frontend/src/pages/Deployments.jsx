@@ -3,6 +3,7 @@ import { resolveDeploymentProjectId } from '../utils/deploymentProjectSelection.
 import { filterDeployments } from '../utils/deploymentFilters.js';
 import { buildDeploymentCsv } from '../utils/deploymentExport.js';
 import { requiredTextError } from '../utils/requiredText.js';
+import { formatWorkspaceDate } from '../utils/formatWorkspaceDate.js';
 
 export default function Deployments({ deployments = [], projects = [], loading, onDeploy }) {
   const [showForm, setShowForm] = useState(false);
@@ -208,8 +209,8 @@ export default function Deployments({ deployments = [], projects = [], loading, 
                 <div className="deployment-meta-grid">
                   <div><span>Version</span><strong>{deployment.version}</strong></div>
                   <div><span>Branch</span><strong>{deployment.branch}</strong></div>
-                  <div><span>Created</span><strong>{deployment.created_at ? new Date(deployment.created_at).toLocaleString() : '—'}</strong></div>
-                  <div><span>Completed</span><strong>{deployment.completed_at ? new Date(deployment.completed_at).toLocaleString() : 'Not recorded'}</strong></div>
+                  <div><span>Created</span><strong>{formatWorkspaceDate(deployment.created_at)}</strong></div>
+                  <div><span>Completed</span><strong>{deployment.completed_at ? formatWorkspaceDate(deployment.completed_at) : 'Not recorded'}</strong></div>
                 </div>
               </div>
             </article>
