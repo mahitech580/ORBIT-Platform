@@ -10,6 +10,7 @@ test('normalizes accents, composed text, compatibility characters and whitespace
 
 test('retains non-Latin letters and normalizes case', () => {
   assert.equal(normalizeSearchText('తెలుగు తెలుగు'), 'తెలుగు తెలుగు');
+  assert.equal(normalizeSearchText('కోడ్'), 'కోడ్');
   assert.equal(matchesSearch(['తెలుగు భాష'], 'తెలుగు'), true);
   assert.equal(matchesSearch(['Straße'], 'straße'), true);
 });

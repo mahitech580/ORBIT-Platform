@@ -7,7 +7,7 @@ export function normalizeSearchText(value) {
   const text = String(value ?? '');
   return text
     .normalize('NFKD')
-    .replace(/\p{M}+/gu, '')
+    .replace(/([A-Za-z])\p{M}+/gu, '$1')
     .toLocaleLowerCase()
     .trim()
     .replace(/\s+/gu, ' ');
