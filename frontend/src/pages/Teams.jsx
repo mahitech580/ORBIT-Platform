@@ -31,7 +31,7 @@ export default function Teams({ teams = [], projects = [], loading, onCreateTeam
   };
   const exportTeamsCsv = () => {
     if (!filteredTeams.length) return;
-    const csv = buildTeamCsv(filteredTeams);
+    const csv = buildTeamCsv(filteredTeams, projects);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
