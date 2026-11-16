@@ -18,6 +18,7 @@ import { getStorageItem, removeStorageItem, setStorageItem } from './utils/safeS
 import { createRequestSequence } from './utils/requestSequence.js';
 import { isCurrentBearerRequest } from './utils/currentAuthRequest.js';
 import { createRefreshGate } from './utils/refreshGate.js';
+import { collectWorkspaceRefresh } from './utils/workspaceRefresh.js';
 
 const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 const HEALTH_URL = import.meta.env.VITE_HEALTH_URL || API_URL.replace(/\/api\/?$/, '') + '/health';
@@ -116,20 +117,27 @@ export default function App() {
     const requestId = workspaceRequests.current.begin();
     if (showSpinner) setLoading(true);
     try {
-      const [projectResponse, deploymentResponse, teamResponse, instanceResponse] = await Promise.all([
+      const responses = await Promise.allSettled([
         api.get('/projects'),
         api.get('/deployments'),
         api.get('/teams'),
         api.get('/instances')
       ]);
       if (!workspaceRequests.current.isCurrent(requestId)) return false;
-      setProjects(projectResponse.data.projects || []);
-      setDeployments(deploymentResponse.data.deployments || []);
-      setTeams(teamResponse.data.teams || []);
-      setInstances(instanceResponse.data.instances || []);
+      const { updates, failures } = collectWorkspaceRefresh(responses);
+      if (Object.hasOwn(updates, 'projects')) setProjects(updates.projects);
+      if (Object.hasOwn(updates, 'deployments')) setDeployments(updates.deployments);
+      if (Object.hasOwn(updates, 'teams')) setTeams(updates.teams);
+      if (Object.hasOwn(updates, 'instances')) setInstances(updates.instances);
+      updateHealth();
+      if (failures.length) {
+        const names = failures.map(item => item.resource).join(', ');
+        const detail = getApiErrorMessage(failures[0].error, 'The last saved data for unavailable resources remains visible.');
+        setError('Could not refresh ' + names + '. Successfully refreshed records were updated. ' + detail);
+        return false;
+      }
       setLastSyncedAt(new Date());
       setError('');
-      updateHealth();
       return true;
     } catch (requestError) {
       if (!workspaceRequests.current.isCurrent(requestId)) return false;
