@@ -35,7 +35,7 @@ The [ORBIT Platform frontend](https://mahitech580.github.io/ORBIT-Platform/) is 
 
 A Render Blueprint is prepared in `render.yaml`, and the free Singapore PostgreSQL instance `orbit-platform-db-mahitech580` has been created. The API service still needs the Blueprint to be applied/synced in Render before the website can switch to server-backed accounts. Until that one-time setup is complete, the Pages workflow intentionally keeps `VITE_DEMO_MODE=true`.
 
-The free PostgreSQL instance is temporary and expires on **November 13, 2026**; it has no backups. Do not use it for important long-term data unless you upgrade or arrange exports. ORBIT records deployment intent and telemetry values; it does not provision cloud resources or collect live metrics on its own.
+As of **November 19, 2026**, the free PostgreSQL instance's listed expiry date (**November 13, 2026**) has passed. Verify its current status and data retention in Render before configuring the API; this repository does not establish that the database is still available, and the free instance has no backups. ORBIT records deployment intent and telemetry values; it does not provision cloud resources or collect live metrics on its own.
 
 ## Local setup
 
